@@ -229,9 +229,7 @@ export default function App() {
         {/* VIEW: LANDING */}
         {view === 'landing' && (
           <div className="flex flex-col items-center text-center py-20 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-bold uppercase tracking-widest">
-              <Sparkles size={12} /> Powered by Groq & Pollinations
-            </div>
+
             <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-tight">
               Intelligent Cooking,<br />
               <span className="text-orange-500">Effortless Living.</span>
