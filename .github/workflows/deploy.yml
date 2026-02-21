@@ -21,7 +21,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Get the code
+      - name: Checkout Code
         uses: actions/checkout@v4
       
       - name: Set up Node.js
@@ -29,28 +29,20 @@ jobs:
         with:
           node-version: 20
           
-      - name: Install tools
-        run: npm install
+      - name: Install dependencies (with legacy fix)
+        run: npm install --legacy-peer-deps
         
-        env:
-          # This safely injects your hidden keys while the site is building!
-          VITE_GROQ_API_KEY: ${{ secrets.VITE_GROQ_API_KEY }}
-          VITE_POLLINATIONS_API_KEY: ${{ secrets.VITE_POLLINATIONS_API_KEY }}
+      - name: Build project (ignoring warnings)
+        run: CI=false npm run build
           
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v4
         
-      - name: Upload the website files
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: './dist'
           
-      - name: Publish to the internet
+      - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps
-
-      - name: Build project
-        run: CI=false npm run build
