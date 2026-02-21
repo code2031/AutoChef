@@ -50,3 +50,6 @@ jobs:
       - name: Publish to the internet
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
