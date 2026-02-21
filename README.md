@@ -1,16 +1,62 @@
-# React + Vite
+# AutoChef
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An AI-powered recipe generator. Type in what's in your pantry, or snap a photo of your fridge — AutoChef identifies the ingredients and generates a gourmet recipe complete with a photorealistic image of the finished dish.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Fridge Scanner** — Upload a photo and Groq Vision (Llama 3.2) identifies the ingredients automatically
+- **Recipe Generation** — Groq (Llama 3.3 70B) generates a full recipe with ingredients, instructions, a chef's tip, and a smart substitution
+- **Dish Visualization** — Pollinations.ai renders a photorealistic image of the generated recipe
+- **Dietary & vibe filters** — Supports vegetarian, vegan, keto, gluten-free, and cooking styles (quick, fancy, healthy, comfort)
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **React 19** + **Vite 7**
+- **Tailwind CSS v4**
+- **Groq API** — LLM text generation and vision
+- **Pollinations.ai** — Free image generation
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Set up API keys
+
+Create a `.env.local` file in the project root:
+
+```
+VITE_GROQ_API_KEY=your_groq_api_key
+VITE_POLLINATIONS_API_KEY=your_pollinations_api_key
+```
+
+Get a free Groq API key at [console.groq.com](https://console.groq.com). Pollinations.ai keys are optional — image generation falls back gracefully if not provided.
+
+### 3. Run the dev server
+
+```bash
+npm run dev
+```
+
+## Deployment (GitHub Pages)
+
+The project deploys automatically to GitHub Pages on every push to `main` via GitHub Actions.
+
+Add your API keys as repository secrets:
+- `VITE_GROQ_API_KEY`
+- `VITE_POLLINATIONS_API_KEY`
+
+Then reference them in `.github/workflows/deploy.yml` under the build step:
+
+```yaml
+- name: Build project
+  run: npm run build
+  env:
+    VITE_GROQ_API_KEY: ${{ secrets.VITE_GROQ_API_KEY }}
+    VITE_POLLINATIONS_API_KEY: ${{ secrets.VITE_POLLINATIONS_API_KEY }}
+```
+
+The `base` in `vite.config.js` is set to `/autochef/` — update this if your repository name differs.
