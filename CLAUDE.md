@@ -49,13 +49,12 @@ The vision endpoint returns a plain text JSON array; the code strips potential m
 
 ### Styling
 
-- **Tailwind CSS v4** is installed, but `src/index.css` still uses the **v3 `@tailwind` directive syntax** (`@tailwind base/components/utilities`). There is no `postcss.config.js` and no `@tailwindcss/vite` plugin in `vite.config.js`, so Tailwind classes are not processed through a plugin — Vite passes them through esbuild/Rollup as-is. If Tailwind processing breaks, the fix is either to add `@tailwindcss/vite` to `vite.config.js` or add a `postcss.config.js` with `@tailwindcss/postcss`.
-- `tailwind.config.js` uses the v3 object export format, which is ignored by Tailwind v4.
+Tailwind CSS v4 via the `@tailwindcss/vite` plugin (configured in `vite.config.js`). `src/index.css` uses the v4 `@import "tailwindcss"` syntax. `tailwind.config.js` is a v3 remnant and is ignored by Tailwind v4.
 
 ## Deployment
 
 GitHub Actions (`.github/workflows/deploy.yml`) builds and deploys to GitHub Pages on every push to `main`.
 
 - Build output: `dist/`
-- Vite `base` is hardcoded to `/autochef/` in `vite.config.js` — change this if the repo is renamed
-- API keys must be added as **repository secrets** and forwarded to the build step via `env:` in the workflow; the workflow currently does **not** do this, so production builds have no API keys
+- Vite `base` is `/AutoChef/` in `vite.config.js` — must match the GitHub repo name exactly (case-sensitive on GitHub Pages)
+- `REACT_APP_GROQ_API_KEY` and `REACT_APP_POLLINATIONS_API_KEY` must be added as repository secrets; they are already wired into the build step via `env:` in the workflow

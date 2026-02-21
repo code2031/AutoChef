@@ -45,18 +45,6 @@ npm run dev
 
 The project deploys automatically to GitHub Pages on every push to `main` via GitHub Actions.
 
-Add your API keys as repository secrets:
-- `REACT_APP_GROQ_API_KEY`
-- `REACT_APP_POLLINATIONS_API_KEY`
+Add your API keys as repository secrets named `REACT_APP_GROQ_API_KEY` and `REACT_APP_POLLINATIONS_API_KEY` — they are already wired into the build step in `.github/workflows/deploy.yml`.
 
-Then reference them in `.github/workflows/deploy.yml` under the build step:
-
-```yaml
-- name: Build project
-  run: npm run build
-  env:
-    REACT_APP_GROQ_API_KEY: ${{ secrets.REACT_APP_GROQ_API_KEY }}
-    REACT_APP_POLLINATIONS_API_KEY: ${{ secrets.REACT_APP_POLLINATIONS_API_KEY }}
-```
-
-The `base` in `vite.config.js` is set to `/autochef/` — update this if your repository name differs.
+The `base` in `vite.config.js` is set to `/AutoChef/` — update this to match your exact repository name (GitHub Pages is case-sensitive).
