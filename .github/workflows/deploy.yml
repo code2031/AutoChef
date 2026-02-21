@@ -32,8 +32,6 @@ jobs:
       - name: Install tools
         run: npm install
         
-      - name: Build the website
-        run: npm run build
         env:
           # This safely injects your hidden keys while the site is building!
           VITE_GROQ_API_KEY: ${{ secrets.VITE_GROQ_API_KEY }}
@@ -53,3 +51,6 @@ jobs:
 
       - name: Install dependencies
         run: npm install --legacy-peer-deps
+
+      - name: Build project
+        run: CI=false npm run build
