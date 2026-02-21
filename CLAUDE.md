@@ -29,7 +29,11 @@ The `reset()` function returns to `'generate'`. There is no router.
 
 ### API integrations
 
-Both API keys must be available at runtime. The code currently reads them via `process.env.REACT_APP_*`, which is a Create React App convention. **Vite does not expose `process.env`** — the correct pattern is `import.meta.env.VITE_*`. This means keys injected as `VITE_GROQ_API_KEY` won't be picked up until the variable names in `App.jsx` (lines 9–10) are updated to match.
+Both API keys are read at the top of `App.jsx` (lines 9–10) via `process.env.REACT_APP_*`. **Vite does not expose `process.env`** — so these will always be empty strings in the browser unless you either:
+- Switch to `import.meta.env.VITE_GROQ_API_KEY` / `import.meta.env.VITE_POLLINATIONS_API_KEY` (recommended), or
+- Add a `define: { 'process.env': {} }` shim in `vite.config.js`
+
+The README and GitHub Actions secrets currently use the `REACT_APP_*` naming convention to match the code as-is.
 
 | Integration | Purpose | Model |
 |---|---|---|
