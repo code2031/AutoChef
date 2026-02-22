@@ -15,11 +15,11 @@ export function buildRecipePrompt({
     ? `Respond in ${getLanguageName(language)}.`
     : '';
   const cuisineText = cuisine && cuisine !== 'any' ? `Cuisine style: ${cuisine}.` : '';
-  const spiceText = spice ? `Spice level: ${spice}.` : '';
+  const spiceText = kidFriendly ? 'Spice level: mild (kid-friendly).' : (spice ? `Spice level: ${spice}.` : '');
   const servingsText = servings ? `Servings: ${servings}.` : 'Servings: 2.';
   const moodText = mood ? `Mood/occasion: ${mood}.` : '';
   const leftoverText = leftover ? 'Focus on using up all the ingredients as leftovers — minimal waste.' : '';
-  const kidText = kidFriendly ? 'Make this kid-friendly: mild flavors, simple presentation, no complex techniques.' : '';
+  const kidText = kidFriendly ? 'This recipe MUST be kid-friendly: mild flavors only, simple techniques, no alcohol, no exotic spices, fun presentation appealing to children.' : '';
 
   return `You are AutoChef, a world-class AI culinary assistant.
 Generate a recipe using ONLY or mostly these ingredients: ${ingredients.join(', ')}.
@@ -55,10 +55,11 @@ Return a JSON object with this exact structure (no markdown):
 }`;
 }
 
-export function buildSuggestionsPrompt({ ingredients, diet, vibe, cuisine }) {
+export function buildSuggestionsPrompt({ ingredients, diet, vibe, cuisine, kidFriendly }) {
+  const kidNote = kidFriendly ? ' All suggestions must be kid-friendly (mild, simple, fun for children).' : '';
   return `You are AutoChef, a world-class AI culinary assistant.
 Given these ingredients: ${ingredients.join(', ')}.
-Dietary preference: ${diet}. Cooking vibe: ${vibe}. ${cuisine !== 'any' ? `Cuisine: ${cuisine}.` : ''}
+Dietary preference: ${diet}. Cooking vibe: ${vibe}. ${cuisine !== 'any' ? `Cuisine: ${cuisine}.` : ''}${kidNote}
 
 Suggest exactly 3 distinct recipe names with one-line descriptions.
 Return a JSON object (no markdown):

@@ -197,6 +197,7 @@ export default function App() {
         diet: prefs.diet,
         vibe: prefs.vibe,
         cuisine: prefs.cuisine,
+        kidFriendly: prefs.kidFriendly,
       });
       const result = await generateSuggestions(prompt);
       setSuggestions(result);
