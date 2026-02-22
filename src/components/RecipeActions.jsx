@@ -1,15 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart, Share2, Printer, QrCode, RotateCcw, ThumbsUp, ThumbsDown, Image as ImageIcon, Loader2 } from 'lucide-react';
 
-function encodeRecipeToUrl(recipe) {
+async function encodeRecipeToUrl(recipe) {
+  const json = JSON.stringify(recipe);
+  const bytes = new TextEncoder().encode(json);
   try {
-    const json = JSON.stringify(recipe);
-    const bytes = new TextEncoder().encode(json);
+    const cs = new CompressionStream('deflate-raw');
+    const writer = cs.writable.getWriter();
+    writer.write(bytes);
+    writer.close();
+    const buf = await new Response(cs.readable).arrayBuffer();
+    const encoded = btoa(String.fromCharCode(...new Uint8Array(buf)));
+    const base = window.location.origin + window.location.pathname;
+    return `${base}#rc=${encoded}`;
+  } catch {
+    // Fallback to uncompressed if CompressionStream unavailable
     const encoded = btoa(String.fromCharCode(...bytes));
     const base = window.location.origin + window.location.pathname;
     return `${base}#r=${encoded}`;
-  } catch {
-    return window.location.href;
   }
 }
 
@@ -28,10 +36,14 @@ export default function RecipeActions({
 }) {
   const [showQR, setShowQR] = useState(false);
   const [shareMsg, setShareMsg] = useState('');
+  const [shareUrl, setShareUrl] = useState('');
 
-  const shareUrl = encodeRecipeToUrl(recipe);
+  useEffect(() => {
+    encodeRecipeToUrl(recipe).then(setShareUrl);
+  }, [recipe]);
 
   const handleShare = async () => {
+    if (!shareUrl) return;
     if (navigator.share) {
       try {
         await navigator.share({ title: recipe.name, url: shareUrl, text: `Check out this AutoChef recipe: ${recipe.name}!` });
@@ -47,7 +59,9 @@ export default function RecipeActions({
 
   const handlePrint = () => window.print();
 
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}`;
+  const qrUrl = shareUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&ecc=L&data=${encodeURIComponent(shareUrl)}`
+    : '';
 
   return (
     <div className="space-y-3 no-print">
@@ -135,7 +149,10 @@ export default function RecipeActions({
       {/* QR Code display */}
       {showQR && (
         <div className="flex items-center gap-4 p-4 bg-white rounded-2xl w-fit">
-          <img src={qrUrl} alt="QR Code" className="w-24 h-24" />
+          {qrUrl
+            ? <img src={qrUrl} alt="QR Code" className="w-32 h-32" />
+            : <div className="w-32 h-32 bg-slate-100 rounded animate-pulse" />
+          }
           <p className="text-slate-900 text-sm max-w-[160px]">Scan to open this exact recipe</p>
         </div>
       )}

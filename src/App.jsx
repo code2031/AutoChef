@@ -53,21 +53,37 @@ export default function App() {
     document.documentElement.classList.toggle('light-theme', prefs.theme === 'light');
   }, [prefs.theme]);
 
-  // Restore recipe from shared URL hash (#r=<base64>)
+  // Restore recipe from shared URL hash (#rc=<compressed> or #r=<plain>)
   useEffect(() => {
     const hash = window.location.hash;
-    if (!hash.startsWith('#r=')) return;
-    try {
-      const encoded = hash.slice(3);
-      const bytes = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
-      const decoded = JSON.parse(new TextDecoder().decode(bytes));
-      setRecipe(decoded);
-      setView('result');
-      setIsGeneratingImage(true);
-      setRecipeImage(buildImageUrl(decoded.name, decoded.description));
-    } catch {
-      // Ignore malformed hash
-    }
+    const compressed = hash.startsWith('#rc=');
+    const plain = hash.startsWith('#r=');
+    if (!compressed && !plain) return;
+    (async () => {
+      try {
+        const encoded = hash.slice(compressed ? 4 : 3);
+        const bytes = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
+        let decoded;
+        if (compressed) {
+          const ds = new DecompressionStream('deflate-raw');
+          const writer = ds.writable.getWriter();
+          writer.write(bytes);
+          writer.close();
+          const buf = await new Response(ds.readable).arrayBuffer();
+          decoded = JSON.parse(new TextDecoder().decode(buf));
+        } else {
+          decoded = JSON.parse(new TextDecoder().decode(bytes));
+        }
+        setTimeout(() => {
+          setRecipe(decoded);
+          setView('result');
+          setIsGeneratingImage(true);
+          setRecipeImage(buildImageUrl(decoded.name, decoded.description));
+        }, 0);
+      } catch {
+        // Ignore malformed hash
+      }
+    })();
   }, []);
 
   // Keyboard shortcut: Cmd/Ctrl+Enter to generate

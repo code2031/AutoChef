@@ -1,7 +1,6 @@
 import React from 'react';
 import { ArrowRight, Sparkles, Camera, Heart } from 'lucide-react';
 import { getSeasonalIngredients } from '../lib/seasonal.js';
-import logoUrl from '../assets/AutoChef_Logo.png';
 
 export default function LandingView({ setView }) {
   const seasonal = getSeasonalIngredients();
