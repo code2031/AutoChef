@@ -35,8 +35,8 @@ jobs:
       - name: Build project (ignoring warnings)
         run: CI=false npm run build
         env:
-          REACT_APP_GROQ_API_KEY: ${{ secrets.REACT_APP_GROQ_API_KEY }}
-          REACT_APP_POLLINATIONS_API_KEY: ${{ secrets.REACT_APP_POLLINATIONS_API_KEY }}
+          VITE_GROQ_API_KEY: ${{ secrets.VITE_GROQ_API_KEY }}
+          VITE_POLLINATIONS_API_KEY: ${{ secrets.VITE_POLLINATIONS_API_KEY }}
           
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v4

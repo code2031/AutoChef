@@ -6,8 +6,8 @@ import {
 } from 'lucide-react';
 
 // Safely access environment variables injected during the GitHub Actions build step.
-const GROQ_API_KEY = typeof process !== 'undefined' && process.env ? process.env.REACT_APP_GROQ_API_KEY : '';
-const POLLINATIONS_API_KEY = typeof process !== 'undefined' && process.env ? process.env.REACT_APP_POLLINATIONS_API_KEY : '';
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
+const POLLINATIONS_API_KEY = import.meta.env.VITE_POLLINATIONS_API_KEY || '';
 
 export default function App() {
   const [view, setView] = useState('landing'); // landing, generate, result
@@ -235,7 +235,7 @@ export default function App() {
               <span className="text-orange-500">Effortless Living.</span>
             </h1>
             <p className="text-slate-400 text-lg md:text-xl max-w-xl mx-auto leading-relaxed">
-              Snap a photo of your fridge. Groq identifies ingredients and invents a recipe, Pollinations shows you exactly what it will look like.
+              Snap a photo of your fridge. Our AI identifies ingredients and invents a recipe, and it will also show you exactly what it will look like.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <button 
