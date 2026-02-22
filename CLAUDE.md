@@ -29,11 +29,7 @@ The `reset()` function returns to `'generate'`. There is no router.
 
 ### API integrations
 
-Both API keys are read at the top of `App.jsx` (lines 9–10) via `process.env.REACT_APP_*`. **Vite does not expose `process.env`** — so these will always be empty strings in the browser unless you either:
-- Switch to `import.meta.env.VITE_GROQ_API_KEY` / `import.meta.env.VITE_POLLINATIONS_API_KEY` (recommended), or
-- Add a `define: { 'process.env': {} }` shim in `vite.config.js`
-
-The README and GitHub Actions secrets currently use the `REACT_APP_*` naming convention to match the code as-is.
+API keys are read at the top of `App.jsx` via `import.meta.env.VITE_GROQ_API_KEY` and `import.meta.env.VITE_POLLINATIONS_API_KEY`. For local dev, set them in `.env.local`. For production, they must be added as GitHub repository secrets (see Deployment section).
 
 | Integration | Purpose | Model |
 |---|---|---|
@@ -57,4 +53,4 @@ GitHub Actions (`.github/workflows/deploy.yml`) builds and deploys to GitHub Pag
 
 - Build output: `dist/`
 - Vite `base` is `/AutoChef/` in `vite.config.js` — must match the GitHub repo name exactly (case-sensitive on GitHub Pages)
-- `REACT_APP_GROQ_API_KEY` and `REACT_APP_POLLINATIONS_API_KEY` must be added as repository secrets; they are already wired into the build step via `env:` in the workflow
+- `VITE_GROQ_API_KEY` and `VITE_POLLINATIONS_API_KEY` must be added as repository secrets; they are already wired into the build step via `env:` in the workflow
