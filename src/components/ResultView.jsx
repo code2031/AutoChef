@@ -83,20 +83,23 @@ export default function ResultView({
   const [servingMultiplier, setServingMultiplier] = useState(1);
   const [copiedIngredients, setCopiedIngredients] = useState(false);
 
-  // Fire confetti when recipe + image both load
+  // Fire confetti only on the very first recipe ever (persisted to localStorage)
   useEffect(() => {
     if (recipe && !isGenerating && !isGeneratingImage && !confettiFired.current) {
       confettiFired.current = true;
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.4 },
-        colors: ['#f97316', '#ef4444', '#fbbf24', '#ffffff'],
-      });
+      if (!localStorage.getItem('confetti_done')) {
+        localStorage.setItem('confetti_done', '1');
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.4 },
+          colors: ['#f97316', '#ef4444', '#fbbf24', '#ffffff'],
+        });
+      }
     }
   }, [recipe, isGenerating, isGeneratingImage]);
 
-  // Reset confetti flag when recipe changes
+  // Reset per-recipe UI state when recipe changes
   useEffect(() => {
     confettiFired.current = false;
     setTimeout(() => {
