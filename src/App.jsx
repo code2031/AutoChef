@@ -198,6 +198,7 @@ export default function App() {
         vibe: prefs.vibe,
         cuisine: prefs.cuisine,
         kidFriendly: prefs.kidFriendly,
+        leftover: prefs.leftover,
       });
       const result = await generateSuggestions(prompt);
       setSuggestions(result);

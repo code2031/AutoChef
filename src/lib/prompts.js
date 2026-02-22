@@ -18,7 +18,12 @@ export function buildRecipePrompt({
   const spiceText = kidFriendly ? 'Spice level: mild (kid-friendly).' : (spice ? `Spice level: ${spice}.` : '');
   const servingsText = servings ? `Servings: ${servings}.` : 'Servings: 2.';
   const moodText = mood ? `Mood/occasion: ${mood}.` : '';
-  const leftoverText = leftover ? 'Focus on using up all the ingredients as leftovers — minimal waste.' : '';
+  const leftoverText = leftover
+    ? `LEFTOVER MODE: You MUST use every single ingredient listed — this is zero-waste cooking from what's on hand.
+Do NOT suggest buying anything new. Every ingredient must appear in the recipe.
+Prioritise techniques that transform leftovers (stir-fries, frittatas, grain bowls, soups, fried rice, hash, wraps).
+The recipe name should reflect that it is a creative leftover dish.`
+    : '';
   const kidText = kidFriendly ? 'This recipe MUST be kid-friendly: mild flavors only, simple techniques, no alcohol, no exotic spices, fun presentation appealing to children.' : '';
 
   return `You are AutoChef, a world-class AI culinary assistant.
@@ -55,11 +60,12 @@ Return a JSON object with this exact structure (no markdown):
 }`;
 }
 
-export function buildSuggestionsPrompt({ ingredients, diet, vibe, cuisine, kidFriendly }) {
+export function buildSuggestionsPrompt({ ingredients, diet, vibe, cuisine, kidFriendly, leftover }) {
   const kidNote = kidFriendly ? ' All suggestions must be kid-friendly (mild, simple, fun for children).' : '';
+  const leftoverNote = leftover ? ' These are LEFTOVER ingredients — all 3 suggestions must use every ingredient listed, no new purchases.' : '';
   return `You are AutoChef, a world-class AI culinary assistant.
 Given these ingredients: ${ingredients.join(', ')}.
-Dietary preference: ${diet}. Cooking vibe: ${vibe}. ${cuisine !== 'any' ? `Cuisine: ${cuisine}.` : ''}${kidNote}
+Dietary preference: ${diet}. Cooking vibe: ${vibe}. ${cuisine !== 'any' ? `Cuisine: ${cuisine}.` : ''}${kidNote}${leftoverNote}
 
 Suggest exactly 3 distinct recipe names with one-line descriptions.
 Return a JSON object (no markdown):
