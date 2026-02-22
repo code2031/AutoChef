@@ -1,19 +1,15 @@
 import React from 'react';
-import { ChefHat, History, Sun, Moon, Zap } from 'lucide-react';
+import { History, Sun, Moon, Zap } from 'lucide-react';
+import logoUrl from '../assets/AutoChef_Logo.png';
 
 export default function Navbar({ view, setView, theme, setTheme, points, streak, historyCount }) {
   return (
     <nav className="fixed top-0 w-full z-50 bg-slate-950/80 dark:bg-slate-950/80 light:bg-white/80 backdrop-blur-md border-b border-white/10 px-4 md:px-6 py-4 flex justify-between items-center no-print">
       <div
-        className="flex items-center gap-2 cursor-pointer"
+        className="flex items-center cursor-pointer"
         onClick={() => setView('landing')}
       >
-        <div className="bg-gradient-to-br from-orange-400 to-red-600 p-2 rounded-xl shadow-lg shadow-orange-500/20">
-          <ChefHat size={22} className="text-white" />
-        </div>
-        <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-          AutoChef
-        </span>
+        <img src={logoUrl} alt="AutoChef" className="h-10 w-auto" />
       </div>
 
       <div className="flex items-center gap-2">
