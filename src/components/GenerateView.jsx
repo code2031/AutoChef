@@ -14,13 +14,13 @@ const CUISINE_COLORS = {
 
 const MOOD_OPTIONS = [
   { value: '', label: '— Any —' },
-  { value: 'date night', label: '💑 Date Night' },
   { value: 'meal prep', label: '📦 Meal Prep' },
-  { value: 'hangover cure', label: '🤒 Hangover Cure' },
   { value: 'birthday', label: '🎂 Birthday' },
   { value: 'late night', label: '🌙 Late Night' },
   { value: 'summer bbq', label: '🔥 Summer BBQ' },
   { value: 'cozy winter', label: '❄️ Cozy Winter' },
+  { value: 'dinner party', label: '🥂 Dinner Party' },
+  { value: 'quick lunch', label: '⚡ Quick Lunch' },
 ];
 
 // Ingredient of the week: derived from week number
