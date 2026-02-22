@@ -80,6 +80,10 @@ body {
     background: white !important;
     color: black !important;
   }
+  main {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
   * {
     color: black !important;
     border-color: #ccc !important;
