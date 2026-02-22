@@ -4,7 +4,7 @@ import logoUrl from '../assets/AutoChef_Logo.png';
 
 export default function Navbar({ view, setView, theme, setTheme, points, streak, historyCount }) {
   return (
-    <nav className="fixed top-0 w-full z-50 bg-slate-950/80 dark:bg-slate-950/80 light:bg-white/80 backdrop-blur-md border-b border-white/10 px-4 md:px-6 py-2 flex justify-between items-center no-print relative overflow-visible">
+    <nav className="fixed top-0 w-full z-50 bg-slate-950/80 dark:bg-slate-950/80 light:bg-white/80 backdrop-blur-md px-4 md:px-6 py-2 flex justify-between items-center no-print relative overflow-visible">
       {/* Logo: absolute so it doesn't set navbar height; overflows below the slim bar */}
       <img
         src={logoUrl}
