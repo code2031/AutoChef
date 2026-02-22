@@ -13,6 +13,8 @@ export default function ResultView({
   diet,
   isSaved,
   rating,
+  totalLikes,
+  totalDislikes,
   showCookingMode,
   setShowCookingMode,
   isRegenerating,
@@ -70,7 +72,7 @@ export default function ResultView({
 
       <div className="space-y-8 animate-in fade-in duration-700">
         {/* Hero image */}
-        <div className="w-full h-64 md:h-96 rounded-3xl overflow-hidden relative bg-slate-900 border border-white/10">
+        <div className="recipe-hero w-full h-64 md:h-96 rounded-3xl overflow-hidden relative bg-slate-900 border border-white/10">
           {recipeImage && (
             <img
               src={recipeImage}
@@ -79,7 +81,7 @@ export default function ResultView({
             />
           )}
           {isGeneratingImage && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 space-y-4">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 space-y-4 no-print">
               <div className="text-orange-500 animate-bounce"><ImageIcon size={32} /></div>
               <p className="text-slate-400 font-medium flex items-center gap-2">
                 <Loader2 size={16} className="animate-spin" />
@@ -88,21 +90,25 @@ export default function ResultView({
             </div>
           )}
           {!recipeImage && !isGeneratingImage && (
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center no-print">
               <ImageIcon size={48} className="text-slate-700" />
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent pointer-events-none" />
-          <div className="absolute bottom-6 left-6 right-6">
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent pointer-events-none no-print" />
+          <div className="absolute bottom-6 left-6 right-6 no-print">
             <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-lg">{recipe.name}</h2>
           </div>
         </div>
+        {/* Recipe name shown in print (replaces overlay) */}
+        <h2 className="hidden print-only text-3xl font-black text-black">{recipe.name}</h2>
 
         {/* Actions */}
         <RecipeActions
           recipe={recipe}
           isSaved={isSaved}
           rating={rating}
+          totalLikes={totalLikes}
+          totalDislikes={totalDislikes}
           onSave={onSave}
           onRegenerate={onRegenerate}
           onRegenerateImage={onRegenerateImage}

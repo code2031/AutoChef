@@ -73,6 +73,9 @@ body {
   .no-print {
     display: none !important;
   }
+  .print-only {
+    display: block !important;
+  }
   body {
     background: white !important;
     color: black !important;
@@ -82,13 +85,26 @@ body {
     border-color: #ccc !important;
     background: transparent !important;
   }
-  .bg-slate-900,
-  .bg-slate-950 {
-    background: #f9f9f9 !important;
+  /* Recipe hero image: remove fixed height, show full image */
+  .recipe-hero {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: white !important;
   }
-  img {
+  .recipe-hero img {
+    height: auto !important;
+    width: 100% !important;
     max-width: 100% !important;
+    object-fit: contain !important;
+    display: block !important;
+    border-radius: 12px !important;
+    margin-bottom: 12px !important;
   }
+}
+
+.print-only {
+  display: none;
 }
 
 /* Smooth stagger animation for result sections */

@@ -1,10 +1,24 @@
 import React, { useState } from 'react';
 import { Heart, Share2, Printer, QrCode, RotateCcw, ThumbsUp, ThumbsDown, Image as ImageIcon, Loader2 } from 'lucide-react';
 
+function encodeRecipeToUrl(recipe) {
+  try {
+    const json = JSON.stringify(recipe);
+    const bytes = new TextEncoder().encode(json);
+    const encoded = btoa(String.fromCharCode(...bytes));
+    const base = window.location.origin + window.location.pathname;
+    return `${base}#r=${encoded}`;
+  } catch {
+    return window.location.href;
+  }
+}
+
 export default function RecipeActions({
   recipe,
   isSaved,
   rating,
+  totalLikes,
+  totalDislikes,
   onSave,
   onRegenerate,
   onRegenerateImage,
@@ -15,16 +29,17 @@ export default function RecipeActions({
   const [showQR, setShowQR] = useState(false);
   const [shareMsg, setShareMsg] = useState('');
 
+  const shareUrl = encodeRecipeToUrl(recipe);
+
   const handleShare = async () => {
-    const text = `Check out this AutoChef recipe: ${recipe.name}!\n${recipe.description}`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: recipe.name, text });
+        await navigator.share({ title: recipe.name, url: shareUrl, text: `Check out this AutoChef recipe: ${recipe.name}!` });
       } catch {
         // Share cancelled or not supported
       }
     } else {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(shareUrl);
       setShareMsg('Copied!');
       setTimeout(() => setShareMsg(''), 2000);
     }
@@ -32,8 +47,7 @@ export default function RecipeActions({
 
   const handlePrint = () => window.print();
 
-  const qrData = encodeURIComponent(window.location.href);
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrData}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}`;
 
   return (
     <div className="space-y-3 no-print">
@@ -100,19 +114,21 @@ export default function RecipeActions({
       </div>
 
       {/* Rating */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <span className="text-xs text-slate-500">Rate this recipe:</span>
         <button
           onClick={() => onRate('up')}
-          className={`p-2 rounded-lg transition-all ${rating === 'up' ? 'bg-green-500/20 text-green-400' : 'text-slate-500 hover:text-green-400'}`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all ${rating === 'up' ? 'bg-green-500/20 text-green-400' : 'text-slate-500 hover:text-green-400'}`}
         >
-          <ThumbsUp size={16} />
+          <ThumbsUp size={15} />
+          {totalLikes > 0 && <span className="font-bold">{totalLikes}</span>}
         </button>
         <button
           onClick={() => onRate('down')}
-          className={`p-2 rounded-lg transition-all ${rating === 'down' ? 'bg-red-500/20 text-red-400' : 'text-slate-500 hover:text-red-400'}`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all ${rating === 'down' ? 'bg-red-500/20 text-red-400' : 'text-slate-500 hover:text-red-400'}`}
         >
-          <ThumbsDown size={16} />
+          <ThumbsDown size={15} />
+          {totalDislikes > 0 && <span className="font-bold">{totalDislikes}</span>}
         </button>
       </div>
 
@@ -120,7 +136,7 @@ export default function RecipeActions({
       {showQR && (
         <div className="flex items-center gap-4 p-4 bg-white rounded-2xl w-fit">
           <img src={qrUrl} alt="QR Code" className="w-24 h-24" />
-          <p className="text-slate-900 text-sm max-w-[160px]">Scan to share this page</p>
+          <p className="text-slate-900 text-sm max-w-[160px]">Scan to open this exact recipe</p>
         </div>
       )}
     </div>

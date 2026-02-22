@@ -34,6 +34,8 @@ export function useRecipeHistory() {
   };
 
   const favourites = history.filter(e => e.isFavourite);
+  const totalLikes = history.filter(e => e.rating === 'up').length;
+  const totalDislikes = history.filter(e => e.rating === 'down').length;
 
-  return { history, favourites, saveRecipe, toggleFavourite, setRating, deleteEntry };
+  return { history, favourites, totalLikes, totalDislikes, saveRecipe, toggleFavourite, setRating, deleteEntry };
 }

@@ -45,13 +45,30 @@ export default function App() {
 
   // Persistent hooks
   const prefs = usePreferences();
-  const { history, favourites, saveRecipe, toggleFavourite, setRating, deleteEntry } = useRecipeHistory();
+  const { history, favourites, totalLikes, totalDislikes, saveRecipe, toggleFavourite, setRating, deleteEntry } = useRecipeHistory();
   const gamification = useGamification();
 
   // Apply theme
   useEffect(() => {
     document.documentElement.classList.toggle('light-theme', prefs.theme === 'light');
   }, [prefs.theme]);
+
+  // Restore recipe from shared URL hash (#r=<base64>)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash.startsWith('#r=')) return;
+    try {
+      const encoded = hash.slice(3);
+      const bytes = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
+      const decoded = JSON.parse(new TextDecoder().decode(bytes));
+      setRecipe(decoded);
+      setView('result');
+      setIsGeneratingImage(true);
+      setRecipeImage(buildImageUrl(decoded.name, decoded.description));
+    } catch {
+      // Ignore malformed hash
+    }
+  }, []);
 
   // Keyboard shortcut: Cmd/Ctrl+Enter to generate
   useEffect(() => {
@@ -320,6 +337,8 @@ export default function App() {
             diet={prefs.diet}
             isSaved={!!currentSavedId}
             rating={currentRating}
+            totalLikes={totalLikes}
+            totalDislikes={totalDislikes}
             showCookingMode={showCookingMode}
             setShowCookingMode={setShowCookingMode}
             isRegenerating={isRegenerating}
