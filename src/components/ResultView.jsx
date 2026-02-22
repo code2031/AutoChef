@@ -4,6 +4,7 @@ import confetti from 'canvas-confetti';
 import StatsBar from './StatsBar.jsx';
 import RecipeActions from './RecipeActions.jsx';
 import CookingMode from './CookingMode.jsx';
+import FlavorRadar from './FlavorRadar.jsx';
 
 function detectTimerSeconds(step) {
   const patterns = [
@@ -236,6 +237,52 @@ function ShoppingListModal({ recipe, onClose }) {
   );
 }
 
+function extractMiseTasks(instructions) {
+  const tasks = [];
+  const verbPatterns = [
+    /(?:chop|dice|mince|slice|julienne|grate|peel|shred|crush|pound|grind|zest)\s+[^.,;]{3,50}/gi,
+    /(?:preheat|heat)\s+(?:oven|pan|grill|oil|water)[^.,;]{0,40}/gi,
+    /(?:wash|rinse|clean|dry|trim|soak)\s+[^.,;]{3,40}/gi,
+    /(?:bring\s+[^.;]+?\s+to\s+(?:a\s+)?boil)/gi,
+    /(?:drain|thaw|defrost)\s+[^.,;]{3,40}/gi,
+  ];
+  (instructions || []).forEach(step => {
+    verbPatterns.forEach(pattern => {
+      pattern.lastIndex = 0;
+      const matches = step.match(pattern);
+      if (matches) matches.forEach(m => {
+        const clean = m.trim();
+        if (clean.length < 70 && !tasks.some(t => t.toLowerCase() === clean.toLowerCase())) tasks.push(clean);
+      });
+    });
+  });
+  return tasks.slice(0, 10);
+}
+
+function MiseTasks({ instructions }) {
+  const [checked, setChecked] = useState({});
+  const tasks = extractMiseTasks(instructions || []);
+  return (
+    <div className="flex-1 overflow-y-auto space-y-2">
+      {tasks.length === 0 ? (
+        <p className="text-slate-500 text-sm py-4 text-center">No specific prep steps detected — you&apos;re good to start!</p>
+      ) : (
+        tasks.map((task, i) => (
+          <label key={i} className="flex items-start gap-3 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-colors">
+            <input
+              type="checkbox"
+              checked={!!checked[i]}
+              onChange={() => setChecked(prev => ({ ...prev, [i]: !prev[i] }))}
+              className="mt-0.5 accent-orange-500 cursor-pointer"
+            />
+            <span className={`text-sm transition-all ${checked[i] ? 'line-through text-slate-600' : 'text-slate-300'}`}>{task}</span>
+          </label>
+        ))
+      )}
+    </div>
+  );
+}
+
 export default function ResultView({
   recipe,
   recipeImage,
@@ -243,6 +290,7 @@ export default function ResultView({
   isGeneratingImage,
   diet,
   isSaved,
+  isAutoTagging,
   rating,
   totalLikes,
   totalDislikes,
@@ -256,10 +304,12 @@ export default function ResultView({
   onReset,
   onVariantReady,
   onSimilar,
+  onSaveCookingNotes,
   ingredients,
   allergies,
   tempUnit,
   nutritionGoals,
+  pairings,
 }) {
   const confettiFired = useRef(false);
   const [checked, setChecked] = useState({});
@@ -267,6 +317,7 @@ export default function ResultView({
   const [customMultiplier, setCustomMultiplier] = useState('');
   const [copiedIngredients, setCopiedIngredients] = useState(false);
   const [showShoppingList, setShowShoppingList] = useState(false);
+  const [showMise, setShowMise] = useState(false);
 
   // Fire confetti only on the very first recipe ever (persisted to localStorage)
   useEffect(() => {
@@ -390,7 +441,36 @@ export default function ResultView({
   return (
     <>
       {showCookingMode && (
-        <CookingMode recipe={recipe} onExit={() => setShowCookingMode(false)} />
+        <CookingMode
+          recipe={recipe}
+          onExit={(notes) => {
+            setShowCookingMode(false);
+            if (onSaveCookingNotes && notes && Object.keys(notes).length > 0) onSaveCookingNotes(notes);
+          }}
+        />
+      )}
+
+      {showMise && recipe && (
+        <div className="fixed inset-0 z-[200] bg-slate-950/95 backdrop-blur-sm flex flex-col p-4 sm:p-6 animate-in fade-in duration-300">
+          <div className="max-w-2xl mx-auto w-full flex flex-col h-full">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <p className="text-xs text-orange-400 font-bold uppercase tracking-widest">Mise en Place</p>
+                <h2 className="text-xl sm:text-2xl font-bold mt-1">Prep before you cook</h2>
+              </div>
+              <button onClick={() => setShowMise(false)} className="p-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all">
+                <X size={24} />
+              </button>
+            </div>
+            <MiseTasks instructions={recipe.instructions} />
+            <button
+              onClick={() => { setShowMise(false); setShowCookingMode(true); }}
+              className="mt-6 w-full py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-2xl text-lg transition-all"
+            >
+              Start Cooking →
+            </button>
+          </div>
+        </div>
       )}
 
       {showShoppingList && (
@@ -434,6 +514,7 @@ export default function ResultView({
           recipe={recipe}
           recipeImage={recipeImage}
           isSaved={isSaved}
+          isAutoTagging={isAutoTagging}
           rating={rating}
           totalLikes={totalLikes}
           totalDislikes={totalDislikes}
@@ -452,7 +533,7 @@ export default function ResultView({
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '100ms' }}>
           <p className="text-slate-300 italic text-lg leading-relaxed">{recipe.description}</p>
           <button
-            onClick={() => setShowCookingMode(true)}
+            onClick={() => setShowMise(true)}
             className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-orange-500/20"
           >
             <ChefHat size={16} />
@@ -463,6 +544,11 @@ export default function ResultView({
         {/* Stats */}
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '150ms' }}>
           <StatsBar recipe={recipe} diet={diet} ingredients={ingredients} tempUnit={tempUnit} nutritionGoals={nutritionGoals} />
+        </div>
+
+        {/* Flavor radar */}
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '165ms' }}>
+          <FlavorRadar recipe={recipe} />
         </div>
 
         {/* Recipe grid */}
@@ -586,6 +672,22 @@ export default function ResultView({
             </div>
           </div>
         </div>
+
+        {/* Pairing suggestions */}
+        {pairings && pairings.length > 0 && (
+          <div className="p-5 bg-slate-900 border border-white/5 rounded-2xl space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '350ms' }}>
+            <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500">Goes Well With</h4>
+            <div className="grid sm:grid-cols-3 gap-3">
+              {pairings.map((p, i) => (
+                <div key={i} className="p-3 bg-slate-800/50 border border-white/5 rounded-xl space-y-1">
+                  <span className="text-xs font-bold text-orange-400 uppercase">{p.type}</span>
+                  <p className="font-bold text-sm text-white">{p.name}</p>
+                  <p className="text-xs text-slate-400 leading-relaxed">{p.reason}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Back button */}
         <button

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, Trash2, Clock, Search, Download, SortAsc, X } from 'lucide-react';
+import { Heart, Trash2, Clock, Search, Download, SortAsc, X, FolderPlus } from 'lucide-react';
 import { Image as ImageIcon } from 'lucide-react';
 
 function TagEditor({ entry, onAddTag, onRemoveTag }) {
@@ -147,21 +147,82 @@ function MonthlyChallenges({ history, favourites }) {
   );
 }
 
+function CollectionDropdown({ entry, collections, onSetEntryCollection, onCreateCollection }) {
+  const [open, setOpen] = useState(false);
+  const [newName, setNewName] = useState('');
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="p-1.5 rounded-lg text-slate-600 hover:text-slate-400 transition-all"
+        title="Add to collection"
+      >
+        <FolderPlus size={14} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 bottom-full mb-1 w-44 bg-slate-800 border border-white/10 rounded-xl p-2 z-20 shadow-xl space-y-1">
+            <p className="text-xs text-slate-500 px-2 pb-1 font-bold">Add to collection</p>
+            {entry.collectionId && (
+              <button
+                onClick={() => { onSetEntryCollection(entry.id, null); setOpen(false); }}
+                className="w-full text-left text-xs px-3 py-1.5 rounded-lg text-red-400 hover:bg-white/5 transition-all"
+              >
+                Remove from collection
+              </button>
+            )}
+            {(collections || []).map(col => (
+              <button
+                key={col.id}
+                onClick={() => { onSetEntryCollection(entry.id, col.id); setOpen(false); }}
+                className={`w-full text-left text-xs px-3 py-1.5 rounded-lg transition-all ${entry.collectionId === col.id ? 'text-orange-400 bg-orange-500/10' : 'text-slate-300 hover:bg-white/5'}`}
+              >
+                {entry.collectionId === col.id ? '✓ ' : ''}{col.name}
+              </button>
+            ))}
+            <div className="border-t border-white/5 pt-1">
+              <input
+                value={newName}
+                onChange={e => setNewName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && newName.trim()) {
+                    const id = onCreateCollection(newName);
+                    if (id) { onSetEntryCollection(entry.id, id); setNewName(''); setOpen(false); }
+                  }
+                }}
+                placeholder="New collection..."
+                className="w-full bg-transparent text-xs text-slate-400 outline-none px-2 py-1 placeholder:text-slate-600"
+              />
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function RecipeHistory({
   history,
   favourites,
+  collections,
   onToggleFavourite,
   onDelete,
   onSelect,
   onAddTag,
   onRemoveTag,
   onSetNotes,
+  onCreateCollection,
+  onDeleteCollection,
+  onSetEntryCollection,
   bestStreak,
   currentStreak,
 }) {
   const [tab, setTab] = useState('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('date');
+  const [showVersionsFor, setShowVersionsFor] = useState(null);
+  const [newCollectionName, setNewCollectionName] = useState('');
 
   const baseItems = tab === 'favourites' ? favourites : history;
 
@@ -227,15 +288,21 @@ export default function RecipeHistory({
           <div className="flex gap-1 bg-slate-900 rounded-xl p-1">
             <button
               onClick={() => setTab('all')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === 'all' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === 'all' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
             >
               All ({history.length})
             </button>
             <button
               onClick={() => setTab('favourites')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === 'favourites' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === 'favourites' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
             >
               Saved ({favourites.length})
+            </button>
+            <button
+              onClick={() => setTab('collections')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === 'collections' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
+            >
+              📁 ({(collections || []).length})
             </button>
           </div>
         </div>
@@ -287,6 +354,59 @@ export default function RecipeHistory({
         </div>
       )}
 
+      {/* Collections view */}
+      {tab === 'collections' ? (
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            <input
+              value={newCollectionName}
+              onChange={e => setNewCollectionName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && newCollectionName.trim()) { onCreateCollection(newCollectionName); setNewCollectionName(''); } }}
+              placeholder="New collection name..."
+              className="flex-1 bg-slate-900 border border-white/5 rounded-xl px-4 py-2 text-sm outline-none focus:border-orange-500/50 text-slate-300 placeholder:text-slate-600 transition-all"
+            />
+            <button
+              onClick={() => { if (newCollectionName.trim()) { onCreateCollection(newCollectionName); setNewCollectionName(''); } }}
+              className="px-4 py-2 bg-orange-500/20 border border-orange-500/30 text-orange-400 rounded-xl text-sm hover:bg-orange-500/30 transition-all"
+            >
+              Create
+            </button>
+          </div>
+          {(collections || []).length === 0 ? (
+            <div className="py-12 text-center text-slate-500 text-sm">No collections yet. Create one above to organise your recipes.</div>
+          ) : (
+            (collections || []).map(col => {
+              const colRecipes = history.filter(e => e.collectionId === col.id);
+              return (
+                <div key={col.id} className="bg-slate-900 border border-white/5 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-base">📁 {col.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500">{colRecipes.length} recipe{colRecipes.length !== 1 ? 's' : ''}</span>
+                      <button onClick={() => onDeleteCollection(col.id)} className="p-1.5 text-slate-600 hover:text-red-400 transition-colors"><Trash2 size={14} /></button>
+                    </div>
+                  </div>
+                  {colRecipes.length === 0 ? (
+                    <p className="text-xs text-slate-600">No recipes yet. Use the 📁 icon on any recipe card to add it here.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {colRecipes.map(e => (
+                        <button
+                          key={e.id}
+                          onClick={() => onSelect(e)}
+                          className="px-3 py-1.5 bg-slate-800 border border-white/5 rounded-xl text-xs text-slate-300 hover:border-orange-500/30 hover:text-orange-400 transition-all"
+                        >
+                          {e.recipe.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      ) : (
       <div className="grid sm:grid-cols-2 gap-4">
         {filtered.map(entry => (
           <div
@@ -322,10 +442,25 @@ export default function RecipeHistory({
                   {entry.recipe.difficulty && (
                     <span className="px-2 py-0.5 bg-slate-800 rounded-full">{entry.recipe.difficulty}</span>
                   )}
+                  {entry.versions && entry.versions.length > 0 && (
+                    <button
+                      onClick={() => setShowVersionsFor(showVersionsFor === entry.id ? null : entry.id)}
+                      className="px-1.5 py-0.5 bg-slate-800 rounded-full hover:text-orange-400 transition-colors"
+                      title="Version history"
+                    >
+                      v{entry.versions.length + 1}
+                    </button>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   {entry.rating === 'up' && <span className="text-green-400 text-xs">👍</span>}
                   {entry.rating === 'down' && <span className="text-red-400 text-xs">👎</span>}
+                  <CollectionDropdown
+                    entry={entry}
+                    collections={collections}
+                    onSetEntryCollection={onSetEntryCollection}
+                    onCreateCollection={onCreateCollection}
+                  />
                   <button
                     onClick={() => onToggleFavourite(entry.id)}
                     className={`p-1.5 rounded-lg transition-all ${entry.isFavourite ? 'text-pink-400' : 'text-slate-600 hover:text-pink-400'}`}
@@ -350,10 +485,29 @@ export default function RecipeHistory({
               {onSetNotes && (
                 <NoteEditor entry={entry} onSetNotes={onSetNotes} />
               )}
+
+              {/* Version history */}
+              {showVersionsFor === entry.id && entry.versions && entry.versions.length > 0 && (
+                <div className="pt-2 border-t border-white/5 space-y-1.5">
+                  <p className="text-xs text-slate-600 font-bold uppercase tracking-widest">Previous versions</p>
+                  {[...entry.versions].reverse().map((v, vi) => (
+                    <div key={vi} className="flex items-center justify-between text-xs text-slate-500">
+                      <span>{new Date(v.savedAt).toLocaleDateString()}: {v.recipe.name}</span>
+                      <button
+                        onClick={() => onSelect({ ...entry, recipe: v.recipe, imageUrl: v.imageUrl })}
+                        className="text-orange-400 hover:text-orange-300 transition-colors"
+                      >
+                        View
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }

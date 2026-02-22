@@ -48,6 +48,8 @@ function speakText(text) {
 export default function CookingMode({ recipe, onExit }) {
   const [step, setStep] = useState(0);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [stepNotes, setStepNotes] = useState({});
+  const [showNoteFor, setShowNoteFor] = useState(null);
   // timers: { [stepIdx]: { seconds, timeLeft, running } }
   const [timers, setTimers] = useState(() => {
     const initial = {};
@@ -112,7 +114,7 @@ export default function CookingMode({ recipe, onExit }) {
 
   const goNext = () => {
     if (step < steps.length - 1) setStep(s => s + 1);
-    else onExit();
+    else onExit(stepNotes);
   };
   const goPrev = () => setStep(s => Math.max(0, s - 1));
 
@@ -155,7 +157,7 @@ export default function CookingMode({ recipe, onExit }) {
           >
             {voiceEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
           </button>
-          <button onClick={onExit} className="p-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all">
+          <button onClick={() => onExit(stepNotes)} className="p-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all">
             <X size={24} />
           </button>
         </div>
@@ -194,6 +196,32 @@ export default function CookingMode({ recipe, onExit }) {
         <p className="text-xl sm:text-2xl md:text-3xl leading-relaxed font-medium text-white">
           {steps[step]}
         </p>
+      </div>
+
+      {/* Step note */}
+      <div className="px-4 sm:px-6 pb-2">
+        {showNoteFor === step ? (
+          <div className="flex gap-2 items-start">
+            <textarea
+              value={stepNotes[step] || ''}
+              onChange={e => setStepNotes(prev => ({ ...prev, [step]: e.target.value }))}
+              onBlur={() => setShowNoteFor(null)}
+              placeholder="Add a note for this step..."
+              className="flex-1 bg-slate-900 border border-white/10 rounded-xl p-2.5 text-sm text-slate-300 outline-none focus:border-orange-500/50 resize-none h-20"
+              autoFocus
+            />
+            <button onClick={() => setShowNoteFor(null)} className="p-2 text-slate-400 hover:text-white transition-colors mt-0.5">
+              <X size={16} />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowNoteFor(step)}
+            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            📝 {stepNotes[step] ? `Note: ${stepNotes[step].slice(0, 40)}${stepNotes[step].length > 40 ? '...' : ''}` : 'Add note'}
+          </button>
+        )}
       </div>
 
       {currentTimer && (

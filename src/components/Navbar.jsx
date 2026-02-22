@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { History, Sun, Moon, Type, Contrast, Keyboard, X, Thermometer, Target } from 'lucide-react';
+import { History, Sun, Moon, Type, Contrast, Keyboard, X, Thermometer, Target, Timer, CalendarDays } from 'lucide-react';
 import logoUrl from '../assets/AutoChef_Logo.png';
+import KitchenTimer from './KitchenTimer.jsx';
 
 function KeyboardShortcutsModal({ onClose }) {
   const shortcuts = [
@@ -37,6 +38,7 @@ export default function Navbar({
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showGoals, setShowGoals] = useState(false);
+  const [showTimer, setShowTimer] = useState(false);
 
   const updateGoal = (key, value) => {
     setNutritionGoals(prev => ({ ...prev, [key]: value }));
@@ -57,6 +59,36 @@ export default function Navbar({
         <div className="w-24 sm:w-32 md:w-44" />
 
         <div className="flex items-center gap-2">
+          {/* Meal Planner button */}
+          <button
+            onClick={() => setView('planner')}
+            className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${view === 'planner' ? 'bg-orange-500/20 text-orange-400' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+            title="Meal Planner"
+          >
+            <CalendarDays size={16} />
+            <span className="hidden md:inline">Planner</span>
+          </button>
+
+          {/* Kitchen Timer button */}
+          <div className="relative">
+            <button
+              onClick={() => setShowTimer(v => !v)}
+              className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${showTimer ? 'bg-orange-500/20 text-orange-400' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              title="Kitchen Timers"
+            >
+              <Timer size={16} />
+              <span className="hidden md:inline">Timer</span>
+            </button>
+            {showTimer && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowTimer(false)} />
+                <div className="absolute right-0 top-full mt-2 z-50">
+                  <KitchenTimer onClose={() => setShowTimer(false)} />
+                </div>
+              </>
+            )}
+          </div>
+
           {/* History button */}
           <button
             onClick={() => setView('history')}

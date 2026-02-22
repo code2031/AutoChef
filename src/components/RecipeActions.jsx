@@ -34,6 +34,7 @@ export default function RecipeActions({
   recipe,
   recipeImage,
   isSaved,
+  isAutoTagging,
   rating,
   totalLikes,
   totalDislikes,
@@ -134,6 +135,7 @@ export default function RecipeActions({
         >
           <Heart size={16} fill={isSaved ? 'currentColor' : 'none'} />
           {isSaved ? 'Saved' : 'Save'}
+          {isSaved && isAutoTagging && <span className="text-xs text-slate-400 animate-pulse">🏷️</span>}
         </button>
 
         {/* Shopping List */}

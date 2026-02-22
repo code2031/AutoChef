@@ -63,3 +63,35 @@ export async function generateVariant(promptText) {
   });
   return JSON.parse(data.choices[0].message.content);
 }
+
+export async function importRecipe(promptText) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: promptText }],
+    temperature: 0.2,
+    response_format: { type: 'json_object' },
+  });
+  return JSON.parse(data.choices[0].message.content);
+}
+
+export async function generatePairingSuggestions(recipeName, recipeDescription) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Suggest 3 complementary dishes (sides, starters, or desserts) that pair perfectly with "${recipeName}". ${recipeDescription ? recipeDescription.slice(0, 150) : ''}\n\nReturn JSON: {"pairings": [{"name": "Dish Name", "type": "side/starter/dessert", "reason": "one sentence why it pairs well"}]}` }],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
+  const parsed = JSON.parse(data.choices[0].message.content);
+  return parsed.pairings || [];
+}
+
+export async function generateAutoTags(recipe) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Generate 4-5 short descriptive tags for this recipe: "${recipe.name}". ${recipe.description ? recipe.description.slice(0, 100) : ''}. Tags should be lowercase, 1-3 words each, describing cuisine, meal type, dietary profile, cooking method, or occasion (examples: "weeknight", "high-protein", "one-pan", "30-min", "italian", "comfort food").\n\nReturn JSON: {"tags": ["tag1", "tag2", "tag3", "tag4"]}` }],
+    temperature: 0.5,
+    response_format: { type: 'json_object' },
+  });
+  const parsed = JSON.parse(data.choices[0].message.content);
+  return parsed.tags || [];
+}

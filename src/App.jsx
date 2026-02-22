@@ -6,16 +6,17 @@ import GenerateView from './components/GenerateView.jsx';
 import ResultView from './components/ResultView.jsx';
 import RecipeHistory from './components/RecipeHistory.jsx';
 import RecipeSuggestions from './components/RecipeSuggestions.jsx';
+import MealPlanner from './components/MealPlanner.jsx';
 import ProgressBar from './components/ProgressBar.jsx';
 import BadgePopup from './components/BadgePopup.jsx';
 import { usePreferences } from './hooks/usePreferences.js';
 import { useRecipeHistory } from './hooks/useRecipeHistory.js';
 import { useGamification } from './hooks/useGamification.js';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
-import { scanImageForIngredients, generateRecipe, generateSuggestions, generateVariant } from './lib/groq.js';
+import { scanImageForIngredients, generateRecipe, generateSuggestions, generateVariant, importRecipe, generatePairingSuggestions, generateAutoTags } from './lib/groq.js';
 import { buildImageUrl } from './lib/pollinations.js';
 import { getRandomSurpriseIngredients } from './lib/ingredients.js';
-import { buildRecipePrompt, buildSuggestionsPrompt, buildDishPrompt, buildSimilarPrompt } from './lib/prompts.js';
+import { buildRecipePrompt, buildSuggestionsPrompt, buildDishPrompt, buildSimilarPrompt, buildImportPrompt } from './lib/prompts.js';
 
 export default function App() {
   // View state — start on 'result' immediately if URL carries a recipe
@@ -49,6 +50,10 @@ export default function App() {
   // Current recipe saved state
   const [currentSavedId, setCurrentSavedId] = useState(null);
   const [currentRating, setCurrentRating] = useState(null);
+  const [isAutoTagging, setIsAutoTagging] = useState(false);
+
+  // Pairing suggestions
+  const [pairings, setPairings] = useState([]);
 
   // Badge popup
   const [newBadges, setNewBadges] = useState([]);
@@ -62,6 +67,7 @@ export default function App() {
     history, favourites, totalLikes, totalDislikes,
     saveRecipe, toggleFavourite, setRating, deleteEntry,
     addTag, removeTag, setNotes, isDuplicate,
+    updateRecipeWithVersion, collections, createCollection, deleteCollection, setEntryCollection,
   } = useRecipeHistory();
   const gamification = useGamification();
 
@@ -258,8 +264,12 @@ export default function App() {
       triggerBadgeCheck();
 
       setIsGeneratingImage(true);
-      const imgUrl = buildImageUrl(result.name, result.description);
+      const imgUrl = buildImageUrl(result.name, result.description, prefs.imageStyle);
       setRecipeImage(imgUrl);
+
+      // Fetch pairings in background
+      setPairings([]);
+      generatePairingSuggestions(result.name, result.description).then(setPairings).catch(() => {});
     } catch (err) {
       setError(err.message || "The chef's kitchen is backed up. Check your API key and try again.");
       setIsGenerating(false);
@@ -303,8 +313,11 @@ export default function App() {
       triggerBadgeCheck();
 
       setIsGeneratingImage(true);
-      const imgUrl = buildImageUrl(result.name, result.description);
+      const imgUrl = buildImageUrl(result.name, result.description, prefs.imageStyle);
       setRecipeImage(imgUrl);
+
+      setPairings([]);
+      generatePairingSuggestions(result.name, result.description).then(setPairings).catch(() => {});
     } catch (err) {
       setError(err.message || "The chef's kitchen is backed up. Check your API key and try again.");
       setIsGenerating(false);
@@ -336,8 +349,11 @@ export default function App() {
       gamification.recordRecipe(prefs.cuisine, prefs.diet, result.difficulty);
       triggerBadgeCheck();
       setIsGeneratingImage(true);
-      const imgUrl = buildImageUrl(result.name, result.description);
+      const imgUrl = buildImageUrl(result.name, result.description, prefs.imageStyle);
       setRecipeImage(imgUrl);
+
+      setPairings([]);
+      generatePairingSuggestions(result.name, result.description).then(setPairings).catch(() => {});
     } catch (err) {
       setError(err.message || "Couldn't generate a similar recipe.");
       setIsGenerating(false);
@@ -350,12 +366,48 @@ export default function App() {
     handlePickSuggestion(random || null);
   };
 
+  // --- Import recipe ---
+  const handleImport = async (text) => {
+    setError(null);
+    setView('result');
+    setRecipe(null);
+    setRecipeImage(null);
+    setCurrentSavedId(null);
+    setCurrentRating(null);
+    setPairings([]);
+    setIsGenerating(true);
+    try {
+      const prompt = buildImportPrompt(text);
+      const result = await importRecipe(prompt);
+      setRecipe(result);
+      setIsGenerating(false);
+      setIsGeneratingImage(true);
+      const imgUrl = buildImageUrl(result.name, result.description, prefs.imageStyle);
+      setRecipeImage(imgUrl);
+      generatePairingSuggestions(result.name, result.description).then(setPairings).catch(() => {});
+    } catch (err) {
+      setError(err.message || "Couldn't import that recipe. Try pasting the full text.");
+      setIsGenerating(false);
+      setView('generate');
+    }
+  };
+
+  // --- Save cooking notes from Cooking Mode ---
+  const handleSaveCookingNotes = (notes) => {
+    if (!currentSavedId) return;
+    const formatted = Object.entries(notes)
+      .filter(([, v]) => v)
+      .map(([k, v]) => `Step ${parseInt(k) + 1}: ${v}`)
+      .join('\n');
+    if (formatted) setNotes(currentSavedId, formatted);
+  };
+
   const handleRegenerateImage = () => {
     if (!recipe) return;
     setIsRegeneratingImage(true);
     setRecipeImage(null);
     setTimeout(() => {
-      setRecipeImage(buildImageUrl(recipe.name, recipe.description));
+      setRecipeImage(buildImageUrl(recipe.name, recipe.description, prefs.imageStyle));
     }, 100);
   };
 
@@ -369,13 +421,24 @@ export default function App() {
   }, [recipeImage]);
 
   // --- Save / Favourite ---
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!recipe) return;
     if (currentSavedId) return;
     const id = saveRecipe(recipe, recipeImage, ingredients);
     setCurrentSavedId(id);
     gamification.recordSave();
     triggerBadgeCheck();
+
+    // Auto-tag in background
+    setIsAutoTagging(true);
+    try {
+      const tags = await generateAutoTags(recipe);
+      tags.forEach(tag => addTag(id, tag));
+    } catch {
+      // Ignore auto-tag errors
+    } finally {
+      setIsAutoTagging(false);
+    }
   };
 
   const handleRate = (rating) => {
@@ -385,12 +448,18 @@ export default function App() {
 
   // --- Variant (healthier/cheaper/translate) ---
   const handleVariantReady = (variantRecipe) => {
+    // Save old version if this recipe was already saved
+    if (currentSavedId) {
+      updateRecipeWithVersion(currentSavedId, variantRecipe, null);
+    }
     setRecipe(variantRecipe);
-    setCurrentSavedId(null);
     setCurrentRating(null);
     setIsGeneratingImage(true);
-    const imgUrl = buildImageUrl(variantRecipe.name, variantRecipe.description);
+    const imgUrl = buildImageUrl(variantRecipe.name, variantRecipe.description, prefs.imageStyle);
     setRecipeImage(imgUrl);
+
+    setPairings([]);
+    generatePairingSuggestions(variantRecipe.name, variantRecipe.description).then(setPairings).catch(() => {});
   };
 
   // --- History selection ---
@@ -437,6 +506,7 @@ export default function App() {
     setCurrentRating(null);
     setError(null);
     setDupWarning('');
+    setPairings([]);
     setView('generate');
     window.history.replaceState(null, '', window.location.pathname);
   };
@@ -494,6 +564,7 @@ export default function App() {
             onGenerate={handleGenerate}
             onDishGenerate={handleDishGenerate}
             onLucky={handleLucky}
+            onImport={handleImport}
             isGenerating={isGenerating || isLoadingSuggestions}
             isScanning={isScanning}
             onScan={handleScan}
@@ -525,6 +596,7 @@ export default function App() {
               isGeneratingImage={isGeneratingImage}
               diet={prefs.diet}
               isSaved={!!currentSavedId}
+              isAutoTagging={isAutoTagging}
               rating={currentRating}
               totalLikes={totalLikes}
               totalDislikes={totalDislikes}
@@ -537,11 +609,13 @@ export default function App() {
               onRate={handleRate}
               onReset={reset}
               onVariantReady={handleVariantReady}
+              onSaveCookingNotes={handleSaveCookingNotes}
               ingredients={ingredients}
               allergies={prefs.allergies}
               tempUnit={prefs.tempUnit}
               onSimilar={handleSimilarRecipe}
               nutritionGoals={prefs.nutritionGoals}
+              pairings={pairings}
             />
             {/* Cook Tonight notification button */}
             {recipe && !isGenerating && (
@@ -568,7 +642,15 @@ export default function App() {
             onSetNotes={setNotes}
             bestStreak={bestStreak}
             currentStreak={gamification.streak}
+            collections={collections}
+            onCreateCollection={createCollection}
+            onDeleteCollection={deleteCollection}
+            onSetEntryCollection={setEntryCollection}
           />
+        )}
+
+        {view === 'planner' && (
+          <MealPlanner history={history} />
         )}
       </main>
     </div>

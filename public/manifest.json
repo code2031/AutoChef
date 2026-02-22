@@ -1,0 +1,21 @@
+{
+  "name": "AutoChef",
+  "short_name": "AutoChef",
+  "description": "AI-powered recipe generator — scan your fridge, enter ingredients, or search by dish name",
+  "start_url": "/AutoChef/",
+  "scope": "/AutoChef/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#020617",
+  "theme_color": "#f97316",
+  "icons": [
+    {
+      "src": "/AutoChef/favicon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["food", "lifestyle", "utilities"],
+  "screenshots": []
+}

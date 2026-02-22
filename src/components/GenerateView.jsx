@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Zap, ShoppingBag, Shuffle, X, Ban, UtensilsCrossed, ListOrdered, Dices } from 'lucide-react';
+import { Zap, ShoppingBag, Shuffle, X, Ban, UtensilsCrossed, ListOrdered, Dices, FileText } from 'lucide-react';
 import IngredientInput from './IngredientInput.jsx';
 import SelectorGroup from './SelectorGroup.jsx';
 import PantryDrawer from './PantryDrawer.jsx';
@@ -36,11 +36,12 @@ function getIngredientOfWeek() {
 
 export default function GenerateView({
   ingredients, setIngredients,
-  prefs, onGenerate, onDishGenerate, onLucky, isGenerating, isScanning, onScan, error,
+  prefs, onGenerate, onDishGenerate, onLucky, onImport, isGenerating, isScanning, onScan, error,
   recentIngredients,
 }) {
-  const [mode, setMode] = useState('ingredients'); // 'ingredients' | 'dish'
+  const [mode, setMode] = useState('ingredients'); // 'ingredients' | 'dish' | 'import'
   const [dishInput, setDishInput] = useState('');
+  const [importText, setImportText] = useState('');
   const [showPantry, setShowPantry] = useState(false);
   const [showBanned, setShowBanned] = useState(false);
   const [bannedInput, setBannedInput] = useState('');
@@ -52,6 +53,7 @@ export default function GenerateView({
     allergies, toggleAllergy, spice, setSpice, servings, setServings,
     mood, setMood, leftover, setLeftover, kidFriendly, setKidFriendly,
     banned, toggleBanned, maxCalories, setMaxCalories,
+    imageStyle, setImageStyle,
   } = prefs;
 
   const addIngredient = (name) => {
@@ -133,6 +135,24 @@ export default function GenerateView({
   const cotd = cuisineList[new Date().getDate() % cuisineList.length];
   const ingredientOfWeek = getIngredientOfWeek();
 
+  // Recipe of the Day
+  const RECIPE_IDEAS = [
+    'Pasta Carbonara','Beef Tacos','Chicken Tikka Masala','Sushi Rolls','French Onion Soup',
+    'Pad Thai','Caesar Salad','Beef Bourguignon','Shakshuka','Ramen Bowl','Butter Chicken',
+    'Peking Duck','Fish and Chips','Bibimbap','Moussaka','Paella','Pho Bo','Falafel Wrap',
+    'Mushroom Risotto','Lamb Kebabs','Enchiladas','Tom Yum Soup','Beef Wellington','Naan Pizza',
+    'Korean BBQ Bowl','Greek Salad','Banh Mi','Gnocchi al Pesto','Chicken Schnitzel','Miso Ramen',
+  ];
+  const rotd = RECIPE_IDEAS[new Date().getDate() % RECIPE_IDEAS.length];
+
+  // Image style options
+  const imageStyleOptions = [
+    { value: 'plated', label: '🍽️ Plated' },
+    { value: 'overhead', label: '📸 Overhead' },
+    { value: 'rustic', label: '🪵 Rustic' },
+    { value: 'close-up', label: '🔍 Close-up' },
+  ];
+
   const handleDishSubmit = () => {
     const clean = dishInput.trim();
     if (clean && !isGenerating) onDishGenerate(clean);
@@ -155,6 +175,13 @@ export default function GenerateView({
         >
           <UtensilsCrossed size={15} />
           By Dish Name
+        </button>
+        <button
+          onClick={() => setMode('import')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${mode === 'import' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
+        >
+          <FileText size={15} />
+          Import Recipe
         </button>
       </div>
 
@@ -182,6 +209,34 @@ export default function GenerateView({
               {isGenerating ? 'Generating...' : 'Get Recipe'}
             </button>
           </div>
+          {error && (
+            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center">
+              {error}
+            </div>
+          )}
+        </div>
+      ) : mode === 'import' ? (
+        <div className="space-y-5">
+          <div className="space-y-1">
+            <h2 className="text-2xl sm:text-3xl font-bold">Import any recipe</h2>
+            <p className="text-slate-400 text-sm">Paste recipe text, ingredients and instructions, or describe a dish from memory.</p>
+          </div>
+          <textarea
+            value={importText}
+            onChange={e => setImportText(e.target.value)}
+            placeholder="Paste a recipe here — ingredients, instructions, a URL description, or just describe what you want to make..."
+            className="w-full bg-slate-900 border border-white/10 rounded-2xl px-5 py-4 text-sm outline-none focus:border-orange-500/60 text-white placeholder:text-slate-600 transition-all resize-none"
+            rows={8}
+            autoFocus
+          />
+          <button
+            onClick={() => { if (importText.trim() && !isGenerating) onImport(importText.trim()); }}
+            disabled={!importText.trim() || isGenerating}
+            className={`w-full py-5 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${importText.trim() && !isGenerating ? 'bg-orange-500 hover:bg-orange-600 shadow-xl shadow-orange-500/20' : 'bg-slate-800 text-slate-600 cursor-not-allowed'}`}
+          >
+            <FileText size={20} />
+            {isGenerating ? 'Importing...' : 'Import & Build Recipe'}
+          </button>
           {error && (
             <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center">
               {error}
@@ -266,6 +321,12 @@ export default function GenerateView({
           ✨ Ingredient of the week: {ingredientOfWeek}
         </button>
         <button
+          onClick={() => { setDishInput(rotd); setMode('dish'); }}
+          className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full text-xs hover:bg-amber-500/20 transition-all"
+        >
+          🗓️ Recipe today: {rotd}
+        </button>
+        <button
           onClick={handleSurpriseCuisine}
           className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-full text-xs hover:bg-blue-500/20 transition-all"
         >
@@ -342,6 +403,8 @@ export default function GenerateView({
             max="5000"
           />
         </div>
+
+        <SelectorGroup label="Photo Style" options={imageStyleOptions} value={imageStyle} onChange={setImageStyle} />
 
         {/* Mode toggles */}
         <div className="space-y-2">

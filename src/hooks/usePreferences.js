@@ -22,6 +22,7 @@ export function usePreferences() {
   const [servingsMemory, setServingsMemory] = useLocalStorage('pref_servings_memory', {});
   const [maxCalories, setMaxCalories] = useLocalStorage('pref_max_calories', '');
   const [nutritionGoals, setNutritionGoals] = useLocalStorage('pref_nutrition_goals', { calories: '', protein: '', carbs: '', fat: '' });
+  const [imageStyle, setImageStyle] = useLocalStorage('pref_image_style', 'plated');
 
   const toggleAllergy = (allergy) => {
     setAllergies(prev =>
@@ -59,5 +60,6 @@ export function usePreferences() {
     servingsMemory, rememberServingsForCuisine, recalledServings,
     maxCalories, setMaxCalories,
     nutritionGoals, setNutritionGoals,
+    imageStyle, setImageStyle,
   };
 }

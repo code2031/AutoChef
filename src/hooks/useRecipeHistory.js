@@ -2,6 +2,7 @@ import { useLocalStorage } from './useLocalStorage.js';
 
 export function useRecipeHistory() {
   const [history, setHistory] = useLocalStorage('recipe_history', []);
+  const [collections, setCollections] = useLocalStorage('recipe_collections', []);
 
   const saveRecipe = (recipe, imageUrl, ingredients) => {
     const id = Date.now();
@@ -15,6 +16,8 @@ export function useRecipeHistory() {
       rating: null,
       tags: [],
       notes: '',
+      versions: [],
+      collectionId: null,
     };
     setHistory(prev => [entry, ...prev].slice(0, 50));
     return id;
@@ -69,6 +72,33 @@ export function useRecipeHistory() {
     return history.some(e => e.recipe.name.toLowerCase().trim() === name);
   };
 
+  // Save old version before updating recipe in-place (for variant/similar flows)
+  const updateRecipeWithVersion = (id, newRecipe, newImageUrl) => {
+    setHistory(prev => prev.map(entry => {
+      if (entry.id !== id) return entry;
+      const oldVersion = { recipe: entry.recipe, imageUrl: entry.imageUrl, savedAt: entry.savedAt };
+      const versions = [...(entry.versions || []), oldVersion];
+      return { ...entry, recipe: newRecipe, imageUrl: newImageUrl || entry.imageUrl, savedAt: new Date().toISOString(), versions };
+    }));
+  };
+
+  // Collections
+  const createCollection = (name) => {
+    if (!name.trim()) return null;
+    const id = Date.now();
+    setCollections(prev => [...prev, { id, name: name.trim() }]);
+    return id;
+  };
+
+  const deleteCollection = (id) => {
+    setCollections(prev => prev.filter(c => c.id !== id));
+    setHistory(prev => prev.map(e => e.collectionId === id ? { ...e, collectionId: null } : e));
+  };
+
+  const setEntryCollection = (entryId, collectionId) => {
+    setHistory(prev => prev.map(e => e.id === entryId ? { ...e, collectionId } : e));
+  };
+
   const favourites = history.filter(e => e.isFavourite);
   const totalLikes = history.filter(e => e.rating === 'up').length;
   const totalDislikes = history.filter(e => e.rating === 'down').length;
@@ -86,5 +116,10 @@ export function useRecipeHistory() {
     removeTag,
     setNotes,
     isDuplicate,
+    updateRecipeWithVersion,
+    collections,
+    createCollection,
+    deleteCollection,
+    setEntryCollection,
   };
 }

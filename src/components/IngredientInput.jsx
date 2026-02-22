@@ -54,6 +54,15 @@ export default function IngredientInput({
     }
   };
 
+  const handlePaste = (e) => {
+    const text = e.clipboardData.getData('text');
+    const parts = text.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      e.preventDefault();
+      parts.forEach(p => onAdd(p));
+    }
+  };
+
   const toggleVoice = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { alert('Speech recognition not supported in this browser.'); return; }
@@ -105,6 +114,7 @@ export default function IngredientInput({
             value={inputValue}
             onChange={e => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             placeholder="e.g. Chicken, Spinach, Garlic..."
             className="bg-transparent border-none outline-none flex-grow px-4 py-2 text-base"
             autoComplete="off"

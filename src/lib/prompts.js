@@ -173,3 +173,28 @@ function getLanguageName(langCode) {
   const code = langCode.split('-')[0];
   return map[code] || 'English';
 }
+
+export function buildImportPrompt(text) {
+  return `Parse the following recipe content (may be copied text, a URL description, or any format) into a structured JSON recipe. Use reasonable estimates for any missing fields.
+
+Content to parse:
+${text}
+
+Return ONLY a JSON object (no markdown) with this exact structure:
+{
+  "name": "Recipe Name",
+  "prepTime": "10 minutes",
+  "cookTime": "20 minutes",
+  "time": "30 minutes",
+  "difficulty": "Easy/Medium/Hard",
+  "calories": "400 per serving",
+  "servings": 2,
+  "description": "Short appetizing description",
+  "ingredients": ["item 1 with quantity"],
+  "instructions": ["step 1", "step 2"],
+  "nutrition": { "protein": "20g", "carbs": "30g", "fat": "10g", "fiber": "5g" },
+  "winePairing": "A wine or drink suggestion",
+  "chefTip": "A pro tip",
+  "smartSub": "One smart substitution"
+}`;
+}
