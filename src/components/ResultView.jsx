@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Flame, BookOpen, Timer, Sparkles, Image as ImageIcon, Loader2, ChefHat, Copy, Download, Check, Play, Pause } from 'lucide-react';
+import { Flame, BookOpen, Timer, Sparkles, Image as ImageIcon, Loader2, ChefHat, Copy, Download, Check, Play, Pause, ShoppingCart, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import StatsBar from './StatsBar.jsx';
 import RecipeActions from './RecipeActions.jsx';
@@ -55,6 +55,187 @@ function InlineTimer({ seconds }) {
   );
 }
 
+// Technique glossary
+const TECHNIQUES = {
+  julienne: 'Cut into thin matchstick-shaped strips, usually about 3mm wide.',
+  deglaze: 'Add liquid (wine, stock) to a hot pan to loosen the browned bits stuck to the bottom.',
+  fold: 'Gently combine ingredients with a spatula using a cut-and-turn motion to preserve air.',
+  blanch: 'Briefly boil vegetables then immediately plunge into ice water to stop cooking and set colour.',
+  saute: 'Cook quickly in a small amount of hot oil or butter over medium-high heat.',
+  braise: 'Brown the food first, then slow-cook in a small amount of liquid in a covered pot.',
+  mince: 'Chop into very tiny, fine pieces.',
+  sear: 'Cook at high heat for a short time to form a brown crust on the surface.',
+  simmer: 'Cook gently just below boiling point — small bubbles rise to the surface.',
+  marinate: 'Soak food in a seasoned liquid to add flavour and sometimes tenderise.',
+  caramelize: 'Cook sugar or onions slowly until they turn golden-brown and develop sweetness.',
+  reduce: 'Boil a liquid to evaporate water, concentrating its flavour and thickening the sauce.',
+  render: 'Cook fatty meat (like bacon) slowly to melt out and release the fat.',
+  temper: 'Gradually add a hot liquid to eggs to raise their temperature without scrambling them.',
+  emulsify: 'Blend two liquids that do not normally mix (like oil and water) into a stable mixture.',
+  baste: 'Spoon or brush pan juices, butter, or sauce over food while it cooks to keep it moist.',
+  parboil: 'Partially boil food before finishing it with another cooking method.',
+  dice: 'Cut into small, uniform cubes — small dice (~6mm), medium (~12mm), large (~20mm).',
+  chiffonade: 'Stack leaves, roll tightly, and slice into thin ribbons.',
+  zest: 'Grate the outer coloured skin of citrus fruit to collect the fragrant oils.',
+  flambé: 'Pour alcohol over food and ignite briefly to burn off the alcohol and add flavour.',
+  whisk: 'Beat rapidly with a whisk to incorporate air or combine ingredients smoothly.',
+  steep: 'Soak an ingredient in hot liquid (without boiling) to extract its flavour.',
+  debone: 'Remove bones from meat, poultry, or fish.',
+  score: 'Make shallow cuts in the surface of food to help marinades penetrate or fat render.',
+};
+
+function TechniqueWord({ word, definition }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <span
+      className="relative inline"
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
+      onClick={() => setVisible(v => !v)}
+    >
+      <span className="underline decoration-dotted decoration-slate-500 cursor-help text-slate-200">{word}</span>
+      {visible && (
+        <span className="absolute z-30 bottom-full left-0 mb-2 w-56 p-2.5 bg-slate-800 border border-white/10 rounded-xl text-xs text-slate-300 shadow-2xl pointer-events-none leading-relaxed">
+          <span className="font-bold text-orange-400 block mb-1">{word}</span>
+          {definition}
+        </span>
+      )}
+    </span>
+  );
+}
+
+function renderStepWithTechniques(text) {
+  const parts = [];
+  const techKeys = Object.keys(TECHNIQUES);
+  // Build a regex that matches any technique word (word boundary)
+  const pattern = new RegExp(`\\b(${techKeys.map(t => t.replace(/\s+/g, '\\s+')).join('|')})\\b`, 'gi');
+
+  let lastIndex = 0;
+  let match;
+  let key = 0;
+  const re = new RegExp(pattern.source, 'gi');
+  while ((match = re.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(<span key={key++}>{text.slice(lastIndex, match.index)}</span>);
+    }
+    const found = match[0];
+    const defKey = techKeys.find(k => k.toLowerCase() === found.toLowerCase());
+    parts.push(<TechniqueWord key={key++} word={found} definition={TECHNIQUES[defKey]} />);
+    lastIndex = match.index + found.length;
+  }
+  if (lastIndex < text.length) parts.push(<span key={key++}>{text.slice(lastIndex)}</span>);
+  return parts.length > 0 ? parts : text;
+}
+
+// Shopping list categories
+const CATEGORY_KEYWORDS = {
+  '🥩 Meat & Fish': ['chicken', 'beef', 'pork', 'fish', 'salmon', 'tuna', 'shrimp', 'prawn', 'lamb', 'turkey', 'bacon', 'sausage', 'steak', 'mince', 'ground', 'cod', 'tilapia', 'anchovy', 'sardine', 'duck', 'veal', 'ham', 'pepperoni', 'chorizo', 'crab', 'lobster', 'scallop', 'oyster', 'mussel', 'clam'],
+  '🥬 Produce': ['onion', 'garlic', 'tomato', 'pepper', 'carrot', 'potato', 'spinach', 'lettuce', 'broccoli', 'celery', 'zucchini', 'eggplant', 'mushroom', 'cucumber', 'avocado', 'lemon', 'lime', 'orange', 'apple', 'banana', 'mango', 'ginger', 'leek', 'shallot', 'asparagus', 'pea', 'corn', 'bean', 'kale', 'cabbage', 'cauliflower', 'artichoke', 'pumpkin', 'squash', 'fennel', 'beet', 'radish', 'turnip'],
+  '🧀 Dairy & Eggs': ['milk', 'cheese', 'butter', 'cream', 'yogurt', 'egg', 'parmesan', 'cheddar', 'mozzarella', 'ricotta', 'feta', 'brie', 'ghee', 'sour cream', 'creme fraiche', 'mascarpone', 'halloumi'],
+  '🌿 Herbs & Spices': ['basil', 'oregano', 'thyme', 'rosemary', 'parsley', 'cilantro', 'mint', 'dill', 'sage', 'tarragon', 'chive', 'cumin', 'paprika', 'turmeric', 'cinnamon', 'coriander', 'cardamom', 'clove', 'nutmeg', 'chili', 'cayenne', 'bay leaf', 'saffron', 'sumac', 'zaatar', 'garam masala', 'curry'],
+  '🥫 Pantry': ['rice', 'pasta', 'flour', 'oil', 'olive oil', 'vinegar', 'sugar', 'honey', 'soy sauce', 'stock', 'broth', 'coconut milk', 'tomato paste', 'tomato sauce', 'canned', 'lentil', 'chickpea', 'bean', 'bread', 'noodle', 'quinoa', 'oat', 'cornstarch', 'baking', 'yeast', 'salt', 'pepper', 'mustard', 'ketchup', 'mayo', 'tahini', 'miso', 'fish sauce', 'oyster sauce', 'sriracha', 'hot sauce', 'worcestershire', 'bouillon'],
+};
+
+function categorizeIngredients(ingredients) {
+  const categorized = {};
+  const used = new Set();
+
+  Object.entries(CATEGORY_KEYWORDS).forEach(([cat, keywords]) => {
+    const matches = ingredients.filter(ing => {
+      if (used.has(ing)) return false;
+      const lower = ing.toLowerCase();
+      return keywords.some(k => lower.includes(k));
+    });
+    if (matches.length > 0) {
+      categorized[cat] = matches;
+      matches.forEach(m => used.add(m));
+    }
+  });
+
+  const other = ingredients.filter(i => !used.has(i));
+  if (other.length > 0) categorized['📦 Other'] = other;
+
+  return categorized;
+}
+
+function ShoppingListModal({ recipe, onClose }) {
+  const [checked, setChecked] = useState({});
+  const [copied, setCopied] = useState(false);
+  const categories = categorizeIngredients(recipe.ingredients || []);
+
+  const toggle = (ing) => setChecked(prev => ({ ...prev, [ing]: !prev[ing] }));
+
+  const copyList = async () => {
+    const lines = Object.entries(categories).flatMap(([cat, ings]) => [
+      cat, ...ings.map(i => `  • ${i}`), ''
+    ]);
+    await navigator.clipboard.writeText(lines.join('\n'));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const checkedCount = Object.values(checked).filter(Boolean).length;
+  const total = (recipe.ingredients || []).length;
+
+  return (
+    <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-md bg-slate-900 border border-white/10 rounded-3xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
+        <div className="flex items-center justify-between p-5 border-b border-white/5">
+          <div>
+            <h3 className="font-bold text-lg flex items-center gap-2">
+              <ShoppingCart size={18} className="text-green-400" />
+              Shopping List
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">{recipe.name}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={copyList}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 text-slate-400 text-xs hover:text-white transition-all"
+            >
+              {copied ? <Check size={13} className="text-green-400" /> : <Copy size={13} />}
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
+            <button onClick={onClose} className="p-1.5 rounded-xl text-slate-400 hover:text-white transition-all">
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-y-auto p-5 space-y-5">
+          {Object.entries(categories).map(([cat, ings]) => (
+            <div key={cat}>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">{cat}</p>
+              <div className="space-y-1.5">
+                {ings.map(ing => (
+                  <label key={ing} className="flex items-start gap-3 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={!!checked[ing]}
+                      onChange={() => toggle(ing)}
+                      className="mt-0.5 accent-orange-500 cursor-pointer"
+                    />
+                    <span className={`text-sm transition-all ${checked[ing] ? 'line-through text-slate-600' : 'text-slate-300 group-hover:text-white'}`}>
+                      {ing}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {checkedCount > 0 && (
+          <div className="px-5 pb-4 text-xs text-slate-500 text-center border-t border-white/5 pt-3">
+            {checkedCount} / {total} items checked
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ResultView({
   recipe,
   recipeImage,
@@ -74,14 +255,18 @@ export default function ResultView({
   onRate,
   onReset,
   onVariantReady,
+  onSimilar,
   ingredients,
   allergies,
   tempUnit,
+  nutritionGoals,
 }) {
   const confettiFired = useRef(false);
   const [checked, setChecked] = useState({});
   const [servingMultiplier, setServingMultiplier] = useState(1);
+  const [customMultiplier, setCustomMultiplier] = useState('');
   const [copiedIngredients, setCopiedIngredients] = useState(false);
+  const [showShoppingList, setShowShoppingList] = useState(false);
 
   // Fire confetti only on the very first recipe ever (persisted to localStorage)
   useEffect(() => {
@@ -105,10 +290,13 @@ export default function ResultView({
     setTimeout(() => {
       setChecked({});
       setServingMultiplier(1);
+      setCustomMultiplier('');
     }, 0);
   }, [recipe?.name]);
 
   const toggleCheck = (i) => setChecked(prev => ({ ...prev, [i]: !prev[i] }));
+
+  const effectiveMultiplier = customMultiplier !== '' ? (parseFloat(customMultiplier) || 1) : servingMultiplier;
 
   const copyIngredients = async () => {
     if (!recipe) return;
@@ -160,7 +348,7 @@ export default function ResultView({
       soy: ['soy', 'tofu', 'tempeh', 'miso', 'edamame'],
       gluten: ['wheat', 'flour', 'bread', 'pasta', 'barley', 'rye', 'oat'],
     };
-    let lower = text.toLowerCase();
+    const lower = text.toLowerCase();
     for (const allergy of allergies) {
       const words = allergenMap[allergy] || [allergy];
       for (const w of words) {
@@ -182,8 +370,8 @@ export default function ResultView({
           </div>
         </div>
         <div className="text-center">
-          <h3 className="text-2xl font-bold">Groq is thinking...</h3>
-          <p className="text-slate-400">Creating a masterpiece from your ingredients.</p>
+          <h3 className="text-2xl font-bold">Crafting your recipe...</h3>
+          <p className="text-slate-400">Creating a masterpiece just for you.</p>
         </div>
       </div>
     );
@@ -203,6 +391,10 @@ export default function ResultView({
     <>
       {showCookingMode && (
         <CookingMode recipe={recipe} onExit={() => setShowCookingMode(false)} />
+      )}
+
+      {showShoppingList && (
+        <ShoppingListModal recipe={recipe} onClose={() => setShowShoppingList(false)} />
       )}
 
       <div className="space-y-8 animate-in fade-in duration-700">
@@ -251,6 +443,8 @@ export default function ResultView({
           onRate={onRate}
           onDownload={downloadRecipe}
           onVariantReady={onVariantReady}
+          onSimilar={onSimilar}
+          onShoppingList={() => setShowShoppingList(true)}
           isRegeneratingImage={isRegeneratingImage}
         />
 
@@ -268,7 +462,7 @@ export default function ResultView({
 
         {/* Stats */}
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '150ms' }}>
-          <StatsBar recipe={recipe} diet={diet} ingredients={ingredients} tempUnit={tempUnit} />
+          <StatsBar recipe={recipe} diet={diet} ingredients={ingredients} tempUnit={tempUnit} nutritionGoals={nutritionGoals} />
         </div>
 
         {/* Recipe grid */}
@@ -282,17 +476,29 @@ export default function ResultView({
                   Ingredients
                 </h4>
                 <div className="flex items-center gap-2">
-                  {/* Serving scaler */}
+                  {/* Serving scaler presets */}
                   <div className="flex items-center gap-1">
                     {multiplierOptions.map(m => (
                       <button
                         key={m}
-                        onClick={() => setServingMultiplier(m)}
-                        className={`px-2 py-0.5 rounded text-xs font-bold transition-all ${servingMultiplier === m ? 'bg-orange-500 text-white' : 'text-slate-500 hover:text-white'}`}
+                        onClick={() => { setServingMultiplier(m); setCustomMultiplier(''); }}
+                        className={`px-2 py-0.5 rounded text-xs font-bold transition-all ${effectiveMultiplier === m && customMultiplier === '' ? 'bg-orange-500 text-white' : 'text-slate-500 hover:text-white'}`}
                       >
                         {m === 0.5 ? '½x' : `${m}x`}
                       </button>
                     ))}
+                    {/* Custom multiplier input */}
+                    <input
+                      type="number"
+                      value={customMultiplier}
+                      onChange={e => { setCustomMultiplier(e.target.value); setServingMultiplier(1); }}
+                      placeholder="?"
+                      className="w-8 bg-slate-800 border border-white/10 rounded text-xs text-center text-slate-300 outline-none focus:border-orange-500/50 py-0.5 hide-arrows"
+                      min="0.1"
+                      max="20"
+                      step="0.5"
+                      title="Custom multiplier"
+                    />
                   </div>
                   {/* Copy button */}
                   <button
@@ -304,9 +510,9 @@ export default function ResultView({
                   </button>
                 </div>
               </div>
-              {servingMultiplier !== 1 && (
+              {effectiveMultiplier !== 1 && (
                 <p className="text-xs text-orange-400 bg-orange-500/10 px-3 py-1.5 rounded-lg">
-                  Showing {servingMultiplier}x quantities (recipe: {recipe.servings} servings)
+                  Showing {effectiveMultiplier}x quantities (recipe: {recipe.servings} servings)
                 </p>
               )}
               <ul className="space-y-3">
@@ -351,17 +557,18 @@ export default function ResultView({
               <h4 className="flex items-center gap-2 font-bold text-lg border-b border-white/5 pb-2">
                 <Timer size={18} className="text-orange-500" />
                 Instructions
+                <span className="text-xs font-normal text-slate-500 ml-auto">Underlined terms have tips</span>
               </h4>
               <div className="space-y-5">
-                {(recipe.instructions || []).map((step, i) => {
-                  const timerSecs = detectTimerSeconds(step);
+                {(recipe.instructions || []).map((stepText, i) => {
+                  const timerSecs = detectTimerSeconds(stepText);
                   return (
                     <div key={i} className="flex gap-4">
                       <span className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center font-bold text-orange-500 text-sm border border-white/5">
                         {i + 1}
                       </span>
                       <p className="text-slate-300 leading-relaxed pt-1">
-                        {step}
+                        {renderStepWithTechniques(stepText)}
                         {timerSecs && <InlineTimer key={`${recipe.name}-${i}`} seconds={timerSecs} />}
                       </p>
                     </div>
@@ -373,7 +580,7 @@ export default function ResultView({
             <div className="p-5 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '300ms' }}>
               <Sparkles className="text-blue-400 flex-shrink-0 mt-0.5" size={18} />
               <div>
-                <h4 className="font-bold text-sm text-blue-400">Chef's Pro Tip</h4>
+                <h4 className="font-bold text-sm text-blue-400">Chef&apos;s Pro Tip</h4>
                 <p className="text-sm text-slate-300 italic">{recipe.chefTip}</p>
               </div>
             </div>

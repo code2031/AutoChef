@@ -12,9 +12,10 @@ import { usePreferences } from './hooks/usePreferences.js';
 import { useRecipeHistory } from './hooks/useRecipeHistory.js';
 import { useGamification } from './hooks/useGamification.js';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
-import { scanImageForIngredients, generateRecipe, generateSuggestions } from './lib/groq.js';
+import { scanImageForIngredients, generateRecipe, generateSuggestions, generateVariant } from './lib/groq.js';
 import { buildImageUrl } from './lib/pollinations.js';
-import { buildRecipePrompt, buildSuggestionsPrompt, buildDishPrompt } from './lib/prompts.js';
+import { getRandomSurpriseIngredients } from './lib/ingredients.js';
+import { buildRecipePrompt, buildSuggestionsPrompt, buildDishPrompt, buildSimilarPrompt } from './lib/prompts.js';
 
 export default function App() {
   // View state — start on 'result' immediately if URL carries a recipe
@@ -210,7 +211,7 @@ export default function App() {
     }
   };
 
-  const handlePickSuggestion = async (suggestion) => {
+  const handlePickSuggestion = async (suggestion, overrideIngredients) => {
     setView('result');
     setRecipe(null);
     setRecipeImage(null);
@@ -220,10 +221,11 @@ export default function App() {
     setIsGenerating(true);
 
     try {
+      const actualIngredients = overrideIngredients || ingredients;
       const prompt = buildRecipePrompt({
         ingredients: suggestion
-          ? [`Focus on making: ${suggestion.name} — ${suggestion.description}`, ...ingredients]
-          : ingredients,
+          ? [`Focus on making: ${suggestion.name} — ${suggestion.description}`, ...actualIngredients]
+          : actualIngredients,
         diet: prefs.diet,
         vibe: prefs.vibe,
         cuisine: prefs.cuisine,
@@ -235,6 +237,7 @@ export default function App() {
         leftover: prefs.leftover,
         kidFriendly: prefs.kidFriendly,
         banned: prefs.banned,
+        maxCalories: prefs.maxCalories,
       });
 
       const result = await generateRecipe(prompt);
@@ -285,6 +288,7 @@ export default function App() {
         servings: prefs.servings,
         kidFriendly: prefs.kidFriendly,
         banned: prefs.banned,
+        maxCalories: prefs.maxCalories,
       });
 
       const result = await generateRecipe(prompt);
@@ -295,8 +299,7 @@ export default function App() {
         setDupWarning(`You've made "${result.name}" before! Try different settings for variety.`);
       }
 
-      gamification.addPoints(10);
-      gamification.checkStreak();
+      gamification.recordRecipe(prefs.cuisine, prefs.diet, result.difficulty);
       triggerBadgeCheck();
 
       setIsGeneratingImage(true);
@@ -306,6 +309,39 @@ export default function App() {
       setError(err.message || "The chef's kitchen is backed up. Check your API key and try again.");
       setIsGenerating(false);
       setView('generate');
+    }
+  };
+
+  const handleLucky = () => {
+    const ing = ingredients.length > 0 ? ingredients : getRandomSurpriseIngredients();
+    if (ingredients.length === 0) setIngredients(ing);
+    handlePickSuggestion(null, ing);
+  };
+
+  const handleSimilarRecipe = async () => {
+    if (!recipe) return;
+    setError(null);
+    setView('result');
+    setRecipe(null);
+    setRecipeImage(null);
+    setCurrentSavedId(null);
+    setCurrentRating(null);
+    setDupWarning('');
+    setIsGenerating(true);
+    try {
+      const prompt = buildSimilarPrompt(recipe);
+      const result = await generateVariant(prompt);
+      setRecipe(result);
+      setIsGenerating(false);
+      gamification.recordRecipe(prefs.cuisine, prefs.diet, result.difficulty);
+      triggerBadgeCheck();
+      setIsGeneratingImage(true);
+      const imgUrl = buildImageUrl(result.name, result.description);
+      setRecipeImage(imgUrl);
+    } catch (err) {
+      setError(err.message || "Couldn't generate a similar recipe.");
+      setIsGenerating(false);
+      setView('result');
     }
   };
 
@@ -422,6 +458,8 @@ export default function App() {
         setHighContrast={prefs.setHighContrast}
         tempUnit={prefs.tempUnit}
         setTempUnit={prefs.setTempUnit}
+        nutritionGoals={prefs.nutritionGoals}
+        setNutritionGoals={prefs.setNutritionGoals}
       />
 
       {/* Progress bar during generation */}
@@ -455,6 +493,7 @@ export default function App() {
             prefs={{ ...prefs, onRecordSurprise: gamification.recordSurprise }}
             onGenerate={handleGenerate}
             onDishGenerate={handleDishGenerate}
+            onLucky={handleLucky}
             isGenerating={isGenerating || isLoadingSuggestions}
             isScanning={isScanning}
             onScan={handleScan}
@@ -501,6 +540,8 @@ export default function App() {
               ingredients={ingredients}
               allergies={prefs.allergies}
               tempUnit={prefs.tempUnit}
+              onSimilar={handleSimilarRecipe}
+              nutritionGoals={prefs.nutritionGoals}
             />
             {/* Cook Tonight notification button */}
             {recipe && !isGenerating && (

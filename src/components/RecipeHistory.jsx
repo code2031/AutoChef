@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, Trash2, Clock, Search, Download, SortAsc, Tag, FileText, X } from 'lucide-react';
+import { Heart, Trash2, Clock, Search, Download, SortAsc, X } from 'lucide-react';
 import { Image as ImageIcon } from 'lucide-react';
 
 function TagEditor({ entry, onAddTag, onRemoveTag }) {
@@ -53,7 +53,7 @@ function NoteEditor({ entry, onSetNotes }) {
   );
 }
 
-// Simple activity heatmap: last 30 days
+// Simple activity heatmap: last 35 days
 function ActivityHeatmap({ history }) {
   const days = 35;
   const today = new Date();
@@ -90,6 +90,56 @@ function ActivityHeatmap({ history }) {
               title={`${c.date.toLocaleDateString()}: ${c.count} recipe${c.count !== 1 ? 's' : ''}`}
               className={`w-4 h-4 rounded-sm ${colors[intensity]} transition-all cursor-default`}
             />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function MonthlyChallenges({ history, favourites }) {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const thisMonth = history.filter(e => new Date(e.savedAt) >= monthStart);
+  const recipesThisMonth = thisMonth.length;
+  const cuisinesThisMonth = [...new Set(thisMonth.map(e => e.recipe?.cuisine).filter(Boolean))].length;
+  const savedThisMonth = favourites.filter(e => new Date(e.savedAt) >= monthStart).length;
+  const uniqueIngredientsThisMonth = [...new Set(thisMonth.flatMap(e => e.ingredients || []))].length;
+
+  const challenges = [
+    { label: 'Cook 10 recipes', icon: '🍳', current: recipesThisMonth, goal: 10, color: '#f97316' },
+    { label: 'Try 5 cuisines', icon: '🌍', current: cuisinesThisMonth, goal: 5, color: '#8b5cf6' },
+    { label: 'Save 5 favourites', icon: '❤️', current: savedThisMonth, goal: 5, color: '#ec4899' },
+    { label: 'Use 20 ingredients', icon: '🥕', current: uniqueIngredientsThisMonth, goal: 20, color: '#22c55e' },
+  ];
+
+  const monthName = now.toLocaleString('default', { month: 'long' });
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">{monthName} Challenges</p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {challenges.map(c => {
+          const pct = Math.min(100, Math.round((c.current / c.goal) * 100));
+          const done = c.current >= c.goal;
+          return (
+            <div key={c.label} className={`p-3 rounded-2xl border ${done ? 'bg-green-500/10 border-green-500/30' : 'bg-slate-900 border-white/5'} space-y-2`}>
+              <div className="flex items-center justify-between">
+                <span className="text-lg">{c.icon}</span>
+                {done && <span className="text-xs text-green-400 font-bold">✓ Done!</span>}
+              </div>
+              <p className="text-xs text-slate-400 leading-tight">{c.label}</p>
+              <div className="space-y-1">
+                <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${pct}%`, backgroundColor: done ? '#22c55e' : c.color }}
+                  />
+                </div>
+                <p className="text-xs text-slate-500">{c.current} / {c.goal}</p>
+              </div>
+            </div>
           );
         })}
       </div>
@@ -190,6 +240,9 @@ export default function RecipeHistory({
           </div>
         </div>
       </div>
+
+      {/* Monthly challenges */}
+      {history.length > 0 && <MonthlyChallenges history={history} favourites={favourites} />}
 
       {/* Activity heatmap */}
       {history.length > 0 && <ActivityHeatmap history={history} />}

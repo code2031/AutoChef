@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Zap, ShoppingBag, Shuffle, X, Ban, UtensilsCrossed, ListOrdered } from 'lucide-react';
+import { Zap, ShoppingBag, Shuffle, X, Ban, UtensilsCrossed, ListOrdered, Dices } from 'lucide-react';
 import IngredientInput from './IngredientInput.jsx';
 import SelectorGroup from './SelectorGroup.jsx';
 import PantryDrawer from './PantryDrawer.jsx';
@@ -36,7 +36,7 @@ function getIngredientOfWeek() {
 
 export default function GenerateView({
   ingredients, setIngredients,
-  prefs, onGenerate, onDishGenerate, isGenerating, isScanning, onScan, error,
+  prefs, onGenerate, onDishGenerate, onLucky, isGenerating, isScanning, onScan, error,
   recentIngredients,
 }) {
   const [mode, setMode] = useState('ingredients'); // 'ingredients' | 'dish'
@@ -51,7 +51,7 @@ export default function GenerateView({
     diet, setDiet, vibe, setVibe, cuisine, setCuisine,
     allergies, toggleAllergy, spice, setSpice, servings, setServings,
     mood, setMood, leftover, setLeftover, kidFriendly, setKidFriendly,
-    banned, toggleBanned,
+    banned, toggleBanned, maxCalories, setMaxCalories,
   } = prefs;
 
   const addIngredient = (name) => {
@@ -192,7 +192,7 @@ export default function GenerateView({
       <>
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <h2 className="text-2xl sm:text-3xl font-bold">What's in your pantry?</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold">What&apos;s in your pantry?</h2>
           <p className="text-slate-400 text-sm">Type ingredients, scan your fridge, or use Surprise Me.</p>
         </div>
         <div className="flex gap-2">
@@ -329,6 +329,20 @@ export default function GenerateView({
           </div>
         </div>
 
+        {/* Max Calories filter */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Max Calories / Serving</label>
+          <input
+            type="number"
+            value={maxCalories}
+            onChange={e => setMaxCalories(e.target.value)}
+            placeholder="e.g. 500 (leave blank for no limit)"
+            className="w-full bg-slate-900 border border-white/5 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-500/50 text-slate-300 placeholder:text-slate-600 transition-all"
+            min="100"
+            max="5000"
+          />
+        </div>
+
         {/* Mode toggles */}
         <div className="space-y-2">
           <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Mode</label>
@@ -363,18 +377,33 @@ export default function GenerateView({
         </div>
       )}
 
-      <button
-        onClick={onGenerate}
-        disabled={ingredients.length === 0 || isGenerating}
-        className={`w-full py-5 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${
-          ingredients.length > 0 && !isGenerating
-            ? 'bg-orange-500 hover:bg-orange-600 shadow-xl shadow-orange-500/20'
-            : 'bg-slate-800 text-slate-600 cursor-not-allowed'
-        }`}
-      >
-        <Zap size={20} fill="currentColor" />
-        {isGenerating ? 'Generating...' : 'Generate Gourmet Recipe'}
-      </button>
+      <div className="flex gap-3">
+        <button
+          onClick={onGenerate}
+          disabled={ingredients.length === 0 || isGenerating}
+          className={`flex-1 py-5 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${
+            ingredients.length > 0 && !isGenerating
+              ? 'bg-orange-500 hover:bg-orange-600 shadow-xl shadow-orange-500/20'
+              : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+          }`}
+        >
+          <Zap size={20} fill="currentColor" />
+          {isGenerating ? 'Generating...' : 'Generate Gourmet Recipe'}
+        </button>
+        <button
+          onClick={onLucky}
+          disabled={isGenerating}
+          title="Skip suggestions, generate instantly"
+          className={`px-5 py-5 rounded-2xl font-bold flex items-center gap-2 transition-all border ${
+            !isGenerating
+              ? 'bg-slate-900 border-white/10 text-slate-400 hover:border-orange-500/40 hover:text-orange-400'
+              : 'bg-slate-800 border-white/5 text-slate-600 cursor-not-allowed'
+          }`}
+        >
+          <Dices size={20} />
+          <span className="hidden sm:inline text-sm">I&apos;m Feeling Lucky</span>
+        </button>
+      </div>
 
       {showPantry && (
         <PantryDrawer

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, Utensils, Flame, Leaf, Users, Wine, DollarSign, Leaf as LeafIcon } from 'lucide-react';
+import { Clock, Utensils, Flame, Leaf, Users, Wine, DollarSign } from 'lucide-react';
 import { estimateCost } from '../lib/costs.js';
 import { getCarbonScore } from '../lib/carbon.js';
 
@@ -24,27 +24,31 @@ function Tooltip({ text, children }) {
   );
 }
 
-function MacroBar({ label, value, color }) {
+function MacroBar({ label, value, color, goal }) {
   const num = parseInt(value) || 0;
-  const max = label === 'carbs' ? 80 : label === 'protein' ? 60 : label === 'fat' ? 50 : 30;
+  const goalNum = goal ? parseInt(goal) : null;
+  const max = goalNum || (label === 'carbs' ? 80 : label === 'protein' ? 60 : label === 'fat' ? 50 : 30);
   const pct = Math.min(100, Math.round((num / max) * 100));
+  const overGoal = goalNum && num > goalNum;
   return (
     <div className="bg-slate-900/30 border border-white/5 rounded-xl p-3">
       <div className="flex justify-between mb-1.5">
         <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{label}</span>
-        <span className="text-xs font-bold text-slate-300">{value || '—'}</span>
+        <span className={`text-xs font-bold ${overGoal ? 'text-red-400' : 'text-slate-300'}`}>
+          {value || '—'}{goalNum ? ` / ${goal}` : ''}
+        </span>
       </div>
       <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${pct}%`, backgroundColor: color }}
+          style={{ width: `${pct}%`, backgroundColor: overGoal ? '#ef4444' : color }}
         />
       </div>
     </div>
   );
 }
 
-export default function StatsBar({ recipe, diet, ingredients }) {
+export default function StatsBar({ recipe, diet, ingredients, nutritionGoals }) {
   const costInfo = ingredients ? estimateCost(ingredients) : null;
   const carbonInfo = ingredients ? getCarbonScore(ingredients) : null;
 
@@ -77,6 +81,9 @@ export default function StatsBar({ recipe, diet, ingredients }) {
     },
   ].filter(Boolean);
 
+  const goals = nutritionGoals || {};
+  const hasGoals = goals.calories || goals.protein || goals.carbs || goals.fat;
+
   return (
     <div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
@@ -108,11 +115,15 @@ export default function StatsBar({ recipe, diet, ingredients }) {
       {/* Nutrition macro bars */}
       {recipe.nutrition && (
         <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <MacroBar label="protein" value={recipe.nutrition.protein} color="#22c55e" />
-          <MacroBar label="carbs" value={recipe.nutrition.carbs} color="#f59e0b" />
-          <MacroBar label="fat" value={recipe.nutrition.fat} color="#f97316" />
+          <MacroBar label="protein" value={recipe.nutrition.protein} color="#22c55e" goal={goals.protein} />
+          <MacroBar label="carbs" value={recipe.nutrition.carbs} color="#f59e0b" goal={goals.carbs} />
+          <MacroBar label="fat" value={recipe.nutrition.fat} color="#f97316" goal={goals.fat} />
           <MacroBar label="fiber" value={recipe.nutrition.fiber} color="#06b6d4" />
         </div>
+      )}
+
+      {hasGoals && (
+        <p className="text-xs text-slate-600 mt-2">* Bars show recipe vs. your daily goals. Red = over goal.</p>
       )}
     </div>
   );

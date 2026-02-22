@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Share2, Printer, QrCode, RotateCcw, ThumbsUp, ThumbsDown, Image as ImageIcon, Loader2, Download, Code, MessageSquare, Languages, Leaf, DollarSign, ChevronDown } from 'lucide-react';
+import { Heart, Share2, Printer, QrCode, RotateCcw, ThumbsUp, ThumbsDown, Image as ImageIcon, Loader2, Download, Code, MessageSquare, Languages, Leaf, DollarSign, ChevronDown, ShoppingCart, Shuffle } from 'lucide-react';
 import { generateVariant } from '../lib/groq.js';
 import { buildVariantPrompt } from '../lib/prompts.js';
 
@@ -44,6 +44,8 @@ export default function RecipeActions({
   onDownload,
   isRegeneratingImage,
   onVariantReady,
+  onSimilar,
+  onShoppingList,
 }) {
   const [showQR, setShowQR] = useState(false);
   const [shareMsg, setShareMsg] = useState('');
@@ -134,6 +136,15 @@ export default function RecipeActions({
           {isSaved ? 'Saved' : 'Save'}
         </button>
 
+        {/* Shopping List */}
+        <button
+          onClick={onShoppingList}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/5 bg-slate-900 text-slate-400 text-sm font-medium hover:border-green-500/30 hover:text-green-400 transition-all"
+        >
+          <ShoppingCart size={16} />
+          Shopping List
+        </button>
+
         {/* Share */}
         <button
           onClick={handleShare}
@@ -201,6 +212,15 @@ export default function RecipeActions({
       {/* Extra actions panel */}
       {showExtras && (
         <div className="flex flex-wrap gap-2 p-4 bg-slate-900/50 rounded-2xl border border-white/5 animate-in fade-in duration-200">
+          {/* Similar Recipe */}
+          <button
+            onClick={onSimilar}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-orange-500/20 bg-orange-500/5 text-orange-400 text-sm font-medium hover:bg-orange-500/10 transition-all"
+          >
+            <Shuffle size={16} />
+            Similar Recipe
+          </button>
+
           {/* Make Healthier */}
           <button
             onClick={() => handleVariant('healthier')}

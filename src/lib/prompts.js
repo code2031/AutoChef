@@ -2,7 +2,7 @@ import { getSeasonalHint } from './seasonal.js';
 
 export function buildRecipePrompt({
   ingredients, diet, vibe, cuisine, allergies, spice, servings,
-  language, mood, leftover, kidFriendly, banned,
+  language, mood, leftover, kidFriendly, banned, maxCalories,
 }) {
   const seasonalHint = getSeasonalHint();
   const allergyText = allergies && allergies.length > 0
@@ -25,6 +25,7 @@ Prioritise techniques that transform leftovers (stir-fries, frittatas, grain bow
 The recipe name should reflect that it is a creative leftover dish.`
     : '';
   const kidText = kidFriendly ? 'This recipe MUST be kid-friendly: mild flavors only, simple techniques, no alcohol, no exotic spices, fun presentation appealing to children.' : '';
+  const calorieText = maxCalories ? `Keep calories under ${maxCalories} per serving.` : '';
 
   return `You are AutoChef, a world-class AI culinary assistant.
 Generate a recipe using ONLY or mostly these ingredients: ${ingredients.join(', ')}.
@@ -38,6 +39,7 @@ ${servingsText}
 ${moodText}
 ${leftoverText}
 ${kidText}
+${calorieText}
 ${seasonalHint}
 ${languageInstruction}
 
@@ -60,7 +62,7 @@ Return a JSON object with this exact structure (no markdown):
 }`;
 }
 
-export function buildDishPrompt({ dishName, diet, vibe, cuisine, allergies, spice, servings, kidFriendly, banned }) {
+export function buildDishPrompt({ dishName, diet, vibe, cuisine, allergies, spice, servings, kidFriendly, banned, maxCalories }) {
   const allergyText = allergies && allergies.length > 0
     ? `Strictly avoid these allergens: ${allergies.join(', ')}.`
     : '';
@@ -70,6 +72,7 @@ export function buildDishPrompt({ dishName, diet, vibe, cuisine, allergies, spic
   const cuisineText = cuisine && cuisine !== 'any' ? `Cuisine style: ${cuisine}.` : '';
   const spiceText = kidFriendly ? 'Spice level: mild (kid-friendly).' : (spice ? `Spice level: ${spice}.` : '');
   const kidText = kidFriendly ? 'This recipe MUST be kid-friendly: mild flavors only, simple techniques, no alcohol, no exotic spices, fun presentation appealing to children.' : '';
+  const calorieText = maxCalories ? `Keep calories under ${maxCalories} per serving.` : '';
 
   return `You are AutoChef, a world-class AI culinary assistant.
 Generate a complete, authentic recipe for: "${dishName}".
@@ -81,6 +84,7 @@ ${bannedText}
 ${spiceText}
 Servings: ${servings || 2}.
 ${kidText}
+${calorieText}
 
 Return a JSON object with this exact structure (no markdown):
 {
@@ -116,6 +120,29 @@ Return a JSON object (no markdown):
     { "name": "Recipe Name 2", "description": "One-line description" },
     { "name": "Recipe Name 3", "description": "One-line description" }
   ]
+}`;
+}
+
+export function buildSimilarPrompt(recipe) {
+  return `You are AutoChef, a world-class AI culinary assistant.
+Generate a recipe similar in style and cuisine to "${recipe.name}" but with different main ingredients and a different dish name. Same difficulty level (${recipe.difficulty || 'Medium'}). Keep the same general cooking style.
+
+Return a JSON object with this exact structure (no markdown):
+{
+  "name": "Recipe Name",
+  "prepTime": "Prep time e.g. 10 minutes",
+  "cookTime": "Cook time e.g. 20 minutes",
+  "time": "Total time e.g. 30 minutes",
+  "difficulty": "${recipe.difficulty || 'Medium'}",
+  "calories": "Estimated per serving",
+  "servings": ${recipe.servings || 2},
+  "description": "Short mouth-watering description",
+  "ingredients": ["item 1 with quantity", "item 2 with quantity"],
+  "instructions": ["step 1", "step 2"],
+  "nutrition": { "protein": "Xg", "carbs": "Xg", "fat": "Xg", "fiber": "Xg" },
+  "winePairing": "A wine or drink suggestion",
+  "chefTip": "A pro tip to elevate the dish",
+  "smartSub": "One smart ingredient substitution"
 }`;
 }
 

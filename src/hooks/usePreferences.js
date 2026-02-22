@@ -1,5 +1,9 @@
 import { useLocalStorage } from './useLocalStorage.js';
 
+const getSystemTheme = () => {
+  try { return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; } catch { return 'dark'; }
+};
+
 export function usePreferences() {
   const [diet, setDiet] = useLocalStorage('pref_diet', 'none');
   const [vibe, setVibe] = useLocalStorage('pref_vibe', 'quick');
@@ -7,7 +11,7 @@ export function usePreferences() {
   const [allergies, setAllergies] = useLocalStorage('pref_allergies', []);
   const [spice, setSpice] = useLocalStorage('pref_spice', 'medium');
   const [servings, setServings] = useLocalStorage('pref_servings', 2);
-  const [theme, setTheme] = useLocalStorage('pref_theme', 'dark');
+  const [theme, setTheme] = useLocalStorage('pref_theme', getSystemTheme());
   const [fontSz, setFontSz] = useLocalStorage('pref_font_sz', 'md');
   const [highContrast, setHighContrast] = useLocalStorage('pref_high_contrast', false);
   const [tempUnit, setTempUnit] = useLocalStorage('pref_temp_unit', 'C');
@@ -16,6 +20,8 @@ export function usePreferences() {
   const [leftover, setLeftover] = useLocalStorage('pref_leftover', false);
   const [kidFriendly, setKidFriendly] = useLocalStorage('pref_kid_friendly', false);
   const [servingsMemory, setServingsMemory] = useLocalStorage('pref_servings_memory', {});
+  const [maxCalories, setMaxCalories] = useLocalStorage('pref_max_calories', '');
+  const [nutritionGoals, setNutritionGoals] = useLocalStorage('pref_nutrition_goals', { calories: '', protein: '', carbs: '', fat: '' });
 
   const toggleAllergy = (allergy) => {
     setAllergies(prev =>
@@ -51,5 +57,7 @@ export function usePreferences() {
     leftover, setLeftover,
     kidFriendly, setKidFriendly,
     servingsMemory, rememberServingsForCuisine, recalledServings,
+    maxCalories, setMaxCalories,
+    nutritionGoals, setNutritionGoals,
   };
 }

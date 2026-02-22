@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { History, Sun, Moon, Type, Contrast, Keyboard, X, Thermometer } from 'lucide-react';
+import { History, Sun, Moon, Type, Contrast, Keyboard, X, Thermometer, Target } from 'lucide-react';
 import logoUrl from '../assets/AutoChef_Logo.png';
 
 function KeyboardShortcutsModal({ onClose }) {
@@ -32,15 +32,21 @@ function KeyboardShortcutsModal({ onClose }) {
 export default function Navbar({
   view, setView, theme, setTheme, historyCount,
   fontSz, setFontSz, highContrast, setHighContrast, tempUnit, setTempUnit,
+  nutritionGoals, setNutritionGoals,
 }) {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showGoals, setShowGoals] = useState(false);
+
+  const updateGoal = (key, value) => {
+    setNutritionGoals(prev => ({ ...prev, [key]: value }));
+  };
 
   return (
     <>
       {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
       <nav className="fixed top-0 w-full z-50 bg-slate-950/80 dark:bg-slate-950/80 light:bg-white/80 backdrop-blur-md px-4 md:px-6 py-2 flex justify-between items-center no-print relative overflow-visible">
-        {/* Logo: absolute so it doesn't set navbar height; overflows below the slim bar */}
+        {/* Logo: absolute so it does not set navbar height; overflows below the slim bar */}
         <img
           src={logoUrl}
           alt="AutoChef"
@@ -51,9 +57,6 @@ export default function Navbar({
         <div className="w-24 sm:w-32 md:w-44" />
 
         <div className="flex items-center gap-2">
-          {/* Points & Streak */}
-          {/* points display removed */}
-
           {/* History button */}
           <button
             onClick={() => setView('history')}
@@ -81,7 +84,7 @@ export default function Navbar({
             {showSettings && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowSettings(false)} />
-                <div className="absolute right-0 top-full mt-2 w-56 max-w-[calc(100vw-1.5rem)] bg-slate-900 border border-white/10 rounded-2xl p-3 space-y-1 z-50 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-slate-900 border border-white/10 rounded-2xl p-3 space-y-1 z-50 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
                   {/* Theme */}
                   <button
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -129,6 +132,42 @@ export default function Navbar({
                       </button>
                     ))}
                   </div>
+
+                  <div className="border-t border-white/5 my-1" />
+
+                  {/* Nutrition Goals */}
+                  <button
+                    onClick={() => setShowGoals(v => !v)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${showGoals ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                  >
+                    <Target size={16} />
+                    Daily Nutrition Goals
+                  </button>
+
+                  {showGoals && nutritionGoals && (
+                    <div className="px-3 pb-2 space-y-2">
+                      {[
+                        { key: 'calories', label: 'Calories', unit: 'kcal' },
+                        { key: 'protein', label: 'Protein', unit: 'g' },
+                        { key: 'carbs', label: 'Carbs', unit: 'g' },
+                        { key: 'fat', label: 'Fat', unit: 'g' },
+                      ].map(({ key, label, unit }) => (
+                        <div key={key} className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500 w-14">{label}</span>
+                          <input
+                            type="number"
+                            value={nutritionGoals[key] || ''}
+                            onChange={e => updateGoal(key, e.target.value)}
+                            placeholder="—"
+                            className="flex-1 bg-slate-800 border border-white/10 rounded-lg px-2 py-1 text-xs text-slate-300 outline-none focus:border-orange-500/50 text-center"
+                            min="0"
+                          />
+                          <span className="text-xs text-slate-600 w-6">{unit}</span>
+                        </div>
+                      ))}
+                      <p className="text-xs text-slate-600">Shows vs. recipe in macro bars</p>
+                    </div>
+                  )}
 
                   <div className="border-t border-white/5 my-1" />
 
