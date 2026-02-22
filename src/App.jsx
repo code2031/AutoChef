@@ -172,16 +172,15 @@ export default function App() {
 
   // FEATURE 2: Generate images with Pollinations.ai
   const generateRecipeImage = (recipeName, recipeDesc) => {
-    if (!POLLINATIONS_API_KEY) return;
-    
     setIsGeneratingImage(true);
-    
+
     // Create the prompt and encode it for the URL
     const imagePrompt = `A high-quality, professional food photography shot of ${recipeName}. ${recipeDesc}. Plated beautifully on a high-end restaurant table, cinematic lighting, shallow depth of field, photorealistic, appetizing.`;
     const encodedPrompt = encodeURIComponent(imagePrompt);
-    
+
     const seed = Math.floor(Math.random() * 100000);
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}&nologo=true&key=${POLLINATIONS_API_KEY}`;
+    const keyParam = POLLINATIONS_API_KEY ? `&key=${POLLINATIONS_API_KEY}` : '';
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}&nologo=true${keyParam}`;
     
     const img = new Image();
     img.onload = () => {
