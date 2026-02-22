@@ -1,6 +1,6 @@
 # AutoChef
 
-An AI-powered recipe generator. Type in what's in your pantry, snap a photo of your fridge, or search by dish name — AutoChef generates a gourmet recipe and renders a photorealistic image of the finished dish.
+An AI-powered recipe generator. Type in what's in your pantry, snap a photo of your fridge, paste a recipe URL, or search by dish name — AutoChef generates a gourmet recipe, renders a photorealistic image, and gives you everything you need to cook it.
 
 ## Features
 
@@ -8,12 +8,15 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Fridge Scanner** — Upload a photo and AI vision identifies every visible ingredient
 - **By Ingredients** — Enter what you have; pick from 3 AI-suggested recipe names before full generation
 - **By Dish Name** — Type any dish (e.g. "Tiramisu", "Pad Thai") and get a complete recipe instantly
+- **Import Recipe** — Paste a URL or any raw recipe text; AI parses it into the full recipe format
 - **I'm Feeling Lucky** — Skip suggestions entirely; generates a recipe from your ingredients in one click
 - **Gourmet Recipes** — Full recipe with ingredients, instructions, nutrition macros, wine pairing, chef's tip, and a smart substitution
-- **Dish Visualization** — Pollinations.ai renders a photorealistic food photo of the result
+- **Dish Visualization** — Pollinations.ai renders a photorealistic food photo with selectable style (plated / overhead / rustic / close-up)
 - **Surprise Me** — Picks a random curated set of ingredients and generates a recipe instantly
+- **Recipe of the Day** — Date-derived dish suggestion appears as a quick chip in the generate view
 - **Similar Recipe** — Generate a different dish in the same style as the current recipe
 - **Variants** — Regenerate any recipe as a healthier version, a cheaper version, or translated to Spanish
+- **Pairing Suggestions** — After each recipe loads, AI suggests 3 complementary sides, starters, or desserts
 
 ### Customization
 - **Dietary filters** — Vegetarian, vegan, keto, gluten-free, plus cuisine style, spice level, and serving size
@@ -26,9 +29,12 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Persistent Pantry** — Save staple ingredients and add them all to any recipe in one click
 
 ### Cooking Experience
+- **Mise en Place** — Pre-cooking prep checklist extracted from the instructions; check off tasks before starting
 - **Cooking Mode** — Full-screen step-by-step overlay with simultaneous countdown timers per step and audio beep when done
+- **Cooking Notes** — Add notes to individual steps during cooking mode; saved back to recipe history when you exit
 - **Voice Readout** — Cooking mode reads each step aloud via Web Speech API
 - **Swipe Gestures** — Swipe left/right in cooking mode to navigate steps
+- **Kitchen Timer** — Floating multi-timer widget accessible from anywhere via the Navbar; supports multiple named timers simultaneously
 - **Inline Step Timers** — Tap any time-mentioned step to start a countdown directly in the recipe view
 - **Technique Explainer** — Hover or tap underlined cooking terms (julienne, deglaze, braise, etc.) for plain-English definitions
 - **Ingredient Checklist** — Tap ingredients to cross them off as you cook
@@ -36,12 +42,14 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 
 ### Input
 - **Voice Input** — Dictate ingredients using the browser's Web Speech API
+- **Paste to Split** — Paste a comma- or newline-separated ingredient list and it auto-splits into tags
 - **Ingredient Autocomplete** — Inline suggestions as you type, with emoji per ingredient; drag to reorder tags
 - **Recent Ingredients** — Quick-add chips from your last 20 used ingredients
 - **Ingredient of the Week** — A rotating featured ingredient chip to inspire new dishes
 - **Surprise Cuisine** — Randomly picks a cuisine style for you
 
 ### Recipe Details
+- **Flavor Profile Radar** — SVG spider chart showing sweet, savory, spicy, umami, tangy, and fresh scores
 - **Nutrition Bars** — Visual macro bars for protein, carbs, fat, and fiber; turn red when a bar exceeds your daily goal
 - **Nutrition Goals** — Set personal daily targets (calories, protein, carbs, fat) in settings
 - **Prep/Cook Time Split** — Separate prep and cook times when provided
@@ -52,6 +60,10 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 
 ### History & Saving
 - **Recipe History** — All generated recipes saved to localStorage with thumbnail, rating, and favourite toggle
+- **Auto-Tags** — On save, AI generates 4–5 descriptive tags (e.g. `weeknight`, `high-protein`, `one-pan`) automatically
+- **Recipe Versioning** — When you apply a variant (Make Healthier, etc.), the previous version is preserved in history
+- **Recipe Collections** — Organise saved recipes into named cookbooks / folders
+- **Meal Planner** — Drag saved recipes onto a Mon–Sun weekly grid with Breakfast / Lunch / Dinner slots; generates a combined shopping list for the whole week
 - **Monthly Challenges** — Track four monthly goals: cook 10 recipes, try 5 cuisines, save 5 favourites, use 20 unique ingredients
 - **Search & Sort** — Search history by name, tags, or notes; sort by date, name, or rating
 - **Tags & Notes** — Add custom tags and personal notes to any saved recipe
@@ -70,6 +82,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Cook Tonight Notification** — Request a browser notification reminder to cook the current recipe
 
 ### Accessibility & Appearance
+- **Installable PWA** — Install AutoChef to your home screen; works offline with cached assets
 - **Responsive Design** — Fully mobile-friendly layout that adapts for phone, tablet, and desktop
 - **System Dark Mode** — Automatically follows your OS preference on first visit
 - **Dark / Light theme** — Override and persist via settings
