@@ -60,6 +60,47 @@ Return a JSON object with this exact structure (no markdown):
 }`;
 }
 
+export function buildDishPrompt({ dishName, diet, vibe, cuisine, allergies, spice, servings, kidFriendly, banned }) {
+  const allergyText = allergies && allergies.length > 0
+    ? `Strictly avoid these allergens: ${allergies.join(', ')}.`
+    : '';
+  const bannedText = banned && banned.length > 0
+    ? `Do not use these ingredients: ${banned.join(', ')}.`
+    : '';
+  const cuisineText = cuisine && cuisine !== 'any' ? `Cuisine style: ${cuisine}.` : '';
+  const spiceText = kidFriendly ? 'Spice level: mild (kid-friendly).' : (spice ? `Spice level: ${spice}.` : '');
+  const kidText = kidFriendly ? 'This recipe MUST be kid-friendly: mild flavors only, simple techniques, no alcohol, no exotic spices, fun presentation appealing to children.' : '';
+
+  return `You are AutoChef, a world-class AI culinary assistant.
+Generate a complete, authentic recipe for: "${dishName}".
+Dietary preference: ${diet}.
+Cooking vibe: ${vibe}.
+${cuisineText}
+${allergyText}
+${bannedText}
+${spiceText}
+Servings: ${servings || 2}.
+${kidText}
+
+Return a JSON object with this exact structure (no markdown):
+{
+  "name": "Recipe Name",
+  "prepTime": "Prep time e.g. 10 minutes",
+  "cookTime": "Cook time e.g. 20 minutes",
+  "time": "Total time e.g. 30 minutes",
+  "difficulty": "Easy/Medium/Hard",
+  "calories": "Estimated per serving",
+  "servings": ${servings || 2},
+  "description": "Short mouth-watering description",
+  "ingredients": ["item 1 with quantity", "item 2 with quantity"],
+  "instructions": ["step 1", "step 2"],
+  "nutrition": { "protein": "Xg", "carbs": "Xg", "fat": "Xg", "fiber": "Xg" },
+  "winePairing": "A wine or drink suggestion",
+  "chefTip": "A pro tip to elevate the dish",
+  "smartSub": "One smart ingredient substitution"
+}`;
+}
+
 export function buildSuggestionsPrompt({ ingredients, diet, vibe, cuisine, kidFriendly, leftover }) {
   const kidNote = kidFriendly ? ' All suggestions must be kid-friendly (mild, simple, fun for children).' : '';
   const leftoverNote = leftover ? ' These are LEFTOVER ingredients — all 3 suggestions must use every ingredient listed, no new purchases.' : '';

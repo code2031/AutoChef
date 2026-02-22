@@ -14,7 +14,7 @@ import { useGamification } from './hooks/useGamification.js';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
 import { scanImageForIngredients, generateRecipe, generateSuggestions } from './lib/groq.js';
 import { buildImageUrl } from './lib/pollinations.js';
-import { buildRecipePrompt, buildSuggestionsPrompt } from './lib/prompts.js';
+import { buildRecipePrompt, buildSuggestionsPrompt, buildDishPrompt } from './lib/prompts.js';
 
 export default function App() {
   // View state — start on 'result' immediately if URL carries a recipe
@@ -264,6 +264,51 @@ export default function App() {
     }
   };
 
+  const handleDishGenerate = async (dishName) => {
+    setError(null);
+    setView('result');
+    setRecipe(null);
+    setRecipeImage(null);
+    setCurrentSavedId(null);
+    setCurrentRating(null);
+    setDupWarning('');
+    setIsGenerating(true);
+
+    try {
+      const prompt = buildDishPrompt({
+        dishName,
+        diet: prefs.diet,
+        vibe: prefs.vibe,
+        cuisine: prefs.cuisine,
+        allergies: prefs.allergies,
+        spice: prefs.spice,
+        servings: prefs.servings,
+        kidFriendly: prefs.kidFriendly,
+        banned: prefs.banned,
+      });
+
+      const result = await generateRecipe(prompt);
+      setRecipe(result);
+      setIsGenerating(false);
+
+      if (isDuplicate(result.name)) {
+        setDupWarning(`You've made "${result.name}" before! Try different settings for variety.`);
+      }
+
+      gamification.addPoints(10);
+      gamification.checkStreak();
+      triggerBadgeCheck();
+
+      setIsGeneratingImage(true);
+      const imgUrl = buildImageUrl(result.name, result.description);
+      setRecipeImage(imgUrl);
+    } catch (err) {
+      setError(err.message || "The chef's kitchen is backed up. Check your API key and try again.");
+      setIsGenerating(false);
+      setView('generate');
+    }
+  };
+
   const handleSkipSuggestions = () => {
     const random = suggestions[Math.floor(Math.random() * suggestions.length)];
     handlePickSuggestion(random || null);
@@ -409,6 +454,7 @@ export default function App() {
             setIngredients={setIngredients}
             prefs={{ ...prefs, onRecordSurprise: gamification.recordSurprise }}
             onGenerate={handleGenerate}
+            onDishGenerate={handleDishGenerate}
             isGenerating={isGenerating || isLoadingSuggestions}
             isScanning={isScanning}
             onScan={handleScan}

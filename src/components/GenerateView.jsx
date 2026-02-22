@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Zap, ShoppingBag, Shuffle, X, Ban } from 'lucide-react';
+import { Zap, ShoppingBag, Shuffle, X, Ban, UtensilsCrossed, ListOrdered } from 'lucide-react';
 import IngredientInput from './IngredientInput.jsx';
 import SelectorGroup from './SelectorGroup.jsx';
 import PantryDrawer from './PantryDrawer.jsx';
@@ -36,9 +36,11 @@ function getIngredientOfWeek() {
 
 export default function GenerateView({
   ingredients, setIngredients,
-  prefs, onGenerate, isGenerating, isScanning, onScan, error,
+  prefs, onGenerate, onDishGenerate, isGenerating, isScanning, onScan, error,
   recentIngredients,
 }) {
+  const [mode, setMode] = useState('ingredients'); // 'ingredients' | 'dish'
+  const [dishInput, setDishInput] = useState('');
   const [showPantry, setShowPantry] = useState(false);
   const [showBanned, setShowBanned] = useState(false);
   const [bannedInput, setBannedInput] = useState('');
@@ -131,8 +133,63 @@ export default function GenerateView({
   const cotd = cuisineList[new Date().getDate() % cuisineList.length];
   const ingredientOfWeek = getIngredientOfWeek();
 
+  const handleDishSubmit = () => {
+    const clean = dishInput.trim();
+    if (clean && !isGenerating) onDishGenerate(clean);
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500" style={accentStyle}>
+      {/* Mode tabs */}
+      <div className="flex gap-1 bg-slate-900 border border-white/5 rounded-2xl p-1 w-fit">
+        <button
+          onClick={() => setMode('ingredients')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${mode === 'ingredients' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
+        >
+          <ListOrdered size={15} />
+          By Ingredients
+        </button>
+        <button
+          onClick={() => setMode('dish')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${mode === 'dish' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
+        >
+          <UtensilsCrossed size={15} />
+          By Dish Name
+        </button>
+      </div>
+
+      {mode === 'dish' ? (
+        <div className="space-y-5">
+          <div className="space-y-1">
+            <h2 className="text-2xl sm:text-3xl font-bold">What would you like to make?</h2>
+            <p className="text-slate-400 text-sm">Type any dish name and get a full recipe instantly.</p>
+          </div>
+          <div className="flex gap-3">
+            <input
+              value={dishInput}
+              onChange={e => setDishInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleDishSubmit()}
+              placeholder="e.g. Beef Stroganoff, Tiramisu, Pad Thai..."
+              className="flex-1 bg-slate-900 border border-white/10 rounded-2xl px-5 py-4 text-base outline-none focus:border-orange-500/60 text-white placeholder:text-slate-600 transition-all"
+              autoFocus
+            />
+            <button
+              onClick={handleDishSubmit}
+              disabled={!dishInput.trim() || isGenerating}
+              className={`px-6 py-4 rounded-2xl font-bold flex items-center gap-2 transition-all ${dishInput.trim() && !isGenerating ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-xl shadow-orange-500/20' : 'bg-slate-800 text-slate-600 cursor-not-allowed'}`}
+            >
+              <Zap size={18} fill="currentColor" />
+              {isGenerating ? 'Generating...' : 'Get Recipe'}
+            </button>
+          </div>
+          {error && (
+            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center">
+              {error}
+            </div>
+          )}
+        </div>
+      ) : (
+      <>
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
           <h2 className="text-2xl sm:text-3xl font-bold">What's in your pantry?</h2>
@@ -326,6 +383,8 @@ export default function GenerateView({
           }}
           onClose={() => setShowPantry(false)}
         />
+      )}
+      </>
       )}
     </div>
   );
