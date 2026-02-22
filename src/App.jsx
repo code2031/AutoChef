@@ -31,7 +31,6 @@ export default function App() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
-  const [isRegenerating, setIsRegenerating] = useState(false);
   const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
   const [error, setError] = useState(null);
 
@@ -218,37 +217,6 @@ export default function App() {
     handlePickSuggestion(random || null);
   };
 
-  // --- Regenerate ---
-  const handleRegenerate = async () => {
-    if (!recipe) return;
-    setIsRegenerating(true);
-    setError(null);
-    try {
-      const prompt = buildRecipePrompt({
-        ingredients,
-        diet: prefs.diet,
-        vibe: prefs.vibe,
-        cuisine: prefs.cuisine,
-        allergies: prefs.allergies,
-        spice: prefs.spice,
-        servings: prefs.servings,
-        language: navigator.language,
-      });
-      const result = await generateRecipe(prompt);
-      setRecipe(result);
-      setCurrentSavedId(null);
-      setCurrentRating(null);
-      gamification.recordRecipe(prefs.cuisine, prefs.diet, result.difficulty);
-      triggerBadgeCheck();
-
-      setIsGeneratingImage(true);
-      setRecipeImage(buildImageUrl(result.name, result.description));
-    } catch (err) {
-      setError(err.message || 'Regeneration failed. Please try again.');
-    } finally {
-      setIsRegenerating(false);
-    }
-  };
 
   const handleRegenerateImage = () => {
     if (!recipe) return;
@@ -377,10 +345,9 @@ export default function App() {
             totalDislikes={totalDislikes}
             showCookingMode={showCookingMode}
             setShowCookingMode={setShowCookingMode}
-            isRegenerating={isRegenerating}
             isRegeneratingImage={isRegeneratingImage}
             onSave={handleSave}
-            onRegenerate={handleRegenerate}
+            onRegenerate={reset}
             onRegenerateImage={handleRegenerateImage}
             onRate={handleRate}
             onReset={reset}

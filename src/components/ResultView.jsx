@@ -17,7 +17,6 @@ export default function ResultView({
   totalDislikes,
   showCookingMode,
   setShowCookingMode,
-  isRegenerating,
   isRegeneratingImage,
   onSave,
   onRegenerate,
@@ -120,7 +119,6 @@ export default function ResultView({
           onRegenerate={onRegenerate}
           onRegenerateImage={onRegenerateImage}
           onRate={onRate}
-          isRegenerating={isRegenerating}
           isRegeneratingImage={isRegeneratingImage}
         />
 

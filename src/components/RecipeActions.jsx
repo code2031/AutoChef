@@ -40,7 +40,6 @@ export default function RecipeActions({
   onRegenerate,
   onRegenerateImage,
   onRate,
-  isRegenerating,
   isRegeneratingImage,
 }) {
   const [showQR, setShowQR] = useState(false);
@@ -126,13 +125,12 @@ export default function RecipeActions({
           QR
         </button>
 
-        {/* Regenerate Recipe */}
+        {/* New Recipe — goes back to the generate page */}
         <button
           onClick={onRegenerate}
-          disabled={isRegenerating}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/5 bg-slate-900 text-slate-400 text-sm font-medium hover:border-orange-500/30 hover:text-orange-400 transition-all disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/5 bg-slate-900 text-slate-400 text-sm font-medium hover:border-orange-500/30 hover:text-orange-400 transition-all"
         >
-          {isRegenerating ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />}
+          <RotateCcw size={16} />
           New Recipe
         </button>
 
