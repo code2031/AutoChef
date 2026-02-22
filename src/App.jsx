@@ -15,8 +15,14 @@ import { buildImageUrl } from './lib/pollinations.js';
 import { buildRecipePrompt, buildSuggestionsPrompt } from './lib/prompts.js';
 
 export default function App() {
-  // View state
-  const [view, setView] = useState('landing'); // landing, generate, result, history, suggestions
+  // View state — start on 'result' immediately if URL carries a recipe
+  const [view, setView] = useState(() => {
+    const p = new URLSearchParams(window.location.search);
+    const h = window.location.hash;
+    return (p.has('rc') || p.has('r') || h.startsWith('#rc=') || h.startsWith('#r='))
+      ? 'result'
+      : 'landing';
+  });
 
   // Ephemeral state
   const [ingredients, setIngredients] = useState([]);
