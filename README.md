@@ -30,10 +30,10 @@ Create a `.env.local` file in the project root:
 
 ```
 VITE_GROQ_API_KEY=your_groq_api_key
-VITE_POLLINATIONS_API_KEY=your_pollinations_api_key  # optional
+VITE_POLLINATIONS_API_KEY=your_pollinations_api_key
 ```
 
-Get a free Groq API key at [console.groq.com](https://console.groq.com). The Pollinations key is optional — image generation works on the free tier without one.
+Get a free Groq API key at [console.groq.com](https://console.groq.com). Get a Pollinations API key at [enter.pollinations.ai](https://enter.pollinations.ai).
 
 ### 3. Run the dev server
 
@@ -45,6 +45,6 @@ npm run dev
 
 The project deploys automatically to GitHub Pages on every push to `main` via GitHub Actions.
 
-Add `VITE_GROQ_API_KEY` as a repository secret (required). `VITE_POLLINATIONS_API_KEY` is optional — image generation works on Pollinations' free tier without it. Both are already wired into the build step in `.github/workflows/deploy.yml`.
+Add `VITE_GROQ_API_KEY` and `VITE_POLLINATIONS_API_KEY` as repository secrets — both are required and already wired into the build step in `.github/workflows/deploy.yml`.
 
 The `base` in `vite.config.js` is set to `/AutoChef/` — update this to match your exact repository name (GitHub Pages is case-sensitive).
