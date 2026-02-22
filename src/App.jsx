@@ -377,7 +377,7 @@ export default function App() {
                 
                 {/* Generated Recipe Image Hero */}
                 <div className="w-full h-64 md:h-96 rounded-3xl overflow-hidden relative bg-slate-900 border border-white/10 group">
-                  {recipeImage ? (
+                  {recipeImage && (
                     <img
                       src={recipeImage}
                       alt={recipe.name}
@@ -385,17 +385,19 @@ export default function App() {
                       onLoad={() => setIsGeneratingImage(false)}
                       onError={() => { setRecipeImage(null); setIsGeneratingImage(false); }}
                     />
-                  ) : isGeneratingImage ? (
+                  )}
+                  {isGeneratingImage && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/80 space-y-4">
                       <div className="text-orange-500 animate-bounce">
                         <ImageIcon size={32} />
                       </div>
                       <p className="text-slate-400 font-medium tracking-wide flex items-center gap-2">
                         <Loader2 size={16} className="animate-spin" />
-                        Pollinations is rendering your dish...
+                        Rendering your dish...
                       </p>
                     </div>
-                  ) : (
+                  )}
+                  {!recipeImage && !isGeneratingImage && (
                     <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80">
                       <ImageIcon size={48} className="text-slate-700" />
                     </div>
