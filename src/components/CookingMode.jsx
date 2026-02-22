@@ -45,7 +45,7 @@ function speakText(text) {
   window.speechSynthesis.speak(utt);
 }
 
-export default function CookingMode({ recipe, onExit }) {
+export default function CookingMode({ recipe, onExit, onCookDone }) {
   const [step, setStep] = useState(0);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [stepNotes, setStepNotes] = useState({});
@@ -114,7 +114,7 @@ export default function CookingMode({ recipe, onExit }) {
 
   const goNext = () => {
     if (step < steps.length - 1) setStep(s => s + 1);
-    else onExit(stepNotes);
+    else { onCookDone?.(); onExit(stepNotes); }
   };
   const goPrev = () => setStep(s => Math.max(0, s - 1));
 

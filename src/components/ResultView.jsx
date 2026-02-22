@@ -56,6 +56,29 @@ function InlineTimer({ seconds }) {
   );
 }
 
+const SAFE_TEMPS = {
+  chicken: { f: 165, c: 74 },
+  turkey: { f: 165, c: 74 },
+  'ground beef': { f: 160, c: 71 },
+  'ground pork': { f: 160, c: 71 },
+  beef: { f: 145, c: 63 },
+  pork: { f: 145, c: 63 },
+  lamb: { f: 145, c: 63 },
+  fish: { f: 145, c: 63 },
+  salmon: { f: 145, c: 63 },
+  shrimp: { f: 145, c: 63 },
+  prawns: { f: 145, c: 63 },
+  'egg yolk': { f: 160, c: 71 },
+};
+
+function getSafeTempForStep(step) {
+  const lower = step.toLowerCase();
+  for (const [keyword, temps] of Object.entries(SAFE_TEMPS)) {
+    if (lower.includes(keyword)) return { keyword, ...temps };
+  }
+  return null;
+}
+
 // Technique glossary
 const TECHNIQUES = {
   julienne: 'Cut into thin matchstick-shaped strips, usually about 3mm wide.',
@@ -656,6 +679,15 @@ export default function ResultView({
                       <p className="text-slate-300 leading-relaxed pt-1">
                         {renderStepWithTechniques(stepText)}
                         {timerSecs && <InlineTimer key={`${recipe.name}-${i}`} seconds={timerSecs} />}
+                        {(() => {
+                          const temp = getSafeTempForStep(stepText);
+                          if (!temp) return null;
+                          return (
+                            <span className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs font-mono whitespace-nowrap">
+                              🌡️ {tempUnit === 'F' ? `${temp.f}°F` : `${temp.c}°C`} safe temp
+                            </span>
+                          );
+                        })()}
                       </p>
                     </div>
                   );

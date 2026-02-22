@@ -18,6 +18,7 @@ export function useRecipeHistory() {
       notes: '',
       versions: [],
       collectionId: null,
+      cookCount: 0,
     };
     setHistory(prev => [entry, ...prev].slice(0, 50));
     return id;
@@ -64,6 +65,12 @@ export function useRecipeHistory() {
   const setNotes = (id, notes) => {
     setHistory(prev =>
       prev.map(entry => entry.id === id ? { ...entry, notes } : entry)
+    );
+  };
+
+  const incrementCookCount = (id) => {
+    setHistory(prev =>
+      prev.map(entry => entry.id === id ? { ...entry, cookCount: (entry.cookCount || 0) + 1 } : entry)
     );
   };
 
@@ -116,6 +123,7 @@ export function useRecipeHistory() {
     removeTag,
     setNotes,
     isDuplicate,
+    incrementCookCount,
     updateRecipeWithVersion,
     collections,
     createCollection,

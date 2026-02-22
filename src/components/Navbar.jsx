@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { History, Sun, Moon, Type, Contrast, Keyboard, X, Thermometer, Target, Timer, CalendarDays } from 'lucide-react';
+import { History, Sun, Moon, Type, Contrast, Keyboard, X, Thermometer, Target, Timer, CalendarDays, UtensilsCrossed } from 'lucide-react';
 import logoUrl from '../assets/AutoChef_Logo.png';
 import KitchenTimer from './KitchenTimer.jsx';
 
@@ -67,6 +67,16 @@ export default function Navbar({
           >
             <CalendarDays size={16} />
             <span className="hidden md:inline">Planner</span>
+          </button>
+
+          {/* Sync Planner button */}
+          <button
+            onClick={() => setView('sync')}
+            className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${view === 'sync' ? 'bg-orange-500/20 text-orange-400' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+            title="Multi-Dish Sync Planner"
+          >
+            <UtensilsCrossed size={16} />
+            <span className="hidden md:inline">Sync</span>
           </button>
 
           {/* Kitchen Timer button */}

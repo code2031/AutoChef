@@ -7,16 +7,17 @@ import ResultView from './components/ResultView.jsx';
 import RecipeHistory from './components/RecipeHistory.jsx';
 import RecipeSuggestions from './components/RecipeSuggestions.jsx';
 import MealPlanner from './components/MealPlanner.jsx';
+import SyncPlanner from './components/SyncPlanner.jsx';
 import ProgressBar from './components/ProgressBar.jsx';
 import BadgePopup from './components/BadgePopup.jsx';
 import { usePreferences } from './hooks/usePreferences.js';
 import { useRecipeHistory } from './hooks/useRecipeHistory.js';
 import { useGamification } from './hooks/useGamification.js';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
-import { scanImageForIngredients, generateRecipe, generateSuggestions, generateVariant, importRecipe, generatePairingSuggestions, generateAutoTags } from './lib/groq.js';
+import { scanImageForIngredients, generateRecipe, generateSuggestions, generateVariant, importRecipe, generatePairingSuggestions, generateAutoTags, generateRemix } from './lib/groq.js';
 import { buildImageUrl } from './lib/pollinations.js';
 import { getRandomSurpriseIngredients } from './lib/ingredients.js';
-import { buildRecipePrompt, buildSuggestionsPrompt, buildDishPrompt, buildSimilarPrompt, buildImportPrompt } from './lib/prompts.js';
+import { buildRecipePrompt, buildSuggestionsPrompt, buildDishPrompt, buildSimilarPrompt, buildImportPrompt, buildRemixPrompt } from './lib/prompts.js';
 
 export default function App() {
   // View state — start on 'result' immediately if URL carries a recipe
@@ -68,6 +69,7 @@ export default function App() {
     saveRecipe, toggleFavourite, setRating, deleteEntry,
     addTag, removeTag, setNotes, isDuplicate,
     updateRecipeWithVersion, collections, createCollection, deleteCollection, setEntryCollection,
+    incrementCookCount,
   } = useRecipeHistory();
   const gamification = useGamification();
 
@@ -244,6 +246,8 @@ export default function App() {
         kidFriendly: prefs.kidFriendly,
         banned: prefs.banned,
         maxCalories: prefs.maxCalories,
+        persona: prefs.persona,
+        maxTime: prefs.maxTime,
       });
 
       const result = await generateRecipe(prompt);
@@ -299,6 +303,8 @@ export default function App() {
         kidFriendly: prefs.kidFriendly,
         banned: prefs.banned,
         maxCalories: prefs.maxCalories,
+        persona: prefs.persona,
+        maxTime: prefs.maxTime,
       });
 
       const result = await generateRecipe(prompt);
@@ -359,6 +365,37 @@ export default function App() {
       setIsGenerating(false);
       setView('result');
     }
+  };
+
+  const handleRemix = async (recipeA, recipeB) => {
+    setError(null);
+    setView('result');
+    setRecipe(null);
+    setRecipeImage(null);
+    setCurrentSavedId(null);
+    setCurrentRating(null);
+    setPairings([]);
+    setIsGenerating(true);
+    try {
+      const prompt = buildRemixPrompt(recipeA, recipeB);
+      const result = await generateRemix(prompt);
+      setRecipe(result);
+      setIsGenerating(false);
+      gamification.recordRecipe(prefs.cuisine, prefs.diet, result.difficulty);
+      triggerBadgeCheck();
+      setIsGeneratingImage(true);
+      const imgUrl = buildImageUrl(result.name, result.description, prefs.imageStyle);
+      setRecipeImage(imgUrl);
+      generatePairingSuggestions(result.name, result.description).then(setPairings).catch(() => {});
+    } catch (err) {
+      setError(err.message || "Couldn't remix those recipes.");
+      setIsGenerating(false);
+      setView('history');
+    }
+  };
+
+  const handleCookDone = () => {
+    if (currentSavedId) incrementCookCount(currentSavedId);
   };
 
   const handleSkipSuggestions = () => {
@@ -616,6 +653,7 @@ export default function App() {
               onSimilar={handleSimilarRecipe}
               nutritionGoals={prefs.nutritionGoals}
               pairings={pairings}
+              onCookDone={handleCookDone}
             />
             {/* Cook Tonight notification button */}
             {recipe && !isGenerating && (
@@ -646,11 +684,16 @@ export default function App() {
             onCreateCollection={createCollection}
             onDeleteCollection={deleteCollection}
             onSetEntryCollection={setEntryCollection}
+            onRemix={handleRemix}
           />
         )}
 
         {view === 'planner' && (
           <MealPlanner history={history} />
+        )}
+
+        {view === 'sync' && (
+          <SyncPlanner />
         )}
       </main>
     </div>

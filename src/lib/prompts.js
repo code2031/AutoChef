@@ -3,6 +3,7 @@ import { getSeasonalHint } from './seasonal.js';
 export function buildRecipePrompt({
   ingredients, diet, vibe, cuisine, allergies, spice, servings,
   language, mood, leftover, kidFriendly, banned, maxCalories,
+  persona, maxTime,
 }) {
   const seasonalHint = getSeasonalHint();
   const allergyText = allergies && allergies.length > 0
@@ -26,8 +27,17 @@ The recipe name should reflect that it is a creative leftover dish.`
     : '';
   const kidText = kidFriendly ? 'This recipe MUST be kid-friendly: mild flavors only, simple techniques, no alcohol, no exotic spices, fun presentation appealing to children.' : '';
   const calorieText = maxCalories ? `Keep calories under ${maxCalories} per serving.` : '';
+  const personaInstructions = {
+    home: 'Write this recipe like a friendly home cook sharing a family favourite: approachable language, comfort-focused, practical tips.',
+    pro: 'Write this recipe like a professional restaurant chef: precise measurements, technical terminology, focus on technique and presentation.',
+    street: 'Write this recipe in the spirit of street food: bold flavours, quick techniques, punchy descriptions, emphasis on spice and character.',
+    michelin: 'Write this recipe in Michelin fine-dining style: refined techniques, exquisite plating notes, sophisticated flavour pairings, elegant language.',
+  };
+  const personaText = persona && personaInstructions[persona] ? personaInstructions[persona] : '';
+  const maxTimeText = maxTime ? `Total cooking time must be under ${maxTime} minutes. Choose quick techniques (sauté, stir-fry, one-pan) accordingly.` : '';
 
   return `You are AutoChef, a world-class AI culinary assistant.
+${personaText}
 Generate a recipe using ONLY or mostly these ingredients: ${ingredients.join(', ')}.
 Dietary preference: ${diet}.
 Cooking vibe: ${vibe}.
@@ -40,6 +50,7 @@ ${moodText}
 ${leftoverText}
 ${kidText}
 ${calorieText}
+${maxTimeText}
 ${seasonalHint}
 ${languageInstruction}
 
@@ -62,7 +73,7 @@ Return a JSON object with this exact structure (no markdown):
 }`;
 }
 
-export function buildDishPrompt({ dishName, diet, vibe, cuisine, allergies, spice, servings, kidFriendly, banned, maxCalories }) {
+export function buildDishPrompt({ dishName, diet, vibe, cuisine, allergies, spice, servings, kidFriendly, banned, maxCalories, persona, maxTime }) {
   const allergyText = allergies && allergies.length > 0
     ? `Strictly avoid these allergens: ${allergies.join(', ')}.`
     : '';
@@ -73,8 +84,17 @@ export function buildDishPrompt({ dishName, diet, vibe, cuisine, allergies, spic
   const spiceText = kidFriendly ? 'Spice level: mild (kid-friendly).' : (spice ? `Spice level: ${spice}.` : '');
   const kidText = kidFriendly ? 'This recipe MUST be kid-friendly: mild flavors only, simple techniques, no alcohol, no exotic spices, fun presentation appealing to children.' : '';
   const calorieText = maxCalories ? `Keep calories under ${maxCalories} per serving.` : '';
+  const personaInstructions = {
+    home: 'Write this recipe like a friendly home cook sharing a family favourite: approachable language, comfort-focused, practical tips.',
+    pro: 'Write this recipe like a professional restaurant chef: precise measurements, technical terminology, focus on technique and presentation.',
+    street: 'Write this recipe in the spirit of street food: bold flavours, quick techniques, punchy descriptions, emphasis on spice and character.',
+    michelin: 'Write this recipe in Michelin fine-dining style: refined techniques, exquisite plating notes, sophisticated flavour pairings, elegant language.',
+  };
+  const personaText = persona && personaInstructions[persona] ? personaInstructions[persona] : '';
+  const maxTimeText = maxTime ? `Total cooking time must be under ${maxTime} minutes. Choose quick techniques (sauté, stir-fry, one-pan) accordingly.` : '';
 
   return `You are AutoChef, a world-class AI culinary assistant.
+${personaText}
 Generate a complete, authentic recipe for: "${dishName}".
 Dietary preference: ${diet}.
 Cooking vibe: ${vibe}.
@@ -85,6 +105,7 @@ ${spiceText}
 Servings: ${servings || 2}.
 ${kidText}
 ${calorieText}
+${maxTimeText}
 
 Return a JSON object with this exact structure (no markdown):
 {
@@ -155,6 +176,8 @@ ${JSON.stringify(recipe)}`;
   const variantInstructions = {
     healthier: 'Make this recipe healthier: reduce fat/sugar/calories, swap refined carbs for whole grains, increase vegetables, reduce salt. Keep similar flavors.',
     cheaper: 'Make this recipe more budget-friendly: replace expensive ingredients with cheaper alternatives, simplify where possible. Keep the dish satisfying.',
+    easier: 'Simplify this recipe for beginner cooks: reduce the number of steps, replace advanced techniques (julienne, deglaze, temper, etc.) with simpler ones, shorten total time if possible. Keep the dish recognisable and delicious.',
+    harder: 'Elevate this recipe for experienced cooks: add advanced techniques (searing, deglazing, emulsifying, reducing sauces), refine presentation, add complexity to flavors. Keep the same core dish.',
   };
   return `You are AutoChef. Here is an existing recipe:
 ${JSON.stringify(recipe)}
@@ -172,6 +195,36 @@ function getLanguageName(langCode) {
   };
   const code = langCode.split('-')[0];
   return map[code] || 'English';
+}
+
+export function buildRemixPrompt(recipeA, recipeB) {
+  return `You are AutoChef. Fuse these two recipes into one creative dish that combines elements of both:
+
+Recipe A: ${recipeA.name} — ${recipeA.description || ''}
+Key ingredients A: ${(recipeA.ingredients || []).slice(0, 5).join(', ')}
+
+Recipe B: ${recipeB.name} — ${recipeB.description || ''}
+Key ingredients B: ${(recipeB.ingredients || []).slice(0, 5).join(', ')}
+
+Create a NEW fusion recipe that creatively merges both dishes. Give it a clever fusion name. The result should be genuinely interesting, not just a mix of the two names.
+
+Return a JSON object with this exact structure (no markdown):
+{
+  "name": "Fusion Recipe Name",
+  "prepTime": "10 minutes",
+  "cookTime": "20 minutes",
+  "time": "30 minutes",
+  "difficulty": "Medium",
+  "calories": "Estimated per serving",
+  "servings": 2,
+  "description": "Short mouth-watering description of the fusion",
+  "ingredients": ["item 1 with quantity"],
+  "instructions": ["step 1", "step 2"],
+  "nutrition": { "protein": "Xg", "carbs": "Xg", "fat": "Xg", "fiber": "Xg" },
+  "winePairing": "A wine or drink suggestion",
+  "chefTip": "A pro tip about the fusion",
+  "smartSub": "One smart substitution"
+}`;
 }
 
 export function buildImportPrompt(text) {

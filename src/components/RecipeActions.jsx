@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Share2, Printer, QrCode, RotateCcw, ThumbsUp, ThumbsDown, Image as ImageIcon, Loader2, Download, Code, MessageSquare, Languages, Leaf, DollarSign, ChevronDown, ShoppingCart, Shuffle } from 'lucide-react';
+import { Heart, Share2, Printer, QrCode, RotateCcw, ThumbsUp, ThumbsDown, Image as ImageIcon, Loader2, Download, Code, MessageSquare, Languages, Leaf, DollarSign, ChevronDown, ShoppingCart, Shuffle, BookOpen, Flame, CreditCard } from 'lucide-react';
 import { generateVariant } from '../lib/groq.js';
 import { buildVariantPrompt } from '../lib/prompts.js';
 
@@ -117,6 +117,91 @@ export default function RecipeActions({
     }
   };
 
+  const handleExportCard = async () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 500;
+    const ctx = canvas.getContext('2d');
+
+    // Dark background
+    ctx.fillStyle = '#020617';
+    ctx.fillRect(0, 0, 800, 500);
+
+    // Orange accent bar
+    ctx.fillStyle = '#f97316';
+    ctx.fillRect(0, 0, 8, 500);
+
+    // Draw recipe image if available
+    if (recipeImage) {
+      try {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = recipeImage; });
+        ctx.drawImage(img, 300, 0, 500, 500);
+        // Gradient overlay over image
+        const grad = ctx.createLinearGradient(300, 0, 800, 0);
+        grad.addColorStop(0, 'rgba(2,6,23,1)');
+        grad.addColorStop(0.3, 'rgba(2,6,23,0.6)');
+        grad.addColorStop(1, 'rgba(2,6,23,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(300, 0, 500, 500);
+      } catch { /* image failed */ }
+    }
+
+    // Recipe name
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 32px sans-serif';
+    const name = recipe.name || 'Recipe';
+    // Wrap long names
+    const words = name.split(' ');
+    let line = '';
+    let y = 80;
+    for (const word of words) {
+      const test = line + word + ' ';
+      if (ctx.measureText(test).width > 270 && line) {
+        ctx.fillText(line.trim(), 30, y);
+        line = word + ' ';
+        y += 40;
+      } else { line = test; }
+    }
+    ctx.fillText(line.trim(), 30, y);
+
+    // Stats
+    ctx.fillStyle = '#f97316';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText('⏱ ' + (recipe.time || '—'), 30, y + 50);
+    ctx.fillText('🔥 ' + (recipe.calories || '—'), 30, y + 75);
+    ctx.fillText('📊 ' + (recipe.difficulty || '—'), 30, y + 100);
+
+    // Description
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '13px sans-serif';
+    const desc = (recipe.description || '').slice(0, 120);
+    const dwords = desc.split(' ');
+    let dl = '';
+    let dy = y + 140;
+    for (const w of dwords) {
+      const t = dl + w + ' ';
+      if (ctx.measureText(t).width > 260 && dl) {
+        ctx.fillText(dl.trim(), 30, dy);
+        dl = w + ' ';
+        dy += 18;
+      } else { dl = t; }
+    }
+    ctx.fillText(dl.trim(), 30, dy);
+
+    // AutoChef watermark
+    ctx.fillStyle = '#f97316';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('AutoChef AI', 30, 470);
+
+    // Download
+    const link = document.createElement('a');
+    link.download = `${(recipe.name || 'recipe').replace(/\s+/g, '-').toLowerCase()}-card.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
+
   const qrImageUrl = qrShortUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&ecc=L&data=${encodeURIComponent(qrShortUrl)}`
     : '';
@@ -202,6 +287,15 @@ export default function RecipeActions({
           New Image
         </button>
 
+        {/* Save as Card */}
+        <button
+          onClick={handleExportCard}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/5 bg-slate-900 text-slate-400 text-sm font-medium hover:border-purple-500/30 hover:text-purple-400 transition-all"
+        >
+          <CreditCard size={16} />
+          Save Card
+        </button>
+
         {/* More actions toggle */}
         <button
           onClick={() => setShowExtras(v => !v)}
@@ -241,6 +335,26 @@ export default function RecipeActions({
           >
             {variantLoading === 'cheaper' ? <Loader2 size={16} className="animate-spin" /> : <DollarSign size={16} />}
             Make Cheaper
+          </button>
+
+          {/* Make it Easier */}
+          <button
+            onClick={() => handleVariant('easier')}
+            disabled={!!variantLoading}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-indigo-500/20 bg-indigo-500/5 text-indigo-400 text-sm font-medium hover:bg-indigo-500/10 transition-all disabled:opacity-50"
+          >
+            {variantLoading === 'easier' ? <Loader2 size={16} className="animate-spin" /> : <BookOpen size={16} />}
+            Make it Easier
+          </button>
+
+          {/* Make it Harder */}
+          <button
+            onClick={() => handleVariant('harder')}
+            disabled={!!variantLoading}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-500/20 bg-red-500/5 text-rose-400 text-sm font-medium hover:bg-red-500/10 transition-all disabled:opacity-50"
+          >
+            {variantLoading === 'harder' ? <Loader2 size={16} className="animate-spin" /> : <Flame size={16} />}
+            Make it Harder
           </button>
 
           {/* Translate */}

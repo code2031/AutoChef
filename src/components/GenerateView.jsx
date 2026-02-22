@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Zap, ShoppingBag, Shuffle, X, Ban, UtensilsCrossed, ListOrdered, Dices, FileText } from 'lucide-react';
+import { Zap, ShoppingBag, Shuffle, X, Ban, UtensilsCrossed, ListOrdered, Dices, FileText, Clock } from 'lucide-react';
 import IngredientInput from './IngredientInput.jsx';
 import SelectorGroup from './SelectorGroup.jsx';
 import PantryDrawer from './PantryDrawer.jsx';
@@ -54,6 +54,8 @@ export default function GenerateView({
     mood, setMood, leftover, setLeftover, kidFriendly, setKidFriendly,
     banned, toggleBanned, maxCalories, setMaxCalories,
     imageStyle, setImageStyle,
+    persona, setPersona,
+    maxTime, setMaxTime,
   } = prefs;
 
   const addIngredient = (name) => {
@@ -129,6 +131,13 @@ export default function GenerateView({
 
   const servingOptions = [1,2,3,4,6,8].map(n => ({ value: n, label: `${n} ${n === 1 ? 'serving' : 'servings'}` }));
   const moodOptions = MOOD_OPTIONS.map(m => ({ value: m.value, label: m.label }));
+  const personaOptions = [
+    { value: '', label: '— Any —' },
+    { value: 'home', label: '🏠 Home Cook' },
+    { value: 'pro', label: '👨‍🍳 Pro Kitchen' },
+    { value: 'street', label: '🌮 Street Food' },
+    { value: 'michelin', label: '⭐ Michelin' },
+  ];
 
   // Cuisine of the day
   const cuisineList = ['Italian', 'Asian', 'Mexican', 'Indian', 'French', 'Mediterranean', 'American', 'Japanese'];
@@ -370,6 +379,26 @@ export default function GenerateView({
         <SelectorGroup label="Spice Level" options={spiceOptions} value={spice} onChange={setSpice} />
         <SelectorGroup label="Servings" options={servingOptions} value={servings} onChange={setServings} />
         <SelectorGroup label="Mood / Occasion" options={moodOptions} value={mood} onChange={setMood} />
+        <SelectorGroup label="Chef Style" options={personaOptions} value={persona} onChange={setPersona} />
+
+        {/* Ready in X minutes */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Time Constraint</label>
+          <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/60 rounded-xl border border-white/5">
+            <Clock size={14} className="text-slate-400 shrink-0" />
+            <span className="text-xs text-slate-400">Ready in</span>
+            <input
+              type="number"
+              value={maxTime}
+              onChange={e => setMaxTime(e.target.value)}
+              placeholder="any"
+              min="5"
+              max="480"
+              className="w-16 bg-transparent text-sm text-slate-300 outline-none text-center placeholder:text-slate-600"
+            />
+            <span className="text-xs text-slate-500">min</span>
+          </div>
+        </div>
 
         <div className="space-y-2">
           <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Allergies (avoid)</label>

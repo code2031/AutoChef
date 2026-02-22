@@ -85,6 +85,27 @@ export async function generatePairingSuggestions(recipeName, recipeDescription) 
   return parsed.pairings || [];
 }
 
+export async function generateRemix(promptText) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: promptText }],
+    temperature: 0.8,
+    response_format: { type: 'json_object' },
+  });
+  return JSON.parse(data.choices[0].message.content);
+}
+
+export async function parseGroceryReceipt(promptText) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: promptText }],
+    temperature: 0.2,
+    response_format: { type: 'json_object' },
+  });
+  const parsed = JSON.parse(data.choices[0].message.content);
+  return parsed.ingredients || [];
+}
+
 export async function generateAutoTags(recipe) {
   const data = await groqFetch({
     model: 'llama-3.3-70b-versatile',
