@@ -182,15 +182,7 @@ export default function App() {
     const keyParam = POLLINATIONS_API_KEY ? `&key=${POLLINATIONS_API_KEY}` : '';
     const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}&nologo=true${keyParam}`;
     
-    const img = new Image();
-    img.onload = () => {
-      setRecipeImage(imageUrl);
-      setIsGeneratingImage(false);
-    };
-    img.onerror = () => {
-      setIsGeneratingImage(false);
-    };
-    img.src = imageUrl;
+    setRecipeImage(imageUrl);
   };
 
   const reset = () => {
@@ -386,10 +378,12 @@ export default function App() {
                 {/* Generated Recipe Image Hero */}
                 <div className="w-full h-64 md:h-96 rounded-3xl overflow-hidden relative bg-slate-900 border border-white/10 group">
                   {recipeImage ? (
-                    <img 
-                      src={recipeImage} 
-                      alt={recipe.name} 
+                    <img
+                      src={recipeImage}
+                      alt={recipe.name}
                       className="w-full h-full object-cover animate-in fade-in zoom-in-95 duration-1000"
+                      onLoad={() => setIsGeneratingImage(false)}
+                      onError={() => { setRecipeImage(null); setIsGeneratingImage(false); }}
                     />
                   ) : isGeneratingImage ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/80 space-y-4">
