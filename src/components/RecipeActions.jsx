@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, Share2, Printer, QrCode, RotateCcw, ThumbsUp, ThumbsDown, Image as ImageIcon, Loader2 } from 'lucide-react';
 
-async function encodeRecipeToUrl(recipe) {
+async function buildLongUrl(recipe) {
   const json = JSON.stringify(recipe);
   const bytes = new TextEncoder().encode(json);
+  const base = window.location.origin + window.location.pathname;
   try {
     const cs = new CompressionStream('deflate-raw');
     const writer = cs.writable.getWriter();
@@ -11,14 +12,20 @@ async function encodeRecipeToUrl(recipe) {
     writer.close();
     const buf = await new Response(cs.readable).arrayBuffer();
     const encoded = btoa(String.fromCharCode(...new Uint8Array(buf)));
-    const base = window.location.origin + window.location.pathname;
-    return `${base}#rc=${encoded}`;
+    return `${base}?rc=${encoded}`;
   } catch {
-    // Fallback to uncompressed if CompressionStream unavailable
     const encoded = btoa(String.fromCharCode(...bytes));
-    const base = window.location.origin + window.location.pathname;
-    return `${base}#r=${encoded}`;
+    return `${base}?r=${encoded}`;
   }
+}
+
+async function shortenUrl(longUrl) {
+  const res = await fetch(
+    `https://is.gd/create.php?format=json&url=${encodeURIComponent(longUrl)}`
+  );
+  const data = await res.json();
+  if (!data.shorturl) throw new Error('no shorturl');
+  return data.shorturl;
 }
 
 export default function RecipeActions({
@@ -37,9 +44,18 @@ export default function RecipeActions({
   const [showQR, setShowQR] = useState(false);
   const [shareMsg, setShareMsg] = useState('');
   const [shareUrl, setShareUrl] = useState('');
+  const [qrShortUrl, setQrShortUrl] = useState('');
 
   useEffect(() => {
-    encodeRecipeToUrl(recipe).then(setShareUrl);
+    buildLongUrl(recipe).then(async (longUrl) => {
+      setShareUrl(longUrl);
+      try {
+        const short = await shortenUrl(longUrl);
+        setQrShortUrl(short);
+      } catch {
+        setQrShortUrl(longUrl);
+      }
+    });
   }, [recipe]);
 
   const handleShare = async () => {
@@ -59,8 +75,8 @@ export default function RecipeActions({
 
   const handlePrint = () => window.print();
 
-  const qrUrl = shareUrl
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&ecc=L&data=${encodeURIComponent(shareUrl)}`
+  const qrImageUrl = qrShortUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&ecc=L&data=${encodeURIComponent(qrShortUrl)}`
     : '';
 
   return (
@@ -149,11 +165,14 @@ export default function RecipeActions({
       {/* QR Code display */}
       {showQR && (
         <div className="flex items-center gap-4 p-4 bg-white rounded-2xl w-fit">
-          {qrUrl
-            ? <img src={qrUrl} alt="QR Code" className="w-32 h-32" />
-            : <div className="w-32 h-32 bg-slate-100 rounded animate-pulse" />
+          {qrImageUrl
+            ? <img src={qrImageUrl} alt="QR Code" className="w-32 h-32" />
+            : <div className="w-32 h-32 bg-slate-100 rounded-xl animate-pulse" />
           }
-          <p className="text-slate-900 text-sm max-w-[160px]">Scan to open this exact recipe</p>
+          <div>
+            <p className="text-slate-900 text-sm font-medium">Scan to open this recipe</p>
+            {qrShortUrl && <p className="text-slate-500 text-xs mt-1 break-all">{qrShortUrl}</p>}
+          </div>
         </div>
       )}
     </div>

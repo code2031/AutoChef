@@ -53,15 +53,19 @@ export default function App() {
     document.documentElement.classList.toggle('light-theme', prefs.theme === 'light');
   }, [prefs.theme]);
 
-  // Restore recipe from shared URL hash (#rc=<compressed> or #r=<plain>)
+  // Restore recipe from shared URL (?rc= query param, or legacy #rc=/#r= hash)
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
     const hash = window.location.hash;
-    const compressed = hash.startsWith('#rc=');
-    const plain = hash.startsWith('#r=');
-    if (!compressed && !plain) return;
+    const qEncoded = params.get('rc') || params.get('r');
+    const qCompressed = params.has('rc');
+    const hCompressed = hash.startsWith('#rc=');
+    const hPlain = hash.startsWith('#r=');
+    const encoded = qEncoded ?? (hCompressed ? hash.slice(4) : hPlain ? hash.slice(3) : null);
+    const compressed = qEncoded ? qCompressed : hCompressed;
+    if (!encoded) return;
     (async () => {
       try {
-        const encoded = hash.slice(compressed ? 4 : 3);
         const bytes = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
         let decoded;
         if (compressed) {
@@ -81,7 +85,7 @@ export default function App() {
           setRecipeImage(buildImageUrl(decoded.name, decoded.description));
         }, 0);
       } catch {
-        // Ignore malformed hash
+        // Ignore malformed URL
       }
     })();
   }, []);
