@@ -4,13 +4,16 @@ import logoUrl from '../assets/AutoChef_Logo.png';
 
 export default function Navbar({ view, setView, theme, setTheme, points, streak, historyCount }) {
   return (
-    <nav className="fixed top-0 w-full z-50 bg-slate-950/80 dark:bg-slate-950/80 light:bg-white/80 backdrop-blur-md border-b border-white/10 px-4 md:px-6 py-4 flex justify-between items-center no-print">
-      <div
-        className="flex items-center cursor-pointer"
+    <nav className="fixed top-0 w-full z-50 bg-slate-950/80 dark:bg-slate-950/80 light:bg-white/80 backdrop-blur-md border-b border-white/10 px-4 md:px-6 py-2 flex justify-between items-center no-print relative overflow-visible">
+      {/* Logo: absolute so it doesn't set navbar height; overflows below the slim bar */}
+      <img
+        src={logoUrl}
+        alt="AutoChef"
+        className="absolute left-4 md:left-6 top-0 h-24 w-auto cursor-pointer z-10"
         onClick={() => setView('landing')}
-      >
-        <img src={logoUrl} alt="AutoChef" className="h-16 w-auto" />
-      </div>
+      />
+      {/* Spacer reserves horizontal room for the logo */}
+      <div className="w-28" />
 
       <div className="flex items-center gap-2">
         {/* Points & Streak */}

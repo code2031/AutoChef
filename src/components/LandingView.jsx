@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowRight, Sparkles, Camera, Heart } from 'lucide-react';
 import { getSeasonalIngredients } from '../lib/seasonal.js';
+import logoUrl from '../assets/AutoChef_Logo.png';
 
 export default function LandingView({ setView }) {
   const seasonal = getSeasonalIngredients();
@@ -14,6 +15,7 @@ export default function LandingView({ setView }) {
   return (
     <div className="flex flex-col items-center text-center py-16 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="space-y-6">
+        <img src={logoUrl} alt="AutoChef" className="h-40 md:h-52 w-auto mx-auto drop-shadow-2xl" />
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-sm font-medium">
           <Sparkles size={14} /> {seasonal.label} seasonal picks: {seasonal.ingredients.slice(0, 3).join(', ')}
         </div>
