@@ -10,7 +10,7 @@ export default function Navbar({ view, setView, theme, setTheme, points, streak,
         src={logoUrl}
         alt="AutoChef"
         className="absolute left-4 md:left-6 top-0 h-40 w-auto cursor-pointer z-10"
-        onClick={() => setView('landing')}
+        onClick={() => { setView('landing'); window.history.replaceState(null, '', window.location.pathname); }}
       />
       {/* Spacer reserves horizontal room for the logo */}
       <div className="w-44" />
