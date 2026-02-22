@@ -9,7 +9,7 @@ export default function Navbar({ view, setView, theme, setTheme, points, streak,
         className="flex items-center cursor-pointer"
         onClick={() => setView('landing')}
       >
-        <img src={logoUrl} alt="AutoChef" className="h-32 w-auto" />
+        <img src={logoUrl} alt="AutoChef" className="h-16 w-auto" />
       </div>
 
       <div className="flex items-center gap-2">

@@ -303,7 +303,7 @@ export default function App() {
         <BadgePopup badges={newBadges} onDismiss={() => setNewBadges([])} />
       )}
 
-      <main className="pt-24 pb-12 px-4 md:px-6 max-w-4xl mx-auto">
+      <main className="pt-28 pb-12 px-4 md:px-6 max-w-4xl mx-auto">
         {view === 'landing' && <LandingView setView={setView} />}
 
         {view === 'generate' && (
