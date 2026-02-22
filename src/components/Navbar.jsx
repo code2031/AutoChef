@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { History, Sun, Moon, Zap, Type, Contrast, Keyboard, X, Thermometer } from 'lucide-react';
+import { History, Sun, Moon, Type, Contrast, Keyboard, X, Thermometer } from 'lucide-react';
 import logoUrl from '../assets/AutoChef_Logo.png';
 
 function KeyboardShortcutsModal({ onClose }) {
@@ -30,7 +30,7 @@ function KeyboardShortcutsModal({ onClose }) {
 }
 
 export default function Navbar({
-  view, setView, theme, setTheme, points, streak, historyCount,
+  view, setView, theme, setTheme, streak, historyCount,
   fontSz, setFontSz, highContrast, setHighContrast, tempUnit, setTempUnit,
 }) {
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -52,12 +52,7 @@ export default function Navbar({
 
         <div className="flex items-center gap-2">
           {/* Points & Streak */}
-          {points > 0 && (
-            <div className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-bold">
-              <Zap size={12} fill="currentColor" />
-              {points} pts
-            </div>
-          )}
+          {/* points display removed */}
           {streak >= 2 && (
             <div className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold">
               🔥 {streak}

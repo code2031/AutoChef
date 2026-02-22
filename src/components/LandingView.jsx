@@ -7,7 +7,7 @@ export default function LandingView({ setView }) {
 
   const features = [
     { icon: <Camera size={20} className="text-blue-400" />, title: 'AI Fridge Scan', desc: 'Snap a photo; our vision model lists every ingredient.' },
-    { icon: <Sparkles size={20} className="text-orange-400" />, title: 'Instant Recipes', desc: 'Groq Llama 3.3 70B crafts a gourmet recipe in seconds.' },
+    { icon: <Sparkles size={20} className="text-orange-400" />, title: 'Instant Recipes', desc: 'Our AI crafts a gourmet recipe in seconds.' },
     { icon: <Heart size={20} className="text-pink-400" />, title: 'Save & Revisit', desc: 'Favourite recipes persist across sessions.' },
   ];
 
