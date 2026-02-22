@@ -43,7 +43,7 @@ export default function RecipeSuggestions({ suggestions, isLoading, onSelect, on
         onClick={onSkip}
         className="w-full py-3 text-sm text-slate-400 hover:text-white border border-white/5 rounded-xl hover:bg-white/5 transition-all"
       >
-        Surprise me — pick one at random
+        Surprise me, pick one at random
       </button>
     </div>
   );
