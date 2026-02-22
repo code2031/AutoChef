@@ -1,33 +1,38 @@
 # AutoChef
 
-An AI-powered recipe generator. Type in what's in your pantry, snap a photo of your fridge, or hit **Surprise Me** — AutoChef identifies your ingredients, generates a gourmet recipe, and renders a photorealistic image of the finished dish.
+An AI-powered recipe generator. Type in what's in your pantry, snap a photo of your fridge, or search by dish name — AutoChef generates a gourmet recipe and renders a photorealistic image of the finished dish.
 
 ## Features
 
 ### Recipe Generation
 - **Fridge Scanner** — Upload a photo and AI vision identifies every visible ingredient
-- **Recipe Suggestions** — Pick from 3 AI-generated recipe ideas before committing to a full generation
+- **By Ingredients** — Enter what you have; pick from 3 AI-suggested recipe names before full generation
+- **By Dish Name** — Type any dish (e.g. "Tiramisu", "Pad Thai") and get a complete recipe instantly
+- **I'm Feeling Lucky** — Skip suggestions entirely; generates a recipe from your ingredients in one click
 - **Gourmet Recipes** — Full recipe with ingredients, instructions, nutrition macros, wine pairing, chef's tip, and a smart substitution
 - **Dish Visualization** — Pollinations.ai renders a photorealistic food photo of the result
 - **Surprise Me** — Picks a random curated set of ingredients and generates a recipe instantly
+- **Similar Recipe** — Generate a different dish in the same style as the current recipe
 - **Variants** — Regenerate any recipe as a healthier version, a cheaper version, or translated to Spanish
 
 ### Customization
 - **Dietary filters** — Vegetarian, vegan, keto, gluten-free, plus cuisine style, spice level, and serving size
 - **Allergy exclusions** — Nuts, dairy, eggs, shellfish, soy, gluten
 - **Banned Ingredients** — Permanently exclude any ingredient from all recipes
+- **Calorie Cap** — Set a maximum calories-per-serving target enforced during generation
 - **Mood / Occasion** — Dinner party, meal prep, quick lunch, BBQ, and more
-- **Leftover Mode** — Emphasises zero-waste cooking from what's on hand
-- **Kid-Friendly Mode** — Mild flavours and simple techniques
+- **Leftover Mode** — Forces every listed ingredient to appear; zero-waste cooking
+- **Kid-Friendly Mode** — Overrides spice to mild; simple techniques, no alcohol
 - **Persistent Pantry** — Save staple ingredients and add them all to any recipe in one click
 
 ### Cooking Experience
-- **Cooking Mode** — Full-screen step-by-step overlay with auto-detected countdown timers and audio beep when done
+- **Cooking Mode** — Full-screen step-by-step overlay with simultaneous countdown timers per step and audio beep when done
 - **Voice Readout** — Cooking mode reads each step aloud via Web Speech API
 - **Swipe Gestures** — Swipe left/right in cooking mode to navigate steps
 - **Inline Step Timers** — Tap any time-mentioned step to start a countdown directly in the recipe view
+- **Technique Explainer** — Hover or tap underlined cooking terms (julienne, deglaze, braise, etc.) for plain-English definitions
 - **Ingredient Checklist** — Tap ingredients to cross them off as you cook
-- **Serving Scaler** — Scale ingredient quantities ½x, 1x, 2x, or 3x
+- **Serving Scaler** — Scale ingredient quantities ½x, 1x, 2x, 3x, or any custom number
 
 ### Input
 - **Voice Input** — Dictate ingredients using the browser's Web Speech API
@@ -37,7 +42,8 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Surprise Cuisine** — Randomly picks a cuisine style for you
 
 ### Recipe Details
-- **Nutrition Bars** — Visual macro bars for protein, carbs, fat, and fiber
+- **Nutrition Bars** — Visual macro bars for protein, carbs, fat, and fiber; turn red when a bar exceeds your daily goal
+- **Nutrition Goals** — Set personal daily targets (calories, protein, carbs, fat) in settings
 - **Prep/Cook Time Split** — Separate prep and cook times when provided
 - **Estimated Cost** — Rough per-batch ingredient cost estimate
 - **Carbon Footprint** — Colour-coded environmental impact score
@@ -46,6 +52,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 
 ### History & Saving
 - **Recipe History** — All generated recipes saved to localStorage with thumbnail, rating, and favourite toggle
+- **Monthly Challenges** — Track four monthly goals: cook 10 recipes, try 5 cuisines, save 5 favourites, use 20 unique ingredients
 - **Search & Sort** — Search history by name, tags, or notes; sort by date, name, or rating
 - **Tags & Notes** — Add custom tags and personal notes to any saved recipe
 - **Export** — Download your full recipe history as a JSON file
@@ -54,6 +61,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 
 ### Sharing & Output
 - **Share & QR** — Every recipe gets its own shareable URL (compressed, shortened via is.gd); QR code links directly to the exact recipe including its image — no re-render needed on the recipient's end
+- **Shopping List** — One-click grocery list with ingredients grouped by category (meat, produce, dairy, herbs, pantry); checkboxes and copy to clipboard
 - **Print** — Print-optimised stylesheet renders the recipe with the AI-generated image, clean layout, and no UI chrome
 - **Download as Text** — Save any recipe as a plain `.txt` file
 - **Copy Ingredients** — One-click copy of the full ingredient list
@@ -63,7 +71,8 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 
 ### Accessibility & Appearance
 - **Responsive Design** — Fully mobile-friendly layout that adapts for phone, tablet, and desktop
-- **Dark / Light theme** — Persisted preference, toggled from settings
+- **System Dark Mode** — Automatically follows your OS preference on first visit
+- **Dark / Light theme** — Override and persist via settings
 - **Font Size** — SM / MD / LG scale, persisted
 - **High-Contrast Mode** — Stronger borders and white text for readability
 - **Temperature Unit** — Toggle between °C and °F
@@ -76,7 +85,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Tailwind CSS v4** (via `@tailwindcss/vite` plugin)
 - **Groq API** — LLM text generation and vision
 - **Pollinations.ai** — Image generation (free, no account required)
-- **canvas-confetti** — Celebration animation on recipe completion
+- **canvas-confetti** — Celebration animation on first recipe
 - **is.gd** — Free URL shortening for scannable QR codes (no API key required)
 
 ## Getting Started
