@@ -26,7 +26,7 @@ export default function PantryDrawer({ onAddAll, onClose }) {
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
       {/* Drawer */}
-      <div className="relative w-full max-w-sm bg-slate-900 border-l border-white/10 flex flex-col animate-in slide-in-from-right duration-300">
+      <div className="relative w-full max-w-[92vw] sm:max-w-sm bg-slate-900 border-l border-white/10 flex flex-col animate-in slide-in-from-right duration-300">
         <div className="flex items-center justify-between p-5 border-b border-white/5">
           <div className="flex items-center gap-2">
             <ShoppingBag size={20} className="text-orange-500" />

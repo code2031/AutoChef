@@ -7,9 +7,15 @@ body {
 }
 
 /* Font size classes applied on root div */
-.font-sz-sm { font-size: 0.875rem; }
-.font-sz-md { font-size: 1rem; }
-.font-sz-lg { font-size: 1.125rem; }
+.font-sz-sm { font-size: 0.8125rem; }
+.font-sz-md { font-size: 0.9375rem; }
+.font-sz-lg { font-size: 1.0625rem; }
+
+@media (min-width: 640px) {
+  .font-sz-sm { font-size: 0.875rem; }
+  .font-sz-md { font-size: 1rem; }
+  .font-sz-lg { font-size: 1.125rem; }
+}
 
 /* Light theme */
 .light-theme {

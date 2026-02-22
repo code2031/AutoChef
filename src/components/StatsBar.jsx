@@ -79,9 +79,9 @@ export default function StatsBar({ recipe, diet, ingredients }) {
 
   return (
     <div>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
         {stats.map((s, i) => (
-          <div key={i} className="bg-slate-900/50 p-4 rounded-2xl border border-white/5 text-center space-y-1">
+          <div key={i} className="bg-slate-900/50 p-3 sm:p-4 rounded-2xl border border-white/5 text-center space-y-1">
             <div className="flex justify-center">{s.icon}</div>
             <span className="block text-xs uppercase text-slate-500 font-bold tracking-widest">{s.label}</span>
             {s.tooltip ? (
@@ -107,7 +107,7 @@ export default function StatsBar({ recipe, diet, ingredients }) {
 
       {/* Nutrition macro bars */}
       {recipe.nutrition && (
-        <div className="mt-3 grid grid-cols-4 gap-2">
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
           <MacroBar label="protein" value={recipe.nutrition.protein} color="#22c55e" />
           <MacroBar label="carbs" value={recipe.nutrition.carbs} color="#f59e0b" />
           <MacroBar label="fat" value={recipe.nutrition.fat} color="#f97316" />

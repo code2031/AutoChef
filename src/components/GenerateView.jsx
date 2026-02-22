@@ -135,7 +135,7 @@ export default function GenerateView({
     <div className="space-y-8 animate-in fade-in duration-500" style={accentStyle}>
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <h2 className="text-3xl font-bold">What's in your pantry?</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold">What's in your pantry?</h2>
           <p className="text-slate-400 text-sm">Type ingredients, scan your fridge, or use Surprise Me.</p>
         </div>
         <div className="flex gap-2">
@@ -245,7 +245,7 @@ export default function GenerateView({
         fileInputRef={fileInputRef}
       />
 
-      <div className="grid md:grid-cols-2 gap-5 pt-2">
+      <div className="grid md:grid-cols-2 gap-4 sm:gap-5 pt-2">
         <SelectorGroup label="Dietary Needs" options={dietOptions} value={diet} onChange={setDiet} />
         <SelectorGroup label="Cooking Vibe" options={vibeOptions} value={vibe} onChange={setVibe} />
         <SelectorGroup label="Cuisine Style" options={cuisineOptions} value={cuisine} onChange={setCuisine} />

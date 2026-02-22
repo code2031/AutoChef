@@ -197,7 +197,7 @@ export default function RecipeHistory({
       {/* Search + Sort */}
       {history.length > 0 && (
         <div className="flex gap-2 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-0 w-full sm:min-w-[200px]">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               value={search}

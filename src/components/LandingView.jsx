@@ -17,7 +17,7 @@ export default function LandingView({ setView }) {
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-sm font-medium">
           <Sparkles size={14} /> {seasonal.label} seasonal picks: {seasonal.ingredients.slice(0, 3).join(', ')}
         </div>
-        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-tight">
+        <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight leading-tight">
           Intelligent Cooking,<br />
           <span className="text-orange-500">Effortless Living.</span>
         </h1>
@@ -35,7 +35,7 @@ export default function LandingView({ setView }) {
         </div>
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-6 w-full max-w-2xl">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 w-full max-w-2xl">
         {features.map((f, i) => (
           <div key={i} className="p-5 bg-slate-900/60 border border-white/5 rounded-2xl text-left space-y-2 hover:border-orange-500/20 transition-all">
             <div className="p-2 bg-white/5 rounded-xl w-fit">{f.icon}</div>

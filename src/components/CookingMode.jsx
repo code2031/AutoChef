@@ -131,7 +131,7 @@ export default function CookingMode({ recipe, onExit }) {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      <div className="flex items-center justify-between p-6 border-b border-white/5">
+      <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/5">
         <div>
           <p className="text-xs text-orange-400 font-bold uppercase tracking-widest">Cooking Mode</p>
           <h2 className="text-xl font-bold">{recipe.name}</h2>
@@ -150,7 +150,7 @@ export default function CookingMode({ recipe, onExit }) {
         </div>
       </div>
 
-      <div className="px-6 py-4">
+      <div className="px-4 sm:px-6 py-4">
         <div className="flex items-center gap-2 text-sm text-slate-400">
           <span className="font-bold text-orange-400">Step {step + 1}</span>
           <span>of {steps.length}</span>
@@ -166,14 +166,14 @@ export default function CookingMode({ recipe, onExit }) {
         </div>
       </div>
 
-      <div className="flex-1 flex items-center px-6">
-        <p className="text-2xl md:text-3xl leading-relaxed font-medium text-white">
+      <div className="flex-1 flex items-center px-4 sm:px-6">
+        <p className="text-xl sm:text-2xl md:text-3xl leading-relaxed font-medium text-white">
           {steps[step]}
         </p>
       </div>
 
       {timerSeconds && (
-        <div className="px-6 py-4 flex items-center gap-4 bg-slate-900/60 mx-6 mb-4 rounded-2xl border border-white/5">
+        <div className="px-4 sm:px-6 py-4 flex items-center gap-4 bg-slate-900/60 mx-4 sm:mx-6 mb-4 rounded-2xl border border-white/5">
           <Timer size={20} className="text-orange-400" />
           <span className="text-2xl font-mono font-bold text-orange-400">
             {formatTime(timeLeft ?? timerSeconds)}
@@ -195,7 +195,7 @@ export default function CookingMode({ recipe, onExit }) {
         </div>
       )}
 
-      <div className="flex gap-4 p-6 border-t border-white/5">
+      <div className="flex gap-3 sm:gap-4 p-4 sm:p-6 border-t border-white/5">
         <button
           onClick={goPrev}
           disabled={step === 0}

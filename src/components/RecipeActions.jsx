@@ -288,14 +288,16 @@ export default function RecipeActions({
 
       {/* QR Code display */}
       {showQR && (
-        <div className="flex items-center gap-4 p-4 bg-white rounded-2xl w-fit">
-          {qrImageUrl
-            ? <img src={qrImageUrl} alt="QR Code" className="w-32 h-32" />
-            : <div className="w-32 h-32 bg-slate-100 rounded-xl animate-pulse" />
-          }
-          <div>
-            <p className="text-slate-900 text-sm font-medium">Scan to open this recipe</p>
-            {qrShortUrl && <p className="text-slate-500 text-xs mt-1 break-all">{qrShortUrl}</p>}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-white rounded-2xl w-full sm:w-fit">
+          <div className="flex items-center gap-4">
+            {qrImageUrl
+              ? <img src={qrImageUrl} alt="QR Code" className="w-32 h-32 shrink-0" />
+              : <div className="w-32 h-32 bg-slate-100 rounded-xl animate-pulse shrink-0" />
+            }
+            <div>
+              <p className="text-slate-900 text-sm font-medium">Scan to open this recipe</p>
+              {qrShortUrl && <p className="text-slate-500 text-xs mt-1 break-all">{qrShortUrl}</p>}
+            </div>
           </div>
         </div>
       )}

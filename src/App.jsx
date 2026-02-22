@@ -398,7 +398,7 @@ export default function App() {
         </button>
       )}
 
-      <main className="pt-44 pb-12 px-4 md:px-6 max-w-4xl mx-auto">
+      <main className="pt-24 sm:pt-32 md:pt-44 pb-12 px-4 sm:px-5 md:px-6 max-w-4xl mx-auto">
         {view === 'landing' && <LandingView setView={setView} />}
 
         {view === 'generate' && (

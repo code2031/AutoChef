@@ -44,11 +44,11 @@ export default function Navbar({
         <img
           src={logoUrl}
           alt="AutoChef"
-          className="absolute left-4 md:left-6 top-0 h-40 w-auto cursor-pointer z-10"
+          className="absolute left-3 md:left-6 top-0 h-20 sm:h-28 md:h-40 w-auto cursor-pointer z-10"
           onClick={() => { setView('landing'); window.history.replaceState(null, '', window.location.pathname); }}
         />
         {/* Spacer reserves horizontal room for the logo */}
-        <div className="w-44" />
+        <div className="w-24 sm:w-32 md:w-44" />
 
         <div className="flex items-center gap-2">
           {/* Points & Streak */}
@@ -81,7 +81,7 @@ export default function Navbar({
             {showSettings && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowSettings(false)} />
-                <div className="absolute right-0 top-full mt-2 w-56 bg-slate-900 border border-white/10 rounded-2xl p-3 space-y-1 z-50 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 top-full mt-2 w-56 max-w-[calc(100vw-1.5rem)] bg-slate-900 border border-white/10 rounded-2xl p-3 space-y-1 z-50 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
                   {/* Theme */}
                   <button
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}

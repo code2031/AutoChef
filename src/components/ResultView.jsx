@@ -204,7 +204,7 @@ export default function ResultView({
 
       <div className="space-y-8 animate-in fade-in duration-700">
         {/* Hero image */}
-        <div className="recipe-hero w-full h-64 md:h-96 rounded-3xl overflow-hidden relative bg-slate-900 border border-white/10">
+        <div className="recipe-hero w-full h-48 sm:h-64 md:h-96 rounded-3xl overflow-hidden relative bg-slate-900 border border-white/10">
           {recipeImage && (
             <img
               src={recipeImage}
@@ -228,7 +228,7 @@ export default function ResultView({
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent pointer-events-none no-print" />
           <div className="absolute bottom-6 left-6 right-6 no-print">
-            <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-lg">{recipe.name}</h2>
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black text-white drop-shadow-lg">{recipe.name}</h2>
           </div>
         </div>
         {/* Recipe name shown in print */}
@@ -269,7 +269,7 @@ export default function ResultView({
         </div>
 
         {/* Recipe grid */}
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-5 md:gap-8">
           {/* Ingredients */}
           <div className="md:col-span-1 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '200ms' }}>
             <div className="bg-slate-900 border border-white/5 p-6 rounded-2xl space-y-4">
