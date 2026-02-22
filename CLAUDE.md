@@ -27,7 +27,8 @@ AutoChef is a client-side-only React SPA (no backend). All state is either ephem
 'landing' → 'generate' → 'suggestions' → 'result'
                 ↑                              |
                 └──────── reset() ────────────┘
-'history'  (accessible from Navbar at any point)
+'history'   (accessible from Navbar at any point)
+'planner'   (Meal Planner — accessible from Navbar at any point)
 ```
 
 There is no router — `view` is just `useState`. The initial value is computed synchronously: if the URL has `?rc=` or `?r=` query params (or legacy `#rc=`/`#r=` hash), the app starts on `'result'` immediately to avoid a landing-page flash when opening a shared recipe link.
@@ -42,9 +43,12 @@ All API keys are read from `import.meta.env` — set in `.env.local` locally, an
 | Groq recipe | `lib/groq.js` → `generateRecipe()` | `llama-3.3-70b-versatile`, `response_format: json_object` |
 | Groq suggestions | `lib/groq.js` → `generateSuggestions()` | `llama-3.3-70b-versatile`, `response_format: json_object` |
 | Groq variant | `lib/groq.js` → `generateVariant()` | `llama-3.3-70b-versatile`, `response_format: json_object` |
-| Pollinations image | `lib/pollinations.js` → `buildImageUrl()` | `flux` model, URL-based GET, **random seed per call** |
+| Groq import | `lib/groq.js` → `importRecipe()` | `llama-3.3-70b-versatile`, low temp (0.2) |
+| Groq pairings | `lib/groq.js` → `generatePairingSuggestions()` | `llama-3.3-70b-versatile`, returns `[{name, type, reason}]` |
+| Groq auto-tags | `lib/groq.js` → `generateAutoTags()` | `llama-3.3-70b-versatile`, returns `string[]` |
+| Pollinations image | `lib/pollinations.js` → `buildImageUrl(name, desc, imageStyle?)` | `flux` model, URL-based GET, **random seed per call** |
 
-`buildImageUrl()` uses a random seed, so two calls for the same recipe produce different images. The image URL must be preserved explicitly when sharing (see below).
+`buildImageUrl()` accepts an optional `imageStyle` (`'plated'` / `'overhead'` / `'rustic'` / `'close-up'`) that is injected into the Pollinations prompt. It uses a random seed, so two calls produce different images — the URL must be preserved explicitly when sharing.
 
 ### Recipe JSON schema
 
@@ -72,6 +76,9 @@ The recipe prompt (`lib/prompts.js`) requests this exact shape from Groq:
 **By Dish Name** (`GenerateView` tab)
 - `handleDishGenerate(dishName)` → `buildDishPrompt()` → `generateRecipe()` → `ResultView` (skips suggestions)
 
+**Import** (`GenerateView` Import tab)
+- `handleImport(text)` → `buildImportPrompt(text)` → `importRecipe()` → `ResultView` (skips suggestions)
+
 **I'm Feeling Lucky**
 - `handleLucky()` → uses current ingredients or picks `getRandomSurpriseIngredients()` → calls `handlePickSuggestion(null, ing)` directly (skips suggestions)
 
@@ -79,9 +86,9 @@ The recipe prompt (`lib/prompts.js`) requests this exact shape from Groq:
 - `handleSimilarRecipe()` → `buildSimilarPrompt(recipe)` → `generateVariant()` → replaces current recipe
 
 **Variant flow** (More panel in `RecipeActions`)
-- `handleVariant(type)` → `buildVariantPrompt(recipe, type)` → `generateVariant()` → `onVariantReady()` callback in `App.jsx` replaces current recipe
+- `handleVariant(type)` → `buildVariantPrompt(recipe, type)` → `generateVariant()` → `onVariantReady()` in `App.jsx` saves old recipe as a version (via `updateRecipeWithVersion`) then replaces current recipe
 
-All recipe flows end with: `buildImageUrl()` called for image; `useEffect` in `App.jsx` resolves `isGeneratingImage` when the `Image` object fires `onload`/`onerror`. `canvas-confetti` fires only once ever (guarded by `localStorage.getItem('confetti_done')`).
+All recipe flows end with: `buildImageUrl(name, desc, prefs.imageStyle)` called for image; `useEffect` in `App.jsx` resolves `isGeneratingImage` when the `Image` object fires `onload`/`onerror`. `canvas-confetti` fires only once ever (guarded by `localStorage.getItem('confetti_done')`). After each recipe loads, `generatePairingSuggestions()` is called in the background and results stored in `pairings` state.
 
 ### Prompt options (`lib/prompts.js`)
 
@@ -97,6 +104,8 @@ All recipe flows end with: `buildImageUrl()` called for image; `useEffect` in `A
 `buildSimilarPrompt(recipe)` generates a different dish in the same style/cuisine.
 
 `buildSuggestionsPrompt()` also accepts `kidFriendly` and `leftover` so the 3 suggestion names already reflect active modes.
+
+`buildImportPrompt(text)` wraps arbitrary pasted recipe text/URL content in a parse request that returns the standard recipe JSON schema.
 
 ### Recipe sharing / QR code
 
@@ -122,7 +131,10 @@ All `localStorage` keys:
 | `pref_max_calories` | `usePreferences` — calorie cap per serving |
 | `pref_nutrition_goals` | `usePreferences` — `{ calories, protein, carbs, fat }` daily targets |
 | `pref_servings_memory` | `usePreferences` — object keyed by cuisine name |
-| `recipe_history` | `useRecipeHistory` (max 50 entries; each has `tags[]`, `notes`, `isFavourite`, `rating`) |
+| `pref_image_style` | `usePreferences` — Pollinations photo style (`'plated'` / `'overhead'` / `'rustic'` / `'close-up'`) |
+| `recipe_history` | `useRecipeHistory` (max 50 entries; each has `tags[]`, `notes`, `isFavourite`, `rating`, `versions[]`, `collectionId`) |
+| `recipe_collections` | `useRecipeHistory` — array of `{ id, name }` cookbook objects |
+| `meal_plan` | `MealPlanner` — `{ Monday: { Breakfast: entryId\|null, ... }, ... }` |
 | `game_points`, `game_streak`, `game_last_cook_date`, `game_badges`, `game_stats` | `useGamification` |
 | `game_best_streak` | `App.jsx` (uses `useLocalStorage` directly) |
 | `recent_ingredients` | `App.jsx` (uses `useLocalStorage` directly; max 20 items) |
@@ -133,13 +145,21 @@ All `localStorage` keys:
 
 ### Notable component behaviours
 
-**`CookingMode.jsx`** — all step timers are initialized upfront from `detectTimerSeconds()` on mount and stored in a `timers` map keyed by step index. A single `setInterval` ticks all running timers simultaneously. Other running timers are shown as chips at the top while you're on a different step.
+**`CookingMode.jsx`** — all step timers are initialized upfront from `detectTimerSeconds()` on mount and stored in a `timers` map keyed by step index. A single `setInterval` ticks all running timers simultaneously. Other running timers are shown as chips at the top while you're on a different step. Users can add per-step notes; `onExit(stepNotes)` passes the notes map back to `App.jsx` which saves them via `handleSaveCookingNotes`.
 
-**`ResultView.jsx`** — cooking terms in instructions (julienne, deglaze, sauté, braise, fold, etc.) are detected via a regex over `TECHNIQUES` glossary and rendered as `TechniqueWord` spans with hover/tap tooltips. The serving multiplier supports both preset buttons (½x/1x/2x/3x) and a free-text number input; `effectiveMultiplier` resolves to whichever is active.
+**`ResultView.jsx`** — cooking terms in instructions (julienne, deglaze, sauté, braise, fold, etc.) are detected via a regex over `TECHNIQUES` glossary and rendered as `TechniqueWord` spans with hover/tap tooltips. The serving multiplier supports both preset buttons (½x/1x/2x/3x) and a free-text number input; `effectiveMultiplier` resolves to whichever is active. Before entering Cooking Mode, a **Mise en Place** pre-screen extracts prep tasks from instructions and shows a checklist. `pairings` prop (from `App.jsx` background fetch) is displayed as a "Goes Well With" section.
+
+**`FlavorRadar.jsx`** — pure SVG spider/radar chart, 6 flavor axes (Sweet, Savory, Spicy, Umami, Tangy, Fresh). Scores are computed from keyword matching against `recipe.ingredients`, `recipe.name`, and `recipe.description`. No external charting library.
+
+**`KitchenTimer.jsx`** — floating multi-timer widget rendered as a dropdown from the Navbar Timer button. Accepts duration input in multiple formats: bare number (treated as minutes), `5m`, `1:30`, `1h30m`, `90s`. Multiple named timers run simultaneously via a single `setInterval`. Plays a Web Audio API beep when each timer finishes.
+
+**`MealPlanner.jsx`** — weekly Mon–Sun grid with Breakfast/Lunch/Dinner slots. Saved recipes are dragged from a sidebar using HTML5 drag-and-drop (`draggable`, `onDragStart`, `onDrop`). Builds a combined shopping list from all assigned recipes. Plan persists in `meal_plan` localStorage key.
 
 **`StatsBar.jsx`** — `MacroBar` accepts an optional `goal` prop. When set, the bar max is the goal value and the bar turns red if `num > goalNum`.
 
-**`RecipeHistory.jsx`** — `MonthlyChallenges` computes progress from `history` and `favourites` entirely client-side, filtered to the current calendar month.
+**`RecipeHistory.jsx`** — has three tabs: All, Favourites, and Collections. `MonthlyChallenges` computes progress from `history` and `favourites` client-side, filtered to the current calendar month. Each recipe card shows a version count badge if `entry.versions.length > 0`; clicking it expands a version history list. `CollectionDropdown` (inline component) lets users assign recipes to named collections.
+
+**`useRecipeHistory`** — `updateRecipeWithVersion(id, newRecipe, newImageUrl)` pushes the current recipe into `entry.versions[]` before overwriting — called by `handleVariantReady` in `App.jsx` whenever a variant is applied to a saved recipe.
 
 ### Utility libraries
 
@@ -165,6 +185,17 @@ Theme and display classes are applied on the root `<div id="app-root">` in `App.
 - `no-unused-vars` allows vars matching `/^[A-Z_]/` — use an uppercase name to suppress when needed
 - `react-hooks/set-state-in-effect` is enforced — avoid calling `setState` directly in `useEffect` body; use `setTimeout(..., 0)` to defer
 - `eslint-plugin-react-refresh` is active — all component files must export a single component as default
+
+### Auto-save flow
+
+When a recipe is saved (`handleSave` in `App.jsx`):
+1. `saveRecipe()` is called immediately → `currentSavedId` is set
+2. `generateAutoTags(recipe)` is called async → `isAutoTagging` is set `true` → tags are added one by one via `addTag(id, tag)` → `isAutoTagging` set `false`
+3. `isAutoTagging` is passed to `ResultView` → `RecipeActions` shows an animated 🏷️ spinner on the Save button while tagging
+
+### PWA
+
+`public/manifest.json` + `public/sw.js` enable installable PWA with offline support. The service worker uses **network-first** strategy for HTML/JS/CSS — falls back to cache on failure, with `/AutoChef/` as the offline fallback. Registration happens in `src/main.jsx` on the `load` event. Vite's `base: '/AutoChef/'` means all SW cache paths must be prefixed with `/AutoChef/`.
 
 ## Deployment
 
