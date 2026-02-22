@@ -3,4 +3,100 @@
 body {
   margin: 0;
   background-color: #020617;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Light theme */
+.light-theme {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.light-theme body {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+.light-theme nav {
+  background-color: rgba(248, 250, 252, 0.85) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+.light-theme .bg-slate-950 {
+  background-color: #f8fafc !important;
+}
+
+.light-theme .bg-slate-900 {
+  background-color: #f1f5f9 !important;
+}
+
+.light-theme .bg-slate-800 {
+  background-color: #e2e8f0 !important;
+}
+
+.light-theme .text-slate-100 {
+  color: #0f172a !important;
+}
+
+.light-theme .text-slate-300 {
+  color: #334155 !important;
+}
+
+.light-theme .text-slate-400 {
+  color: #64748b !important;
+}
+
+.light-theme .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+.light-theme .text-white {
+  color: #0f172a !important;
+}
+
+.light-theme .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+.light-theme .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.light-theme .bg-slate-950\/80 {
+  background-color: rgba(248, 250, 252, 0.85) !important;
+}
+
+/* Print stylesheet */
+@media print {
+  nav,
+  button,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  * {
+    color: black !important;
+    border-color: #ccc !important;
+    background: transparent !important;
+  }
+  .bg-slate-900,
+  .bg-slate-950 {
+    background: #f9f9f9 !important;
+  }
+  img {
+    max-width: 100% !important;
+  }
+}
+
+/* Smooth stagger animation for result sections */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in {
+  animation: slideUp 0.5s ease-out both;
 }
