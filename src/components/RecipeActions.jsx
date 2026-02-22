@@ -12,10 +12,10 @@ async function buildLongUrl(recipe) {
     writer.close();
     const buf = await new Response(cs.readable).arrayBuffer();
     const encoded = btoa(String.fromCharCode(...new Uint8Array(buf)));
-    return `${base}?rc=${encoded}`;
+    return `${base}?rc=${encodeURIComponent(encoded)}`;
   } catch {
     const encoded = btoa(String.fromCharCode(...bytes));
-    return `${base}?r=${encoded}`;
+    return `${base}?r=${encodeURIComponent(encoded)}`;
   }
 }
 
