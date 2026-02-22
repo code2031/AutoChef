@@ -16,7 +16,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Dietary filters** — Vegetarian, vegan, keto, gluten-free, plus cuisine style, spice level, and serving size
 - **Allergy exclusions** — Nuts, dairy, eggs, shellfish, soy, gluten
 - **Banned Ingredients** — Permanently exclude any ingredient from all recipes
-- **Mood / Occasion** — Date night, meal prep, hangover cure, BBQ, and more
+- **Mood / Occasion** — Dinner party, meal prep, quick lunch, BBQ, and more
 - **Leftover Mode** — Emphasises zero-waste cooking from what's on hand
 - **Kid-Friendly Mode** — Mild flavours and simple techniques
 - **Persistent Pantry** — Save staple ingredients and add them all to any recipe in one click
@@ -62,6 +62,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Cook Tonight Notification** — Request a browser notification reminder to cook the current recipe
 
 ### Accessibility & Appearance
+- **Responsive Design** — Fully mobile-friendly layout that adapts for phone, tablet, and desktop
 - **Dark / Light theme** — Persisted preference, toggled from settings
 - **Font Size** — SM / MD / LG scale, persisted
 - **High-Contrast Mode** — Stronger borders and white text for readability

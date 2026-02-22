@@ -75,7 +75,7 @@ The recipe prompt (`lib/prompts.js`) requests this exact shape from Groq:
 ### Prompt options (`lib/prompts.js`)
 
 `buildRecipePrompt()` accepts these fields beyond the basics:
-- `mood` — occasion string (e.g. `"date night"`, `"meal prep"`)
+- `mood` — occasion string (e.g. `"dinner party"`, `"meal prep"`, `"quick lunch"`)
 - `leftover` — boolean, emphasises zero-waste cooking
 - `kidFriendly` — boolean, mild flavours and simple techniques
 - `banned` — string array, excluded from all recipes
@@ -127,7 +127,7 @@ Theme and display classes are applied on the root `<div id="app-root">` in `App.
 - `.high-contrast` — high-contrast mode (stronger borders, white text)
 - `.font-sz-sm` / `.font-sz-md` / `.font-sz-lg` — font size scale
 
-**Navbar logo**: the logo image is `absolute`-positioned (`h-40`) so it visually overflows below the slim `py-2` bar without affecting the bar's height. `<main>` uses `pt-44` to clear it. The `@media print` block in `index.css` zeroes `main`'s padding (and hides `.no-print` elements) so printed recipes have no blank gap at the top.
+**Navbar logo**: the logo image is `absolute`-positioned and scales responsively — `h-20` on mobile, `h-28` on `sm`, `h-40` on `md`. `<main>` clears it with matching responsive padding: `pt-24 sm:pt-32 md:pt-44`. The `@media print` block in `index.css` zeroes `main`'s padding (and hides `.no-print` elements) so printed recipes have no blank gap at the top.
 
 ### ESLint gotchas
 
