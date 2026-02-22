@@ -33,7 +33,7 @@ API keys are read at the top of `App.jsx` via `import.meta.env.VITE_GROQ_API_KEY
 
 | Integration | Purpose | Model |
 |---|---|---|
-| Groq (`/openai/v1/chat/completions`) | Ingredient scanning from photos | `llama-3.2-11b-vision-preview` |
+| Groq (`/openai/v1/chat/completions`) | Ingredient scanning from photos | `meta-llama/llama-4-scout-17b-16e-instruct` |
 | Groq (`/openai/v1/chat/completions`) | Recipe text generation | `llama-3.3-70b-versatile` with `response_format: json_object` |
 | Pollinations.ai (`gen.pollinations.ai/image/…`) | Food photo generation | `flux`, URL-based GET request, no SDK |
 
