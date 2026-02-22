@@ -30,7 +30,7 @@ function KeyboardShortcutsModal({ onClose }) {
 }
 
 export default function Navbar({
-  view, setView, theme, setTheme, streak, historyCount,
+  view, setView, theme, setTheme, historyCount,
   fontSz, setFontSz, highContrast, setHighContrast, tempUnit, setTempUnit,
 }) {
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -53,11 +53,6 @@ export default function Navbar({
         <div className="flex items-center gap-2">
           {/* Points & Streak */}
           {/* points display removed */}
-          {streak >= 2 && (
-            <div className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold">
-              🔥 {streak}
-            </div>
-          )}
 
           {/* History button */}
           <button

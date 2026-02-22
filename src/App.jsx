@@ -368,7 +368,6 @@ export default function App() {
         setView={setView}
         theme={prefs.theme}
         setTheme={prefs.setTheme}
-        streak={gamification.streak}
         historyCount={history.length}
         fontSz={prefs.fontSz}
         setFontSz={prefs.setFontSz}
