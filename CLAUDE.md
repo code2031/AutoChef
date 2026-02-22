@@ -53,4 +53,4 @@ GitHub Actions (`.github/workflows/deploy.yml`) builds and deploys to GitHub Pag
 
 - Build output: `dist/`
 - Vite `base` is `/AutoChef/` in `vite.config.js` — must match the GitHub repo name exactly (case-sensitive on GitHub Pages)
-- `VITE_GROQ_API_KEY` and `VITE_POLLINATIONS_API_KEY` must be added as repository secrets; they are already wired into the build step via `env:` in the workflow
+- `VITE_GROQ_API_KEY` must be added as a repository secret (required). `VITE_POLLINATIONS_API_KEY` is optional — Pollinations works on its free tier without a key. Both are already wired into the build step via `env:` in the workflow
