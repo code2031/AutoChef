@@ -4,7 +4,7 @@ An AI-powered recipe generator. Type in what's in your pantry, or snap a photo o
 
 ## Features
 
-- **Fridge Scanner** — Upload a photo and Groq Vision (Llama 3.2) identifies the ingredients automatically
+- **Fridge Scanner** — Upload a photo and Groq Vision (Llama 4 Scout) identifies the ingredients automatically
 - **Recipe Generation** — Groq (Llama 3.3 70B) generates a full recipe with ingredients, instructions, a chef's tip, and a smart substitution
 - **Dish Visualization** — Pollinations.ai renders a photorealistic image of the generated recipe
 - **Dietary & vibe filters** — Supports vegetarian, vegan, keto, gluten-free, and cooking styles (quick, fancy, healthy, comfort)
