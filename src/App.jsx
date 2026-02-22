@@ -180,7 +180,7 @@ export default function App() {
 
     const seed = Math.floor(Math.random() * 100000);
     const keyParam = POLLINATIONS_API_KEY ? `&key=${POLLINATIONS_API_KEY}` : '';
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}&nologo=true${keyParam}`;
+    const imageUrl = `https://gen.pollinations.ai/image/${encodedPrompt}?model=flux&seed=${seed}&width=1024&height=768&negative_prompt=blurry%2C+low+quality${keyParam}`;
     
     setRecipeImage(imageUrl);
   };
