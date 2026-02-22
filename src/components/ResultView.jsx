@@ -105,6 +105,7 @@ export default function ResultView({
         {/* Actions */}
         <RecipeActions
           recipe={recipe}
+          recipeImage={recipeImage}
           isSaved={isSaved}
           rating={rating}
           totalLikes={totalLikes}

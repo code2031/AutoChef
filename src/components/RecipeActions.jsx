@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, Share2, Printer, QrCode, RotateCcw, ThumbsUp, ThumbsDown, Image as ImageIcon, Loader2 } from 'lucide-react';
 
-async function buildLongUrl(recipe) {
-  const json = JSON.stringify(recipe);
-  const bytes = new TextEncoder().encode(json);
+async function buildLongUrl(recipe, imageUrl) {
+  // Wrap recipe + image URL so scanning doesn't need to re-render the image
+  const payload = JSON.stringify({ r: recipe, i: imageUrl || '' });
+  const bytes = new TextEncoder().encode(payload);
   const base = window.location.origin + window.location.pathname;
   try {
     const cs = new CompressionStream('deflate-raw');
@@ -30,6 +31,7 @@ async function shortenUrl(longUrl) {
 
 export default function RecipeActions({
   recipe,
+  recipeImage,
   isSaved,
   rating,
   totalLikes,
@@ -47,8 +49,10 @@ export default function RecipeActions({
   const [qrShortUrl, setQrShortUrl] = useState('');
 
   useEffect(() => {
-    buildLongUrl(recipe).then(async (longUrl) => {
+    buildLongUrl(recipe, recipeImage).then(async (longUrl) => {
       setShareUrl(longUrl);
+      // Give this recipe its own URL in the browser bar
+      window.history.replaceState(null, '', longUrl);
       try {
         const short = await shortenUrl(longUrl);
         setQrShortUrl(short);
@@ -56,7 +60,7 @@ export default function RecipeActions({
         setQrShortUrl(longUrl);
       }
     });
-  }, [recipe]);
+  }, [recipe, recipeImage]);
 
   const handleShare = async () => {
     if (!shareUrl) return;

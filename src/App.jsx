@@ -67,22 +67,31 @@ export default function App() {
     (async () => {
       try {
         const bytes = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
-        let decoded;
+        let raw;
         if (compressed) {
           const ds = new DecompressionStream('deflate-raw');
           const writer = ds.writable.getWriter();
           writer.write(bytes);
           writer.close();
           const buf = await new Response(ds.readable).arrayBuffer();
-          decoded = JSON.parse(new TextDecoder().decode(buf));
+          raw = JSON.parse(new TextDecoder().decode(buf));
         } else {
-          decoded = JSON.parse(new TextDecoder().decode(bytes));
+          raw = JSON.parse(new TextDecoder().decode(bytes));
         }
+        // Support new { r, i } wrapper (recipe + imageUrl) and old plain recipe object
+        const decodedRecipe = raw.r ?? raw;
+        const decodedImage = raw.i || null;
         setTimeout(() => {
-          setRecipe(decoded);
+          setRecipe(decodedRecipe);
           setView('result');
-          setIsGeneratingImage(true);
-          setRecipeImage(buildImageUrl(decoded.name, decoded.description));
+          if (decodedImage) {
+            // Image is bundled — show immediately, no re-render needed
+            setRecipeImage(decodedImage);
+            setIsGeneratingImage(false);
+          } else {
+            setIsGeneratingImage(true);
+            setRecipeImage(buildImageUrl(decodedRecipe.name, decodedRecipe.description));
+          }
         }, 0);
       } catch {
         // Ignore malformed URL
@@ -299,6 +308,7 @@ export default function App() {
     setCurrentRating(null);
     setError(null);
     setView('generate');
+    window.history.replaceState(null, '', window.location.pathname);
   };
 
   return (
