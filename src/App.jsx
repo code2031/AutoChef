@@ -126,7 +126,7 @@ export default function App() {
     You MUST provide your response ONLY as a raw JSON object with the exact following structure. Do not include markdown formatting or extra text:
     {
       "name": "Recipe Name",
-      "time": "Prep + Cook Time",
+      "time": "Total time e.g. 25 minutes",
       "difficulty": "Easy/Medium/Hard",
       "calories": "Estimated per serving",
       "description": "Short mouth-watering description",
