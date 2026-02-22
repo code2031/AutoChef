@@ -4,21 +4,70 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 
 ## Features
 
-- **Fridge Scanner** — Upload a photo and Groq Vision (Llama 4 Scout) identifies every visible ingredient
+### Recipe Generation
+- **Fridge Scanner** — Upload a photo and AI vision identifies every visible ingredient
 - **Recipe Suggestions** — Pick from 3 AI-generated recipe ideas before committing to a full generation
-- **Gourmet Recipes** — Groq (Llama 3.3 70B) returns a full recipe: ingredients, instructions, nutrition macros, wine pairing, chef's tip, and a smart substitution
+- **Gourmet Recipes** — Full recipe with ingredients, instructions, nutrition macros, wine pairing, chef's tip, and a smart substitution
 - **Dish Visualization** — Pollinations.ai renders a photorealistic food photo of the result
-- **Cooking Mode** — Step-by-step full-screen overlay with auto-detected countdown timers and an audio beep when done
+- **Surprise Me** — Picks a random curated set of ingredients and generates a recipe instantly
+- **Variants** — Regenerate any recipe as a healthier version, a cheaper version, or translated to Spanish
+
+### Customization
+- **Dietary filters** — Vegetarian, vegan, keto, gluten-free, plus cuisine style, spice level, and serving size
+- **Allergy exclusions** — Nuts, dairy, eggs, shellfish, soy, gluten
+- **Banned Ingredients** — Permanently exclude any ingredient from all recipes
+- **Mood / Occasion** — Date night, meal prep, hangover cure, BBQ, and more
+- **Leftover Mode** — Emphasises zero-waste cooking from what's on hand
+- **Kid-Friendly Mode** — Mild flavours and simple techniques
+- **Persistent Pantry** — Save staple ingredients and add them all to any recipe in one click
+
+### Cooking Experience
+- **Cooking Mode** — Full-screen step-by-step overlay with auto-detected countdown timers and audio beep when done
+- **Voice Readout** — Cooking mode reads each step aloud via Web Speech API
+- **Swipe Gestures** — Swipe left/right in cooking mode to navigate steps
+- **Inline Step Timers** — Tap any time-mentioned step to start a countdown directly in the recipe view
+- **Ingredient Checklist** — Tap ingredients to cross them off as you cook
+- **Serving Scaler** — Scale ingredient quantities ½x, 1x, 2x, or 3x
+
+### Input
 - **Voice Input** — Dictate ingredients using the browser's Web Speech API
 - **Ingredient Autocomplete** — Inline suggestions as you type, with emoji per ingredient; drag to reorder tags
-- **Surprise Me** — Picks a random curated set of ingredients and generates a recipe instantly
-- **Persistent Pantry** — Save your staple ingredients and add them all to any recipe in one click
+- **Recent Ingredients** — Quick-add chips from your last 20 used ingredients
+- **Ingredient of the Week** — A rotating featured ingredient chip to inspire new dishes
+- **Surprise Cuisine** — Randomly picks a cuisine style for you
+
+### Recipe Details
+- **Nutrition Bars** — Visual macro bars for protein, carbs, fat, and fiber
+- **Prep/Cook Time Split** — Separate prep and cook times when provided
+- **Estimated Cost** — Rough per-batch ingredient cost estimate
+- **Carbon Footprint** — Colour-coded environmental impact score
+- **Allergen Highlights** — Flagged ingredients that match your allergy settings
+- **Difficulty Tooltip** — Hover the difficulty badge for a plain-language explanation
+
+### History & Saving
 - **Recipe History** — All generated recipes saved to localStorage with thumbnail, rating, and favourite toggle
-- **Dietary filters** — Vegetarian, vegan, keto, gluten-free, plus cuisine style, spice level, servings, and allergy exclusions
-- **Gamification** — Earn points, maintain a daily streak, and unlock badges as you cook
-- **Dark / Light theme** — Persisted preference, toggled from the navbar
+- **Search & Sort** — Search history by name, tags, or notes; sort by date, name, or rating
+- **Tags & Notes** — Add custom tags and personal notes to any saved recipe
+- **Export** — Download your full recipe history as a JSON file
+- **Activity Heatmap** — 5-week grid showing your cooking frequency
+- **Streak Tracking** — Daily streak counter with personal best
+
+### Sharing & Output
 - **Share & QR** — Every recipe gets its own shareable URL (compressed, shortened via is.gd); QR code links directly to the exact recipe including its image — no re-render needed on the recipient's end
 - **Print** — Print-optimised stylesheet renders the recipe with the AI-generated image, clean layout, and no UI chrome
+- **Download as Text** — Save any recipe as a plain `.txt` file
+- **Copy Ingredients** — One-click copy of the full ingredient list
+- **Social Caption** — Auto-generated caption ready to paste into Instagram, X, etc.
+- **Embed Code** — `<iframe>` snippet to embed any recipe on a website
+- **Cook Tonight Notification** — Request a browser notification reminder to cook the current recipe
+
+### Accessibility & Appearance
+- **Dark / Light theme** — Persisted preference, toggled from settings
+- **Font Size** — SM / MD / LG scale, persisted
+- **High-Contrast Mode** — Stronger borders and white text for readability
+- **Temperature Unit** — Toggle between °C and °F
+- **Keyboard Shortcuts** — Cmd/Ctrl+Enter to generate; panel lists all shortcuts
+- **Scroll to Top** — Floating button appears after scrolling down
 
 ## Tech Stack
 

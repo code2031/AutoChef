@@ -41,6 +41,7 @@ All API keys are read from `import.meta.env` — set in `.env.local` locally, an
 | Groq vision | `lib/groq.js` → `scanImageForIngredients()` | `meta-llama/llama-4-scout-17b-16e-instruct` |
 | Groq recipe | `lib/groq.js` → `generateRecipe()` | `llama-3.3-70b-versatile`, `response_format: json_object` |
 | Groq suggestions | `lib/groq.js` → `generateSuggestions()` | `llama-3.3-70b-versatile`, `response_format: json_object` |
+| Groq variant | `lib/groq.js` → `generateVariant()` | `llama-3.3-70b-versatile`, `response_format: json_object` |
 | Pollinations image | `lib/pollinations.js` → `buildImageUrl()` | `flux` model, URL-based GET, **random seed per call** |
 
 `buildImageUrl()` uses a random seed, so two calls for the same recipe produce different images. The image URL must be preserved explicitly when sharing (see below).
@@ -51,7 +52,8 @@ The recipe prompt (`lib/prompts.js`) requests this exact shape from Groq:
 
 ```json
 {
-  "name", "time", "difficulty", "calories", "servings", "description",
+  "name", "prepTime", "cookTime", "time", "difficulty", "calories", "servings",
+  "description",
   "ingredients": ["item with quantity"],
   "instructions": ["step"],
   "nutrition": { "protein", "carbs", "fat", "fiber" },
@@ -59,13 +61,26 @@ The recipe prompt (`lib/prompts.js`) requests this exact shape from Groq:
 }
 ```
 
+`prepTime` and `cookTime` are displayed separately in `StatsBar` when present; `time` is the fallback total.
+
 ### Generation flow
 
-1. User clicks Generate → `handleGenerate()` → calls `generateSuggestions()` → shows `RecipeSuggestions` view
-2. User picks a suggestion (or skips) → `handlePickSuggestion()` → calls `generateRecipe()` → shows `ResultView`
+1. User clicks Generate → `handleGenerate()` in `App.jsx` → saves ingredients to `recent_ingredients`, calls `generateSuggestions()` → shows `RecipeSuggestions` view
+2. User picks a suggestion (or skips) → `handlePickSuggestion()` → calls `generateRecipe()` with full prefs (diet, vibe, cuisine, allergies, spice, servings, mood, leftover, kidFriendly, banned) → shows `ResultView`
 3. `buildImageUrl()` is called immediately after recipe loads; a `useEffect` in `App.jsx` resolves `isGeneratingImage` when the `Image` object fires `onload`/`onerror`
 4. `canvas-confetti` fires once per recipe (guarded by a `useRef` flag) when both recipe and image are done
 5. "New Recipe" button calls `reset()` — navigates to generate view, does **not** regenerate in place
+6. **Variant flow**: "More" panel in `RecipeActions` → calls `generateVariant()` with a prompt from `buildVariantPrompt()` → `onVariantReady()` callback replaces the current recipe in `App.jsx` and triggers a new image
+
+### Prompt options (`lib/prompts.js`)
+
+`buildRecipePrompt()` accepts these fields beyond the basics:
+- `mood` — occasion string (e.g. `"date night"`, `"meal prep"`)
+- `leftover` — boolean, emphasises zero-waste cooking
+- `kidFriendly` — boolean, mild flavours and simple techniques
+- `banned` — string array, excluded from all recipes
+
+`buildVariantPrompt(recipe, variantType)` handles `"healthier"`, `"cheaper"`, and `"translate:<language>"`.
 
 ### Recipe sharing / QR code
 
@@ -83,20 +98,36 @@ The recipe prompt (`lib/prompts.js`) requests this exact shape from Groq:
 
 All `localStorage` keys:
 
-| Key | Hook |
+| Key | Hook / owner |
 |---|---|
 | `pref_diet`, `pref_vibe`, `pref_cuisine`, `pref_allergies`, `pref_spice`, `pref_servings`, `pref_theme` | `usePreferences` |
-| `recipe_history` | `useRecipeHistory` (max 50 entries) |
+| `pref_font_sz`, `pref_high_contrast`, `pref_temp_unit` | `usePreferences` (display settings) |
+| `pref_banned`, `pref_mood`, `pref_leftover`, `pref_kid_friendly` | `usePreferences` (generation modifiers) |
+| `pref_servings_memory` | `usePreferences` — object keyed by cuisine name |
+| `recipe_history` | `useRecipeHistory` (max 50 entries; each entry has `tags[]`, `notes`, `isFavourite`, `rating`) |
 | `game_points`, `game_streak`, `game_last_cook_date`, `game_badges`, `game_stats` | `useGamification` |
+| `game_best_streak` | `App.jsx` (uses `useLocalStorage` directly) |
+| `recent_ingredients` | `App.jsx` (uses `useLocalStorage` directly; max 20 items) |
 | `pantry_items` | `PantryDrawer` (uses `useLocalStorage` directly) |
+
+### Utility libraries
+
+- `lib/costs.js` — `estimateCost(ingredients[])` returns `{ total, matched }` — rough USD estimate per batch
+- `lib/carbon.js` — `getCarbonScore(ingredients[])` returns `{ total, label, color, icon }` — CO₂e footprint rating
+- `lib/seasonal.js` — `getSeasonalIngredients()` / `getSeasonalHint()` — month-based seasonal produce
+- `lib/ingredients.js` — `INGREDIENT_SUGGESTIONS`, `getEmojiForIngredient()`, `getRandomSurpriseIngredients()`
+- `lib/achievements.js` — badge definitions and `checkNewBadges(stats, unlockedIds[])`
 
 ### Styling
 
 Tailwind CSS v4 via `@tailwindcss/vite` plugin. `tailwind.config.js` at the root is a v3 remnant — **it is ignored by v4**. Do not add to it.
 
-Light theme is implemented with a `.light-theme` class on the root `<div>` (not on `<html>`), overriding specific Tailwind colour classes via CSS in `index.css`.
+Theme and display classes are applied on the root `<div id="app-root">` in `App.jsx`:
+- `.light-theme` — light mode (overrides specific Tailwind colour classes via CSS in `index.css`)
+- `.high-contrast` — high-contrast mode (stronger borders, white text)
+- `.font-sz-sm` / `.font-sz-md` / `.font-sz-lg` — font size scale
 
-**Navbar logo**: the logo image is `absolute`-positioned (`h-40`) so it visually overflows below the slim navbar bar without affecting the bar's height. `<main>` uses `pt-44` to clear it. The `@media print` block in `index.css` zeroes `main`'s padding (and hides `.no-print` elements) so printed recipes have no blank gap at the top.
+**Navbar logo**: the logo image is `absolute`-positioned (`h-40`) so it visually overflows below the slim `py-2` bar without affecting the bar's height. `<main>` uses `pt-44` to clear it. The `@media print` block in `index.css` zeroes `main`'s padding (and hides `.no-print` elements) so printed recipes have no blank gap at the top.
 
 ### ESLint gotchas
 
