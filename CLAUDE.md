@@ -30,42 +30,7 @@ AutoChef is a client-side-only React SPA (no backend). All state is either ephem
 'history'  (accessible from Navbar at any point)
 ```
 
-There is no router — `view` is just `useState`.
-
-### File layout
-
-```
-src/
-  App.jsx                  — Root orchestrator: view routing, all event handlers, top-level state
-  index.css                — Tailwind v4 import + light-theme CSS overrides + print stylesheet
-  hooks/
-    useLocalStorage.js     — Generic JSON-serialized localStorage hook
-    usePreferences.js      — diet, vibe, cuisine, allergies, spice, servings, theme (all persisted)
-    useRecipeHistory.js    — Save/favourite/rate/delete recipe entries (up to 50, persisted)
-    useGamification.js     — Points, streak, badges, per-action stats (all persisted)
-  lib/
-    groq.js                — All Groq API calls (vision scan, recipe generate, suggestions)
-    pollinations.js        — Builds Pollinations.ai image URL (URL-based GET, no SDK)
-    prompts.js             — LLM prompt builders for recipe and suggestions endpoints
-    ingredients.js         — Autocomplete list, emoji map, 10 hardcoded surprise combos
-    achievements.js        — 10 badge definitions with check(stats) predicates
-    seasonal.js            — Month-indexed seasonal ingredient sets + hint string
-  components/
-    Navbar.jsx             — Fixed top bar: theme toggle, History button, points/streak display
-    LandingView.jsx        — Hero page with seasonal chip
-    GenerateView.jsx       — Full ingredient input form (all selectors, pantry, seasonal chips)
-    ResultView.jsx         — Recipe display: confetti, cooking mode, actions, stats, instructions
-    IngredientInput.jsx    — Text input with inline autocomplete, voice (Web Speech API), drag-reorder
-    SelectorGroup.jsx      — Reusable single/multi-select button group
-    RecipeSuggestions.jsx  — 3-option name picker shown between generate and result
-    CookingMode.jsx        — Full-screen step-by-step overlay with regex-detected countdown timer
-    RecipeActions.jsx      — Save, share, print, QR code, regenerate recipe/image, thumbs rating
-    StatsBar.jsx           — Stats grid + nutrition macros from recipe JSON
-    RecipeHistory.jsx      — Saved recipes grid with thumbnail, favourite tab, delete
-    PantryDrawer.jsx       — Slide-in drawer; persists pantry items independently in localStorage
-    ProgressBar.jsx        — Fake 0→90% progress bar during generation, jumps to 100% on complete
-    BadgePopup.jsx         — Toast notification for newly unlocked gamification badges
-```
+There is no router — `view` is just `useState`. The initial value is computed synchronously: if the URL has `?rc=` or `?r=` query params (or legacy `#rc=`/`#r=` hash), the app starts on `'result'` immediately to avoid a landing-page flash when opening a shared recipe link.
 
 ### API integrations
 
@@ -76,7 +41,9 @@ All API keys are read from `import.meta.env` — set in `.env.local` locally, an
 | Groq vision | `lib/groq.js` → `scanImageForIngredients()` | `meta-llama/llama-4-scout-17b-16e-instruct` |
 | Groq recipe | `lib/groq.js` → `generateRecipe()` | `llama-3.3-70b-versatile`, `response_format: json_object` |
 | Groq suggestions | `lib/groq.js` → `generateSuggestions()` | `llama-3.3-70b-versatile`, `response_format: json_object` |
-| Pollinations image | `lib/pollinations.js` → `buildImageUrl()` | `flux` model, URL-based GET |
+| Pollinations image | `lib/pollinations.js` → `buildImageUrl()` | `flux` model, URL-based GET, **random seed per call** |
+
+`buildImageUrl()` uses a random seed, so two calls for the same recipe produce different images. The image URL must be preserved explicitly when sharing (see below).
 
 ### Recipe JSON schema
 
@@ -95,9 +62,22 @@ The recipe prompt (`lib/prompts.js`) requests this exact shape from Groq:
 ### Generation flow
 
 1. User clicks Generate → `handleGenerate()` → calls `generateSuggestions()` → shows `RecipeSuggestions` view
-2. User picks a suggestion (or skips for random) → `handlePickSuggestion()` → calls `generateRecipe()` → shows `ResultView`
-3. Pollinations image URL is set immediately after recipe loads; `useEffect` in `App.jsx` watches the URL and resolves `isGeneratingImage` when the `Image` object fires `onload`/`onerror`
-4. `canvas-confetti` fires once per recipe (guarded by a `useRef` flag) when both recipe and image are done loading
+2. User picks a suggestion (or skips) → `handlePickSuggestion()` → calls `generateRecipe()` → shows `ResultView`
+3. `buildImageUrl()` is called immediately after recipe loads; a `useEffect` in `App.jsx` resolves `isGeneratingImage` when the `Image` object fires `onload`/`onerror`
+4. `canvas-confetti` fires once per recipe (guarded by a `useRef` flag) when both recipe and image are done
+5. "New Recipe" button calls `reset()` — navigates to generate view, does **not** regenerate in place
+
+### Recipe sharing / QR code
+
+`RecipeActions.jsx` handles sharing. When a recipe is displayed:
+
+1. `buildLongUrl(recipe, imageUrl)` compresses `{ r: recipe, i: imageUrl }` with `CompressionStream('deflate-raw')`, base64-encodes it with `encodeURIComponent`, and produces `<base>?rc=<data>`
+2. The long URL is shortened via `https://is.gd/create.php?format=json&url=...` (free, no key, CORS-friendly) → `https://is.gd/AbCdEf`
+3. QR code encodes only the short URL (22 chars → tiny, scannable); falls back to the long URL if is.gd is unavailable
+4. `window.history.replaceState` is called with the long URL so each recipe has its own bookmarkable URL in the browser bar
+5. `reset()` calls `window.history.replaceState(null, '', window.location.pathname)` to clear the URL
+
+**Decoding** (on page load in `App.jsx`): reads `?rc=` (compressed) or `?r=` (plain) query params, with fallback to legacy `#rc=`/`#r=` hash fragments. Decoded payload is `{ r: recipe, i: imageUrl }` (new) or a plain recipe object (legacy). If `imageUrl` is present, it is used directly — no image re-render needed.
 
 ### Persistence
 
@@ -114,7 +94,9 @@ All `localStorage` keys:
 
 Tailwind CSS v4 via `@tailwindcss/vite` plugin. `tailwind.config.js` at the root is a v3 remnant — **it is ignored by v4**. Do not add to it.
 
-Light theme is implemented with a `.light-theme` class on the root `<div>` (not on `<html>`), overriding specific Tailwind colour classes via CSS in `index.css`. The `@media print` block in `index.css` hides `.no-print` elements and resets colours.
+Light theme is implemented with a `.light-theme` class on the root `<div>` (not on `<html>`), overriding specific Tailwind colour classes via CSS in `index.css`.
+
+**Navbar logo**: the logo image is `absolute`-positioned (`h-40`) so it visually overflows below the slim navbar bar without affecting the bar's height. `<main>` uses `pt-44` to clear it. The `@media print` block in `index.css` zeroes `main`'s padding (and hides `.no-print` elements) so printed recipes have no blank gap at the top.
 
 ### ESLint gotchas
 
