@@ -1,10 +1,10 @@
 import React, { useRef, useState } from 'react';
-import { Zap, ShoppingBag } from 'lucide-react';
+import { Zap, ShoppingBag, Shuffle, X, Ban } from 'lucide-react';
 import IngredientInput from './IngredientInput.jsx';
 import SelectorGroup from './SelectorGroup.jsx';
 import PantryDrawer from './PantryDrawer.jsx';
 import { getSeasonalIngredients } from '../lib/seasonal.js';
-import { getRandomSurpriseIngredients } from '../lib/ingredients.js';
+import { getRandomSurpriseIngredients, INGREDIENT_SUGGESTIONS } from '../lib/ingredients.js';
 
 const CUISINE_COLORS = {
   Italian: '#ef4444', Asian: '#f59e0b', Mexican: '#22c55e',
@@ -12,15 +12,45 @@ const CUISINE_COLORS = {
   American: '#3b82f6', Japanese: '#ec4899',
 };
 
+const MOOD_OPTIONS = [
+  { value: '', label: '— Any —' },
+  { value: 'date night', label: '💑 Date Night' },
+  { value: 'meal prep', label: '📦 Meal Prep' },
+  { value: 'hangover cure', label: '🤒 Hangover Cure' },
+  { value: 'birthday', label: '🎂 Birthday' },
+  { value: 'late night', label: '🌙 Late Night' },
+  { value: 'summer bbq', label: '🔥 Summer BBQ' },
+  { value: 'cozy winter', label: '❄️ Cozy Winter' },
+];
+
+// Ingredient of the week: derived from week number
+const INGREDIENT_OF_WEEK = ['truffle', 'saffron', 'miso', 'tahini', 'sumac', 'harissa', 'yuzu', 'gochujang',
+  'preserved lemon', 'tamarind', 'shiso', 'pomegranate', 'za\'atar', 'berbere', 'ras el hanout', 'smoked paprika',
+  'mirin', 'fish sauce', 'black garlic', 'elderflower', 'rose water', 'cardamom', 'star anise', 'lemongrass',
+  'galangal', 'makrut lime', 'wakame', 'bonito', 'dashi', 'white miso', 'mirin', 'ponzu', 'chili crisp'];
+
+function getIngredientOfWeek() {
+  const week = Math.floor(Date.now() / (7 * 24 * 3600 * 1000));
+  return INGREDIENT_OF_WEEK[week % INGREDIENT_OF_WEEK.length];
+}
+
 export default function GenerateView({
   ingredients, setIngredients,
   prefs, onGenerate, isGenerating, isScanning, onScan, error,
+  recentIngredients,
 }) {
   const [showPantry, setShowPantry] = useState(false);
+  const [showBanned, setShowBanned] = useState(false);
+  const [bannedInput, setBannedInput] = useState('');
   const fileInputRef = useRef(null);
   const seasonal = getSeasonalIngredients();
 
-  const { diet, setDiet, vibe, setVibe, cuisine, setCuisine, allergies, toggleAllergy, spice, setSpice, servings, setServings } = prefs;
+  const {
+    diet, setDiet, vibe, setVibe, cuisine, setCuisine,
+    allergies, toggleAllergy, spice, setSpice, servings, setServings,
+    mood, setMood, leftover, setLeftover, kidFriendly, setKidFriendly,
+    banned, toggleBanned,
+  } = prefs;
 
   const addIngredient = (name) => {
     const clean = name.trim();
@@ -33,6 +63,19 @@ export default function GenerateView({
     const random = getRandomSurpriseIngredients();
     setIngredients(random);
     if (prefs.onRecordSurprise) prefs.onRecordSurprise();
+  };
+
+  const handleSurpriseCuisine = () => {
+    const cuisines = ['Italian', 'Asian', 'Mexican', 'Indian', 'French', 'Mediterranean', 'American', 'Japanese'];
+    setCuisine(cuisines[Math.floor(Math.random() * cuisines.length)]);
+  };
+
+  const addBanned = () => {
+    const clean = bannedInput.trim();
+    if (clean && !banned.includes(clean)) {
+      toggleBanned(clean);
+      setBannedInput('');
+    }
   };
 
   const accentColor = CUISINE_COLORS[cuisine] || null;
@@ -81,10 +124,12 @@ export default function GenerateView({
   ];
 
   const servingOptions = [1,2,3,4,6,8].map(n => ({ value: n, label: `${n} ${n === 1 ? 'serving' : 'servings'}` }));
+  const moodOptions = MOOD_OPTIONS.map(m => ({ value: m.value, label: m.label }));
 
   // Cuisine of the day
   const cuisineList = ['Italian', 'Asian', 'Mexican', 'Indian', 'French', 'Mediterranean', 'American', 'Japanese'];
   const cotd = cuisineList[new Date().getDate() % cuisineList.length];
+  const ingredientOfWeek = getIngredientOfWeek();
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500" style={accentStyle}>
@@ -93,16 +138,53 @@ export default function GenerateView({
           <h2 className="text-3xl font-bold">What's in your pantry?</h2>
           <p className="text-slate-400 text-sm">Type ingredients, scan your fridge, or use Surprise Me.</p>
         </div>
-        <button
-          onClick={() => setShowPantry(true)}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 border border-white/5 text-slate-400 text-sm hover:border-white/20 hover:text-white transition-all shrink-0"
-        >
-          <ShoppingBag size={16} />
-          <span className="hidden sm:inline">Pantry</span>
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowBanned(v => !v)}
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-slate-400 text-sm hover:border-white/20 hover:text-white transition-all shrink-0 ${showBanned ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-slate-900 border-white/5'}`}
+            title="Banned ingredients"
+          >
+            <Ban size={16} />
+            <span className="hidden sm:inline">Banned{banned.length > 0 ? ` (${banned.length})` : ''}</span>
+          </button>
+          <button
+            onClick={() => setShowPantry(true)}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 border border-white/5 text-slate-400 text-sm hover:border-white/20 hover:text-white transition-all shrink-0"
+          >
+            <ShoppingBag size={16} />
+            <span className="hidden sm:inline">Pantry</span>
+          </button>
+        </div>
       </div>
 
-      {/* Seasonal + Cuisine of the Day chips */}
+      {/* Banned ingredients panel */}
+      {showBanned && (
+        <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-2xl space-y-3 animate-in fade-in duration-200">
+          <p className="text-sm font-bold text-red-400">Banned Ingredients (excluded from all recipes)</p>
+          <div className="flex flex-wrap gap-2">
+            {banned.map(b => (
+              <span key={b} className="flex items-center gap-1 px-3 py-1 bg-red-500/10 border border-red-500/20 text-red-400 rounded-full text-xs">
+                {b}
+                <X size={12} className="cursor-pointer hover:text-white" onClick={() => toggleBanned(b)} />
+              </span>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={bannedInput}
+              onChange={e => setBannedInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addBanned()}
+              placeholder="e.g. cilantro, anchovies..."
+              className="flex-1 bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:border-red-500/50 text-slate-300 placeholder:text-slate-600 transition-all"
+            />
+            <button onClick={addBanned} className="px-4 py-2 bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-sm hover:bg-red-500/30 transition-all">
+              Add
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Seasonal + Cuisine of the Day + Ingredient of the Week chips */}
       <div className="flex flex-wrap gap-2">
         <span className="text-xs text-slate-500 self-center">Seasonal:</span>
         {seasonal.ingredients.slice(0, 4).map(ing => (
@@ -118,9 +200,39 @@ export default function GenerateView({
           onClick={() => setCuisine(cotd)}
           className="px-3 py-1 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded-full text-xs hover:bg-orange-500/20 transition-all"
         >
-          🌟 Cuisine of the day: {cotd}
+          🌟 Cuisine today: {cotd}
+        </button>
+        <button
+          onClick={() => addIngredient(ingredientOfWeek)}
+          className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-full text-xs hover:bg-purple-500/20 transition-all"
+        >
+          ✨ Ingredient of the week: {ingredientOfWeek}
+        </button>
+        <button
+          onClick={handleSurpriseCuisine}
+          className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-full text-xs hover:bg-blue-500/20 transition-all"
+        >
+          <Shuffle size={10} className="inline mr-1" />
+          Surprise cuisine
         </button>
       </div>
+
+      {/* Recent ingredients */}
+      {recentIngredients && recentIngredients.length > 0 && (
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-xs text-slate-500">Recent:</span>
+          {recentIngredients.slice(0, 8).map(ing => (
+            <button
+              key={ing}
+              onClick={() => addIngredient(ing)}
+              disabled={ingredients.includes(ing)}
+              className="px-3 py-1 bg-slate-800 border border-white/5 text-slate-400 rounded-full text-xs hover:border-white/20 hover:text-white disabled:opacity-30 transition-all"
+            >
+              + {ing}
+            </button>
+          ))}
+        </div>
+      )}
 
       <IngredientInput
         ingredients={ingredients}
@@ -139,6 +251,8 @@ export default function GenerateView({
         <SelectorGroup label="Cuisine Style" options={cuisineOptions} value={cuisine} onChange={setCuisine} />
         <SelectorGroup label="Spice Level" options={spiceOptions} value={spice} onChange={setSpice} />
         <SelectorGroup label="Servings" options={servingOptions} value={servings} onChange={setServings} />
+        <SelectorGroup label="Mood / Occasion" options={moodOptions} value={mood} onChange={setMood} />
+
         <div className="space-y-2">
           <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Allergies (avoid)</label>
           <div className="flex flex-wrap gap-2">
@@ -155,6 +269,33 @@ export default function GenerateView({
                 {opt.label}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Mode toggles */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Mode</label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setLeftover(!leftover)}
+              className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
+                leftover
+                  ? 'bg-green-500/10 border-green-500/40 text-green-400'
+                  : 'bg-slate-900 border-white/5 text-slate-400 hover:border-white/20'
+              }`}
+            >
+              ♻️ Leftover Mode
+            </button>
+            <button
+              onClick={() => setKidFriendly(!kidFriendly)}
+              className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
+                kidFriendly
+                  ? 'bg-yellow-500/10 border-yellow-500/40 text-yellow-400'
+                  : 'bg-slate-900 border-white/5 text-slate-400 hover:border-white/20'
+              }`}
+            >
+              👶 Kid-Friendly
+            </button>
           </div>
         </div>
       </div>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Share2, Printer, QrCode, RotateCcw, ThumbsUp, ThumbsDown, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Heart, Share2, Printer, QrCode, RotateCcw, ThumbsUp, ThumbsDown, Image as ImageIcon, Loader2, Download, Code, MessageSquare, Languages, Leaf, DollarSign, ChevronDown } from 'lucide-react';
+import { generateVariant } from '../lib/groq.js';
+import { buildVariantPrompt } from '../lib/prompts.js';
 
 async function buildLongUrl(recipe, imageUrl) {
-  // Wrap recipe + image URL so scanning doesn't need to re-render the image
   const payload = JSON.stringify({ r: recipe, i: imageUrl || '' });
   const bytes = new TextEncoder().encode(payload);
   const base = window.location.origin + window.location.pathname;
@@ -40,17 +41,23 @@ export default function RecipeActions({
   onRegenerate,
   onRegenerateImage,
   onRate,
+  onDownload,
   isRegeneratingImage,
+  onVariantReady,
 }) {
   const [showQR, setShowQR] = useState(false);
   const [shareMsg, setShareMsg] = useState('');
   const [shareUrl, setShareUrl] = useState('');
   const [qrShortUrl, setQrShortUrl] = useState('');
+  const [showExtras, setShowExtras] = useState(false);
+  const [variantLoading, setVariantLoading] = useState('');
+  const [embedCopied, setEmbedCopied] = useState(false);
+  const [captionCopied, setCaptionCopied] = useState(false);
+  const [showEmbed, setShowEmbed] = useState(false);
 
   useEffect(() => {
     buildLongUrl(recipe, recipeImage).then(async (longUrl) => {
       setShareUrl(longUrl);
-      // Give this recipe its own URL in the browser bar
       window.history.replaceState(null, '', longUrl);
       try {
         const short = await shortenUrl(longUrl);
@@ -67,7 +74,7 @@ export default function RecipeActions({
       try {
         await navigator.share({ title: recipe.name, url: shareUrl, text: `Check out this AutoChef recipe: ${recipe.name}!` });
       } catch {
-        // Share cancelled or not supported
+        // Share cancelled
       }
     } else {
       await navigator.clipboard.writeText(shareUrl);
@@ -77,6 +84,35 @@ export default function RecipeActions({
   };
 
   const handlePrint = () => window.print();
+
+  const handleCopyCaption = async () => {
+    const caption = `Just made ${recipe.name} with AutoChef AI! ${recipe.description} #AutoChef #AIRecipe #Cooking ${shareUrl ? `\n${qrShortUrl || shareUrl}` : ''}`;
+    await navigator.clipboard.writeText(caption);
+    setCaptionCopied(true);
+    setTimeout(() => setCaptionCopied(false), 2000);
+  };
+
+  const handleCopyEmbed = async () => {
+    if (!shareUrl) return;
+    const embedHtml = `<iframe src="${shareUrl}" width="600" height="500" style="border:none;border-radius:16px;" title="${recipe.name} - AutoChef Recipe"></iframe>`;
+    await navigator.clipboard.writeText(embedHtml);
+    setEmbedCopied(true);
+    setTimeout(() => setEmbedCopied(false), 2000);
+  };
+
+  const handleVariant = async (variantType) => {
+    if (!onVariantReady) return;
+    setVariantLoading(variantType);
+    try {
+      const prompt = buildVariantPrompt(recipe, variantType);
+      const result = await generateVariant(prompt);
+      onVariantReady(result);
+    } catch {
+      // ignore
+    } finally {
+      setVariantLoading('');
+    }
+  };
 
   const qrImageUrl = qrShortUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&ecc=L&data=${encodeURIComponent(qrShortUrl)}`
@@ -116,6 +152,15 @@ export default function RecipeActions({
           Print
         </button>
 
+        {/* Download */}
+        <button
+          onClick={onDownload}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/5 bg-slate-900 text-slate-400 text-sm font-medium hover:border-white/20 transition-all"
+        >
+          <Download size={16} />
+          .txt
+        </button>
+
         {/* QR Code */}
         <button
           onClick={() => setShowQR(v => !v)}
@@ -125,7 +170,7 @@ export default function RecipeActions({
           QR
         </button>
 
-        {/* New Recipe — goes back to the generate page */}
+        {/* New Recipe */}
         <button
           onClick={onRegenerate}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/5 bg-slate-900 text-slate-400 text-sm font-medium hover:border-orange-500/30 hover:text-orange-400 transition-all"
@@ -143,7 +188,84 @@ export default function RecipeActions({
           {isRegeneratingImage ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
           New Image
         </button>
+
+        {/* More actions toggle */}
+        <button
+          onClick={() => setShowExtras(v => !v)}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${showExtras ? 'bg-slate-800 border-white/20 text-white' : 'bg-slate-900 border-white/5 text-slate-400 hover:border-white/20'}`}
+        >
+          More <ChevronDown size={14} className={`transition-transform ${showExtras ? 'rotate-180' : ''}`} />
+        </button>
       </div>
+
+      {/* Extra actions panel */}
+      {showExtras && (
+        <div className="flex flex-wrap gap-2 p-4 bg-slate-900/50 rounded-2xl border border-white/5 animate-in fade-in duration-200">
+          {/* Make Healthier */}
+          <button
+            onClick={() => handleVariant('healthier')}
+            disabled={!!variantLoading}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-green-500/20 bg-green-500/5 text-green-400 text-sm font-medium hover:bg-green-500/10 transition-all disabled:opacity-50"
+          >
+            {variantLoading === 'healthier' ? <Loader2 size={16} className="animate-spin" /> : <Leaf size={16} />}
+            Make Healthier
+          </button>
+
+          {/* Make Cheaper */}
+          <button
+            onClick={() => handleVariant('cheaper')}
+            disabled={!!variantLoading}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-yellow-500/20 bg-yellow-500/5 text-yellow-400 text-sm font-medium hover:bg-yellow-500/10 transition-all disabled:opacity-50"
+          >
+            {variantLoading === 'cheaper' ? <Loader2 size={16} className="animate-spin" /> : <DollarSign size={16} />}
+            Make Cheaper
+          </button>
+
+          {/* Translate */}
+          <button
+            onClick={() => handleVariant('translate:Spanish')}
+            disabled={!!variantLoading}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-blue-500/20 bg-blue-500/5 text-blue-400 text-sm font-medium hover:bg-blue-500/10 transition-all disabled:opacity-50"
+          >
+            {variantLoading.startsWith('translate') ? <Loader2 size={16} className="animate-spin" /> : <Languages size={16} />}
+            Translate (ES)
+          </button>
+
+          {/* Social Caption */}
+          <button
+            onClick={handleCopyCaption}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-purple-500/20 bg-purple-500/5 text-purple-400 text-sm font-medium hover:bg-purple-500/10 transition-all"
+          >
+            <MessageSquare size={16} />
+            {captionCopied ? 'Copied!' : 'Copy Caption'}
+          </button>
+
+          {/* Embed Code */}
+          <button
+            onClick={() => { setShowEmbed(v => !v); }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 bg-slate-800 text-slate-300 text-sm font-medium hover:bg-slate-700 transition-all"
+          >
+            <Code size={16} />
+            Embed Code
+          </button>
+        </div>
+      )}
+
+      {/* Embed code display */}
+      {showEmbed && shareUrl && (
+        <div className="p-4 bg-slate-900 border border-white/5 rounded-2xl space-y-2 animate-in fade-in duration-200">
+          <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Embed this recipe</p>
+          <code className="block text-xs text-slate-400 bg-slate-800 p-3 rounded-xl break-all">
+            {`<iframe src="${qrShortUrl || shareUrl}" width="600" height="500" style="border:none;border-radius:16px;" title="${recipe.name}"></iframe>`}
+          </code>
+          <button
+            onClick={handleCopyEmbed}
+            className="text-xs text-orange-400 hover:text-orange-300 transition-colors"
+          >
+            {embedCopied ? 'Copied!' : 'Copy embed code'}
+          </button>
+        </div>
+      )}
 
       {/* Rating */}
       <div className="flex items-center gap-3">

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { X, Plus, Trash2, ShoppingBag } from 'lucide-react';
+import { X, Plus, Trash2, ShoppingBag, AlertTriangle } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 import { getEmojiForIngredient } from '../lib/ingredients.js';
+
+const LOW_PANTRY_THRESHOLD = 3;
 
 export default function PantryDrawer({ onAddAll, onClose }) {
   const [pantry, setPantry] = useLocalStorage('pantry_items', []);
@@ -16,6 +18,7 @@ export default function PantryDrawer({ onAddAll, onClose }) {
   };
 
   const removeItem = (item) => setPantry(prev => prev.filter(i => i !== item));
+  const isLow = pantry.length > 0 && pantry.length <= LOW_PANTRY_THRESHOLD;
 
   return (
     <div className="fixed inset-0 z-[150] flex justify-end">
@@ -33,6 +36,16 @@ export default function PantryDrawer({ onAddAll, onClose }) {
             <X size={20} />
           </button>
         </div>
+
+        {/* Low pantry alert */}
+        {isLow && (
+          <div className="mx-4 mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-center gap-2">
+            <AlertTriangle size={16} className="text-yellow-400 shrink-0" />
+            <p className="text-yellow-400 text-xs">
+              Running low! Only {pantry.length} item{pantry.length !== 1 ? 's' : ''} in your pantry.
+            </p>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {pantry.length === 0 && (

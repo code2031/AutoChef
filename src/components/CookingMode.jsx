@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, Timer, Play, Pause, RotateCcw } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Timer, Play, Pause, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 
 function detectTimerSeconds(step) {
   const patterns = [
@@ -37,23 +37,35 @@ function playBeep() {
   }
 }
 
+function speakText(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.rate = 0.9;
+  window.speechSynthesis.speak(utt);
+}
+
 export default function CookingMode({ recipe, onExit }) {
   const [step, setStep] = useState(0);
   const [timerSeconds, setTimerSeconds] = useState(null);
   const [timeLeft, setTimeLeft] = useState(null);
   const [running, setRunning] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
   const intervalRef = useRef(null);
+  const touchStartX = useRef(null);
   const steps = recipe.instructions || [];
 
   useEffect(() => {
     const secs = detectTimerSeconds(steps[step] || '');
-    // Use setTimeout to avoid synchronous setState-in-effect
     const t = setTimeout(() => {
       setTimerSeconds(secs);
       setTimeLeft(secs);
       setRunning(false);
     }, 0);
     clearInterval(intervalRef.current);
+    if (voiceEnabled && steps[step]) {
+      speakText(`Step ${step + 1}. ${steps[step]}`);
+    }
     return () => clearTimeout(t);
   }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -87,16 +99,55 @@ export default function CookingMode({ recipe, onExit }) {
     setTimeLeft(timerSeconds);
   };
 
+  const goNext = () => {
+    if (step < steps.length - 1) setStep(s => s + 1);
+    else onExit();
+  };
+
+  const goPrev = () => setStep(s => Math.max(0, s - 1));
+
+  // Swipe gestures
+  const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(dx) > 60) {
+      if (dx < 0) goNext();
+      else goPrev();
+    }
+    touchStartX.current = null;
+  };
+
+  const handleVoiceToggle = () => {
+    const next = !voiceEnabled;
+    setVoiceEnabled(next);
+    if (next && steps[step]) speakText(`Step ${step + 1}. ${steps[step]}`);
+    else window.speechSynthesis?.cancel();
+  };
+
   return (
-    <div className="fixed inset-0 z-[200] bg-slate-950 flex flex-col animate-in fade-in duration-300">
+    <div
+      className="fixed inset-0 z-[200] bg-slate-950 flex flex-col animate-in fade-in duration-300"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <div className="flex items-center justify-between p-6 border-b border-white/5">
         <div>
           <p className="text-xs text-orange-400 font-bold uppercase tracking-widest">Cooking Mode</p>
           <h2 className="text-xl font-bold">{recipe.name}</h2>
         </div>
-        <button onClick={onExit} className="p-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all">
-          <X size={24} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleVoiceToggle}
+            className={`p-2 rounded-xl transition-all ${voiceEnabled ? 'bg-blue-500/20 text-blue-400' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+            title={voiceEnabled ? 'Disable voice readout' : 'Enable voice readout'}
+          >
+            {voiceEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+          </button>
+          <button onClick={onExit} className="p-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all">
+            <X size={24} />
+          </button>
+        </div>
       </div>
 
       <div className="px-6 py-4">
@@ -108,7 +159,8 @@ export default function CookingMode({ recipe, onExit }) {
           {steps.map((_, i) => (
             <div
               key={i}
-              className={`h-1 flex-1 rounded-full transition-all ${i <= step ? 'bg-orange-500' : 'bg-slate-800'}`}
+              onClick={() => setStep(i)}
+              className={`h-1 flex-1 rounded-full transition-all cursor-pointer ${i <= step ? 'bg-orange-500' : 'bg-slate-800 hover:bg-slate-700'}`}
             />
           ))}
         </div>
@@ -145,19 +197,21 @@ export default function CookingMode({ recipe, onExit }) {
 
       <div className="flex gap-4 p-6 border-t border-white/5">
         <button
-          onClick={() => setStep(s => Math.max(0, s - 1))}
+          onClick={goPrev}
           disabled={step === 0}
           className="flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl bg-slate-900 border border-white/5 text-slate-400 disabled:opacity-30 hover:border-white/20 transition-all"
         >
           <ChevronLeft size={20} /> Previous
         </button>
         <button
-          onClick={() => step < steps.length - 1 ? setStep(s => s + 1) : onExit()}
+          onClick={goNext}
           className="flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-bold transition-all"
         >
           {step < steps.length - 1 ? <>Next <ChevronRight size={20} /></> : 'Done! 🎉'}
         </button>
       </div>
+
+      <p className="text-center text-slate-600 text-xs pb-3">Swipe left/right to navigate steps</p>
     </div>
   );
 }

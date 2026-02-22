@@ -53,3 +53,13 @@ export async function generateSuggestions(promptText) {
   const parsed = JSON.parse(data.choices[0].message.content);
   return parsed.suggestions || [];
 }
+
+export async function generateVariant(promptText) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: promptText }],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
+  return JSON.parse(data.choices[0].message.content);
+}

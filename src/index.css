@@ -6,6 +6,11 @@ body {
   transition: background-color 0.3s, color 0.3s;
 }
 
+/* Font size classes applied on root div */
+.font-sz-sm { font-size: 0.875rem; }
+.font-sz-md { font-size: 1rem; }
+.font-sz-lg { font-size: 1.125rem; }
+
 /* Light theme */
 .light-theme {
   background-color: #f8fafc !important;
@@ -64,6 +69,42 @@ body {
 
 .light-theme .bg-slate-950\/80 {
   background-color: rgba(248, 250, 252, 0.85) !important;
+}
+
+/* High contrast mode */
+.high-contrast {
+  --hc-border: #ffffff;
+}
+
+.high-contrast .bg-slate-900,
+.high-contrast .bg-slate-900\/50 {
+  background-color: #000 !important;
+  border-color: #ffffff !important;
+}
+
+.high-contrast .text-slate-400,
+.high-contrast .text-slate-500,
+.high-contrast .text-slate-300 {
+  color: #ffffff !important;
+}
+
+.high-contrast .border-white\/5,
+.high-contrast .border-white\/10 {
+  border-color: rgba(255,255,255,0.3) !important;
+}
+
+.high-contrast button {
+  border-width: 2px !important;
+}
+
+/* Scroll to top button animation */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.scroll-top-btn {
+  animation: fadeInUp 0.2s ease-out;
 }
 
 /* Print stylesheet */
