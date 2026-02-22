@@ -9,11 +9,11 @@ export default function Navbar({ view, setView, theme, setTheme, points, streak,
       <img
         src={logoUrl}
         alt="AutoChef"
-        className="absolute left-4 md:left-6 top-0 h-24 w-auto cursor-pointer z-10"
+        className="absolute left-4 md:left-6 top-0 h-40 w-auto cursor-pointer z-10"
         onClick={() => setView('landing')}
       />
       {/* Spacer reserves horizontal room for the logo */}
-      <div className="w-28" />
+      <div className="w-44" />
 
       <div className="flex items-center gap-2">
         {/* Points & Streak */}
