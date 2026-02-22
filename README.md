@@ -17,7 +17,8 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Dietary filters** — Vegetarian, vegan, keto, gluten-free, plus cuisine style, spice level, servings, and allergy exclusions
 - **Gamification** — Earn points, maintain a daily streak, and unlock badges as you cook
 - **Dark / Light theme** — Persisted preference, toggled from the navbar
-- **Print & Share** — Print-optimised stylesheet, Web Share API with clipboard fallback, and QR code generation
+- **Share & QR** — Every recipe gets its own shareable URL (compressed, shortened via is.gd); QR code links directly to the exact recipe including its image — no re-render needed on the recipient's end
+- **Print** — Print-optimised stylesheet renders the recipe with the AI-generated image, clean layout, and no UI chrome
 
 ## Tech Stack
 
@@ -26,6 +27,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Groq API** — LLM text generation and vision
 - **Pollinations.ai** — Image generation (free, no account required)
 - **canvas-confetti** — Celebration animation on recipe completion
+- **is.gd** — Free URL shortening for scannable QR codes (no API key required)
 
 ## Getting Started
 
@@ -34,6 +36,8 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 ```bash
 npm install --legacy-peer-deps
 ```
+
+(`--legacy-peer-deps` is required due to a peer dependency conflict between `canvas-confetti` and React 19.)
 
 ### 2. Set up API keys
 
