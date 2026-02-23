@@ -52,7 +52,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Technique Explainer** — Hover or tap underlined cooking terms (julienne, deglaze, braise, etc.) for plain-English definitions
 - **Knife Cuts Guide** — Tap any cut technique (julienne, brunoise, chiffonade, dice, mince, bias cut) to open a step-by-step diagram modal
 - **Ingredient Checklist** — Tap ingredients to cross them off as you cook
-- **Serving Scaler** — Scale ingredient quantities ½x, 1x, 2x, 3x, or any custom number
+- **Serving Scaler** — Scale ingredient quantities ½x, 1x, 2x, 3x, or any custom number; all numeric quantities in the ingredient list are automatically recalculated
 
 ### Input
 - **Voice Input** — Dictate ingredients using the browser's Web Speech API
@@ -73,7 +73,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Chef's Letter** — AI writes a personal note from the chosen chef persona about the recipe
 - **Recipe Haiku** — AI generates a 5-7-5 haiku about the dish
 - **Flavor Profile Radar** — SVG spider chart showing sweet, savory, spicy, umami, tangy, and fresh scores
-- **Recipe Card Export** — Save a styled 800×500px PNG card (dish photo, stats, description) via the native Canvas API — no dependencies
+- **Recipe Card Export** — Save a styled two-panel PNG card (800×1160px): front shows dish photo, stats, and description; back shows full ingredients list and numbered steps — HelloFresh style, via the native Canvas API
 - **Nutrition Bars** — Visual macro bars for protein, carbs, fat, and fiber; turn red when a bar exceeds your daily goal; calories shown per serving
 - **Nutrition Goals** — Set personal daily targets (calories, protein, carbs, fat) in settings
 - **Anti-Inflammatory Score** — Keyword-based badge showing whether the recipe is anti-inflammatory, moderate, or pro-inflammatory
@@ -95,7 +95,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Cook Count** — "Done!" in Cooking Mode increments a per-recipe counter shown on history cards; Stats highlights your most-cooked dish
 - **Cooking Stats Dashboard** — Stats tab in History: summary cards, top ingredients chart, cuisine breakdown, weekly activity, difficulty distribution; **Export CSV** downloads all data as a spreadsheet
 - **Pantry Analytics** — Toggle in the Pantry drawer: freshness distribution, expiring-soon count, and category breakdown
-- **Meal Planner** — Drag saved recipes onto a Mon–Sun weekly grid with Breakfast / Lunch / Dinner slots; generates a combined shopping list for the whole week
+- **Meal Planner** — Drag (or touch-drag on mobile) saved recipes onto a Mon–Sun weekly grid with Breakfast / Lunch / Dinner slots; generates a combined shopping list for the whole week
 - **Monthly Challenges** — Track four monthly goals: cook 10 recipes, try 5 cuisines, save 5 favourites, use 20 unique ingredients
 - **Search & Sort** — Search history by name, tags, or notes; sort by date, name, or rating
 - **Tags & Notes** — Add custom tags and personal notes to any saved recipe

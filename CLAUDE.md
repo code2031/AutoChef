@@ -11,7 +11,18 @@ npm run preview   # Preview production build locally
 npm run lint      # ESLint (flat config, eslint.config.js)
 ```
 
-No test suite is configured. After any change, verify with `npm run build && npm run lint`.
+After any change, verify with `npm run build && npm run lint`.
+
+Playwright E2E tests live in `tests/autochef.spec.js`:
+
+```bash
+npx playwright test                         # run all tests
+npx playwright test --grep "Recipe Gen"     # run one describe block
+npx playwright test tests/autochef.spec.js:271  # run one test by line
+npx playwright show-report                  # view last HTML report
+```
+
+Tests use `mockGroq(page)` to intercept `**/openai/v1/chat/completions` and return canned JSON — no real API key needed. Pollinations and is.gd are also mocked. Run `npx playwright install chromium` once to install the browser.
 
 Local dev requires a `.env.local` file with `VITE_GROQ_API_KEY` and `VITE_POLLINATIONS_API_KEY`.
 
@@ -193,17 +204,17 @@ All `localStorage` keys:
 
 **`CookingMode.jsx`** — all step timers are initialized upfront from `detectTimerSeconds()` on mount and stored in a `timers` map keyed by step index. A single `setInterval` ticks all running timers simultaneously. Other running timers are shown as chips at the top while you're on a different step. Users can add per-step notes; `onExit(stepNotes)` passes the notes map back to `App.jsx` which saves them via `handleSaveCookingNotes`. Accepts an `onCookDone` callback that fires when the user taps Done on the final step — **`ResultView` must forward this prop to `CookingMode`** (it is passed down from `App.jsx` via `ResultView`).
 
-**`ResultView.jsx`** — cooking terms in instructions are detected via `TECHNIQUES` glossary and rendered as `TechniqueWord` spans with hover tooltips. Cut techniques (julienne, brunoise, chiffonade, dice, mince) also show a "see diagram →" link that opens `KnifeCutsGuide`. Ingredients are clickable — tapping calls `generateIngredientPrepTip()` and shows an `IngPrepPopover`. Seasonal ingredients show a 🌱 badge (via `GET_SEASONAL_BADGE` / `lib/seasonal.js`). On recipe load, `generateRecipeStory()` and `generateCommonMistakes()` are called in parallel — story renders as a blockquote, mistakes as a collapsible section. The serving multiplier supports preset buttons (½x/1x/2x/3x) and free-text input. Before Cooking Mode a **Mise en Place** checklist is shown. `SAFE_TEMPS` + `getSafeTempForStep()` render inline 🌡️ temperature badges in instructions. `PlatingGuide` and `RegionalVariants` modals are triggered from `RecipeActions` via `onShowPlating` / `onShowRegional` callbacks.
+**`ResultView.jsx`** — cooking terms in instructions are detected via `TECHNIQUES` glossary and rendered as `TechniqueWord` spans with hover tooltips. Cut techniques (julienne, brunoise, chiffonade, dice, mince) also show a "see diagram →" link that opens `KnifeCutsGuide`. Ingredients are clickable — tapping calls `generateIngredientPrepTip()` and shows an `IngPrepPopover`. Seasonal ingredients show a 🌱 badge (via `GET_SEASONAL_BADGE` / `lib/seasonal.js`). On recipe load, `generateRecipeStory()` and `generateCommonMistakes()` are called in parallel — story renders as a blockquote, mistakes as a collapsible section. The serving multiplier supports preset buttons (½x/1x/2x/3x) and free-text input; `scaleIngredient(text, multiplier)` (defined inline) uses a regex to replace all numbers in each ingredient string with the scaled value, converting common decimals to Unicode fractions (½, ¼, ¾). Before Cooking Mode a **Mise en Place** checklist is shown. `SAFE_TEMPS` + `getSafeTempForStep()` render inline 🌡️ temperature badges in instructions. `PlatingGuide` and `RegionalVariants` modals are triggered from `RecipeActions` via `onShowPlating` / `onShowRegional` callbacks.
 
 **`StatsBar.jsx`** — displays a grid of stat badges: Prep/Cook time, Difficulty (with tooltip), Calories (per serving — shown as subLabel), Type, Servings, Wine Pairing, Est. Cost (~$X, uses `recipe.ingredients` not the input prop), Carbon score, Anti-inflammatory score (keyword scoring: good vs bad ingredients), GI estimate (Low/Medium/High GI from keyword matching), Hydration badge (≥2 high-water ingredients). Below the grid: MacroBar rows for protein/carbs/fat/fiber (each accepts optional `goal` — bar turns red if over). Collapsible **Equipment Needed** section scans `recipe.instructions` for kitchen equipment keywords.
 
-**`RecipeActions.jsx`** — More panel includes: variant buttons (healthier/cheaper/easier/harder/translate), Similar Recipe, Export Card (canvas), QR code, Embed code, and new on-demand AI buttons: 🎲 Secret Ingredient, ✉️ Chef's Letter, 🎋 Recipe Haiku, 👥 Batch Prep, 🍽️ Plating Guide, 🌍 Regional Variants. Each shows a result card below the button. Accepts `persona` prop (passed through to `generateChefLetter`), `onShowPlating` and `onShowRegional` callbacks.
+**`RecipeActions.jsx`** — More panel includes: variant buttons (healthier/cheaper/easier/harder/translate), Similar Recipe, Export Card (canvas), QR code, Embed code, and on-demand AI buttons: 🎲 Secret Ingredient, ✉️ Chef's Letter, 🎋 Recipe Haiku, 👥 Batch Prep, 🍽️ Plating Guide, 🌍 Regional Variants. Each shows a result card below the button. Accepts `persona` prop (passed through to `generateChefLetter`), `onShowPlating` and `onShowRegional` callbacks. **Export Card** (`handleExportCard`) produces an 800×1160px PNG with two panels: front (800×500, photo + name + description + stat chips + branding) and back (800×660, ingredients column left / numbered steps column right), separated by an orange divider — styled like a HelloFresh recipe card. `roundRect` and a local `wrapText` helper are used (no external deps).
 
 **`FlavorRadar.jsx`** — pure SVG spider/radar chart, 6 flavor axes (Sweet, Savory, Spicy, Umami, Tangy, Fresh). Scores are computed from keyword matching against `recipe.ingredients`, `recipe.name`, and `recipe.description`. No external charting library.
 
 **`KitchenTimer.jsx`** — floating multi-timer widget rendered as a dropdown from the Navbar Timer button. Accepts duration input in multiple formats: bare number (treated as minutes), `5m`, `1:30`, `1h30m`, `90s`. Multiple named timers run simultaneously via a single `setInterval`. Plays a Web Audio API beep when each timer finishes. **Long Cook mode** (toggle in header) uses `useLongCookTimers` hook which persists `[{ id, label, startedAt, durationMs }]` to `long_cook_timers` in localStorage; accepts `24h`, `2d`, `3d12h` formats; shows elapsed + remaining time computed from `Date.now() - startedAt`.
 
-**`MealPlanner.jsx`** — weekly Mon–Sun grid with Breakfast/Lunch/Dinner slots. Saved recipes are dragged from a sidebar using HTML5 drag-and-drop (`draggable`, `onDragStart`, `onDrop`). Builds a combined shopping list from all assigned recipes. Plan persists in `meal_plan` localStorage key.
+**`MealPlanner.jsx`** — weekly Mon–Sun grid with Breakfast/Lunch/Dinner slots. Saved recipes are dragged from a sidebar using both HTML5 drag-and-drop (`draggable`, `onDragStart`, `onDrop`) and touch drag-and-drop (`onTouchStart/Move/End` + imperative ghost `div` element). Touch drag works by setting `pointer-events:none` on the ghost to call `document.elementFromPoint()` and find the drop zone under the finger (zones have `data-drop-day` and `data-drop-meal` attributes). Meal slots stack vertically on mobile (`grid-cols-1 sm:grid-cols-3`). Builds a combined shopping list from all assigned recipes. Plan persists in `meal_plan` localStorage key.
 
 **`GenerateView.jsx`** — four mode tabs: Ingredients, By Dish Name, Import, Historical. Historical tab renders `HistoricalRecipe.jsx` (era selector: Medieval Europe, Victorian England, 1920s Paris, Ancient Rome, Ming Dynasty, Ottoman Empire). Mode section also has 🦠 Gut Health and 🌿 Zero-Waste toggles. "Generate Two" button triggers A/B test via `onABGenerate` prop.
 
@@ -227,7 +238,7 @@ All `localStorage` keys:
 
 **`RecipeHistory.jsx`** — has four tabs: All, Favourites, Collections, and Stats. `MonthlyChallenges` computes progress from `history` and `favourites` client-side, filtered to the current calendar month. Each recipe card shows a version count badge (`entry.versions.length > 0`) and cook count (`entry.cookCount > 0`). `CollectionDropdown` (inline component) lets users assign recipes to named collections. **Remix mode** (🔀 toggle): clicking cards selects up to 2; a sticky bottom bar shows a "Create Fusion Dish →" button that calls `onRemix(recipeA, recipeB)`.
 
-**`Navbar.jsx`** — Settings dropdown includes: theme toggle, high contrast, font size (SM/MD/LG), temperature unit (°C/°F), Daily Nutrition Goals (calorie/protein/carbs/fat targets), **Custom Prompt** textarea (appended to every generation), and Keyboard Shortcuts modal. Timer, Planner, Sync, History buttons in the main bar.
+**`Navbar.jsx`** — Settings dropdown includes: theme toggle, high contrast, font size (SM/MD/LG), temperature unit (°C/°F), Daily Nutrition Goals (calorie/protein/carbs/fat targets), **Custom Prompt** textarea (appended to every generation), and Keyboard Shortcuts modal. Timer, Planner, Sync, History buttons in the main bar. The History button has no badge/count indicator.
 
 ### Utility libraries
 
