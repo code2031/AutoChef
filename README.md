@@ -15,7 +15,8 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Surprise Me** — Picks a random curated set of ingredients and generates a recipe instantly
 - **Recipe of the Day** — Date-derived dish suggestion appears as a quick chip in the generate view
 - **Similar Recipe** — Generate a different dish in the same style as the current recipe
-- **Variants** — Regenerate any recipe as a healthier version, a cheaper version, or translated to Spanish
+- **Variants** — Make any recipe Healthier, Cheaper, Easier (beginner-friendly), Harder (advanced techniques), or translated to another language
+- **Recipe Remix** — Pick any two saved recipes and AI fuses them into a new creative fusion dish
 - **Pairing Suggestions** — After each recipe loads, AI suggests 3 complementary sides, starters, or desserts
 
 ### Customization
@@ -23,10 +24,13 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Allergy exclusions** — Nuts, dairy, eggs, shellfish, soy, gluten
 - **Banned Ingredients** — Permanently exclude any ingredient from all recipes
 - **Calorie Cap** — Set a maximum calories-per-serving target enforced during generation
+- **Time Limit** — "Ready in X min" cap forces quick techniques and shorter recipes
+- **Chef Persona** — Home Cook, Pro Kitchen, Street Food, or Michelin style shapes recipe tone and technique
 - **Mood / Occasion** — Dinner party, meal prep, quick lunch, BBQ, and more
 - **Leftover Mode** — Forces every listed ingredient to appear; zero-waste cooking
 - **Kid-Friendly Mode** — Overrides spice to mild; simple techniques, no alcohol
-- **Persistent Pantry** — Save staple ingredients and add them all to any recipe in one click
+- **Persistent Pantry** — Save staple ingredients with optional expiry dates; colour-coded freshness badges; add all to any recipe in one click
+- **Grocery Receipt Import** — Paste a receipt or ingredient list in the Pantry drawer; AI extracts food items and bulk-adds them
 
 ### Cooking Experience
 - **Mise en Place** — Pre-cooking prep checklist extracted from the instructions; check off tasks before starting
@@ -34,8 +38,10 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Cooking Notes** — Add notes to individual steps during cooking mode; saved back to recipe history when you exit
 - **Voice Readout** — Cooking mode reads each step aloud via Web Speech API
 - **Swipe Gestures** — Swipe left/right in cooking mode to navigate steps
-- **Kitchen Timer** — Floating multi-timer widget accessible from anywhere via the Navbar; supports multiple named timers simultaneously
+- **Kitchen Timer** — Floating multi-timer widget from the Navbar; multiple named timers simultaneously; Long Cook mode for multi-day timers (sourdough, brining) persisted across reloads
+- **Multi-Dish Sync Planner** — Enter dishes with cook times, set a serve time, and get a backwards-calculated start schedule so everything finishes together
 - **Inline Step Timers** — Tap any time-mentioned step to start a countdown directly in the recipe view
+- **Safe Temperature Guide** — Inline 🌡️ badge on steps containing meat or fish showing the safe internal temp; respects °C/°F setting
 - **Technique Explainer** — Hover or tap underlined cooking terms (julienne, deglaze, braise, etc.) for plain-English definitions
 - **Ingredient Checklist** — Tap ingredients to cross them off as you cook
 - **Serving Scaler** — Scale ingredient quantities ½x, 1x, 2x, 3x, or any custom number
@@ -50,6 +56,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 
 ### Recipe Details
 - **Flavor Profile Radar** — SVG spider chart showing sweet, savory, spicy, umami, tangy, and fresh scores
+- **Recipe Card Export** — Save a styled 800×500px PNG card (dish photo, stats, description) via the native Canvas API — no dependencies
 - **Nutrition Bars** — Visual macro bars for protein, carbs, fat, and fiber; turn red when a bar exceeds your daily goal
 - **Nutrition Goals** — Set personal daily targets (calories, protein, carbs, fat) in settings
 - **Prep/Cook Time Split** — Separate prep and cook times when provided
@@ -63,6 +70,9 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Auto-Tags** — On save, AI generates 4–5 descriptive tags (e.g. `weeknight`, `high-protein`, `one-pan`) automatically
 - **Recipe Versioning** — When you apply a variant (Make Healthier, etc.), the previous version is preserved in history
 - **Recipe Collections** — Organise saved recipes into named cookbooks / folders
+- **Recipe Remix** — Select 2 recipes from history; AI fuses them into a creative fusion dish
+- **Cook Count** — "Done!" in Cooking Mode increments a per-recipe counter shown on history cards; Stats highlights your most-cooked dish
+- **Cooking Stats Dashboard** — Stats tab in History: summary cards, top ingredients chart, cuisine breakdown, weekly activity, difficulty distribution
 - **Meal Planner** — Drag saved recipes onto a Mon–Sun weekly grid with Breakfast / Lunch / Dinner slots; generates a combined shopping list for the whole week
 - **Monthly Challenges** — Track four monthly goals: cook 10 recipes, try 5 cuisines, save 5 favourites, use 20 unique ingredients
 - **Search & Sort** — Search history by name, tags, or notes; sort by date, name, or rating

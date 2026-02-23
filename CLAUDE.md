@@ -29,6 +29,7 @@ AutoChef is a client-side-only React SPA (no backend). All state is either ephem
                 └──────── reset() ────────────┘
 'history'   (accessible from Navbar at any point)
 'planner'   (Meal Planner — accessible from Navbar at any point)
+'sync'      (Multi-Dish Sync Planner — accessible from Navbar at any point)
 ```
 
 There is no router — `view` is just `useState`. The initial value is computed synchronously: if the URL has `?rc=` or `?r=` query params (or legacy `#rc=`/`#r=` hash), the app starts on `'result'` immediately to avoid a landing-page flash when opening a shared recipe link.
@@ -46,6 +47,8 @@ All API keys are read from `import.meta.env` — set in `.env.local` locally, an
 | Groq import | `lib/groq.js` → `importRecipe()` | `llama-3.3-70b-versatile`, low temp (0.2) |
 | Groq pairings | `lib/groq.js` → `generatePairingSuggestions()` | `llama-3.3-70b-versatile`, returns `[{name, type, reason}]` |
 | Groq auto-tags | `lib/groq.js` → `generateAutoTags()` | `llama-3.3-70b-versatile`, returns `string[]` |
+| Groq remix | `lib/groq.js` → `generateRemix()` | `llama-3.3-70b-versatile`, temp 0.8, returns full recipe JSON |
+| Groq receipt | `lib/groq.js` → `parseGroceryReceipt()` | `llama-3.3-70b-versatile`, low temp (0.2), returns `string[]` |
 | Pollinations image | `lib/pollinations.js` → `buildImageUrl(name, desc, imageStyle?)` | `flux` model, URL-based GET, **random seed per call** |
 
 `buildImageUrl()` accepts an optional `imageStyle` (`'plated'` / `'overhead'` / `'rustic'` / `'close-up'`) that is injected into the Pollinations prompt. It uses a random seed, so two calls produce different images — the URL must be preserved explicitly when sharing.
@@ -87,6 +90,10 @@ The recipe prompt (`lib/prompts.js`) requests this exact shape from Groq:
 
 **Variant flow** (More panel in `RecipeActions`)
 - `handleVariant(type)` → `buildVariantPrompt(recipe, type)` → `generateVariant()` → `onVariantReady()` in `App.jsx` saves old recipe as a version (via `updateRecipeWithVersion`) then replaces current recipe
+- Supported variant types: `'healthier'`, `'cheaper'`, `'easier'`, `'harder'`, `'translate:<language>'`
+
+**Remix flow** (History remix mode)
+- `handleRemix(recipeA, recipeB)` → `buildRemixPrompt(recipeA, recipeB)` → `generateRemix()` → `ResultView`
 
 All recipe flows end with: `buildImageUrl(name, desc, prefs.imageStyle)` called for image; `useEffect` in `App.jsx` resolves `isGeneratingImage` when the `Image` object fires `onload`/`onerror`. `canvas-confetti` fires only once ever (guarded by `localStorage.getItem('confetti_done')`). After each recipe loads, `generatePairingSuggestions()` is called in the background and results stored in `pairings` state.
 
@@ -98,14 +105,18 @@ All recipe flows end with: `buildImageUrl(name, desc, prefs.imageStyle)` called 
 - `kidFriendly` — boolean; **overrides spice to mild** and restricts techniques/alcohol
 - `banned` — string array, excluded from all recipes
 - `maxCalories` — number string; adds a hard calorie cap to the prompt
+- `persona` — `'home'` / `'pro'` / `'street'` / `'michelin'`; injects a chef-style instruction paragraph
+- `maxTime` — number string (minutes); adds a hard total-time cap to the prompt
 
-`buildVariantPrompt(recipe, variantType)` handles `"healthier"`, `"cheaper"`, and `"translate:<language>"`.
+`buildVariantPrompt(recipe, variantType)` handles `"healthier"`, `"cheaper"`, `"easier"`, `"harder"`, and `"translate:<language>"`.
 
 `buildSimilarPrompt(recipe)` generates a different dish in the same style/cuisine.
 
 `buildSuggestionsPrompt()` also accepts `kidFriendly` and `leftover` so the 3 suggestion names already reflect active modes.
 
 `buildImportPrompt(text)` wraps arbitrary pasted recipe text/URL content in a parse request that returns the standard recipe JSON schema.
+
+`buildRemixPrompt(recipeA, recipeB)` fuses two recipes into a creative fusion dish.
 
 ### Recipe sharing / QR code
 
@@ -132,9 +143,12 @@ All `localStorage` keys:
 | `pref_nutrition_goals` | `usePreferences` — `{ calories, protein, carbs, fat }` daily targets |
 | `pref_servings_memory` | `usePreferences` — object keyed by cuisine name |
 | `pref_image_style` | `usePreferences` — Pollinations photo style (`'plated'` / `'overhead'` / `'rustic'` / `'close-up'`) |
-| `recipe_history` | `useRecipeHistory` (max 50 entries; each has `tags[]`, `notes`, `isFavourite`, `rating`, `versions[]`, `collectionId`) |
+| `pref_persona` | `usePreferences` — chef style (`''` / `'home'` / `'pro'` / `'street'` / `'michelin'`) |
+| `pref_max_time` | `usePreferences` — time cap in minutes (string); empty = no limit |
+| `recipe_history` | `useRecipeHistory` (max 50 entries; each has `tags[]`, `notes`, `isFavourite`, `rating`, `versions[]`, `collectionId`, `cookCount`) |
 | `recipe_collections` | `useRecipeHistory` — array of `{ id, name }` cookbook objects |
 | `meal_plan` | `MealPlanner` — `{ Monday: { Breakfast: entryId\|null, ... }, ... }` |
+| `long_cook_timers` | `KitchenTimer` — `[{ id, label, startedAt, durationMs }]` persisted for multi-day timers |
 | `game_points`, `game_streak`, `game_last_cook_date`, `game_badges`, `game_stats` | `useGamification` |
 | `game_best_streak` | `App.jsx` (uses `useLocalStorage` directly) |
 | `recent_ingredients` | `App.jsx` (uses `useLocalStorage` directly; max 20 items) |
@@ -147,19 +161,23 @@ All `localStorage` keys:
 
 **`CookingMode.jsx`** — all step timers are initialized upfront from `detectTimerSeconds()` on mount and stored in a `timers` map keyed by step index. A single `setInterval` ticks all running timers simultaneously. Other running timers are shown as chips at the top while you're on a different step. Users can add per-step notes; `onExit(stepNotes)` passes the notes map back to `App.jsx` which saves them via `handleSaveCookingNotes`.
 
-**`ResultView.jsx`** — cooking terms in instructions (julienne, deglaze, sauté, braise, fold, etc.) are detected via a regex over `TECHNIQUES` glossary and rendered as `TechniqueWord` spans with hover/tap tooltips. The serving multiplier supports both preset buttons (½x/1x/2x/3x) and a free-text number input; `effectiveMultiplier` resolves to whichever is active. Before entering Cooking Mode, a **Mise en Place** pre-screen extracts prep tasks from instructions and shows a checklist. `pairings` prop (from `App.jsx` background fetch) is displayed as a "Goes Well With" section.
+**`ResultView.jsx`** — cooking terms in instructions (julienne, deglaze, sauté, braise, fold, etc.) are detected via a regex over `TECHNIQUES` glossary and rendered as `TechniqueWord` spans with hover/tap tooltips. The serving multiplier supports both preset buttons (½x/1x/2x/3x) and a free-text number input; `effectiveMultiplier` resolves to whichever is active. Before entering Cooking Mode, a **Mise en Place** pre-screen extracts prep tasks from instructions and shows a checklist. `pairings` prop (from `App.jsx` background fetch) is displayed as a "Goes Well With" section. `SAFE_TEMPS` map + `getSafeTempForStep()` detect meat/fish keywords in instruction text and render inline 🌡️ temperature badges (respects `tempUnit` prop).
 
 **`FlavorRadar.jsx`** — pure SVG spider/radar chart, 6 flavor axes (Sweet, Savory, Spicy, Umami, Tangy, Fresh). Scores are computed from keyword matching against `recipe.ingredients`, `recipe.name`, and `recipe.description`. No external charting library.
 
-**`KitchenTimer.jsx`** — floating multi-timer widget rendered as a dropdown from the Navbar Timer button. Accepts duration input in multiple formats: bare number (treated as minutes), `5m`, `1:30`, `1h30m`, `90s`. Multiple named timers run simultaneously via a single `setInterval`. Plays a Web Audio API beep when each timer finishes.
+**`KitchenTimer.jsx`** — floating multi-timer widget rendered as a dropdown from the Navbar Timer button. Accepts duration input in multiple formats: bare number (treated as minutes), `5m`, `1:30`, `1h30m`, `90s`. Multiple named timers run simultaneously via a single `setInterval`. Plays a Web Audio API beep when each timer finishes. **Long Cook mode** (toggle in header) uses `useLongCookTimers` hook which persists `[{ id, label, startedAt, durationMs }]` to `long_cook_timers` in localStorage; accepts `24h`, `2d`, `3d12h` formats; shows elapsed + remaining time computed from `Date.now() - startedAt`.
 
 **`MealPlanner.jsx`** — weekly Mon–Sun grid with Breakfast/Lunch/Dinner slots. Saved recipes are dragged from a sidebar using HTML5 drag-and-drop (`draggable`, `onDragStart`, `onDrop`). Builds a combined shopping list from all assigned recipes. Plan persists in `meal_plan` localStorage key.
 
 **`StatsBar.jsx`** — `MacroBar` accepts an optional `goal` prop. When set, the bar max is the goal value and the bar turns red if `num > goalNum`.
 
-**`RecipeHistory.jsx`** — has three tabs: All, Favourites, and Collections. `MonthlyChallenges` computes progress from `history` and `favourites` client-side, filtered to the current calendar month. Each recipe card shows a version count badge if `entry.versions.length > 0`; clicking it expands a version history list. `CollectionDropdown` (inline component) lets users assign recipes to named collections.
+**`RecipeHistory.jsx`** — has four tabs: All, Favourites, Collections, and Stats. `MonthlyChallenges` computes progress from `history` and `favourites` client-side, filtered to the current calendar month. Each recipe card shows a version count badge (`entry.versions.length > 0`) and cook count (`entry.cookCount > 0`). `CollectionDropdown` (inline component) lets users assign recipes to named collections. **Remix mode** (🔀 toggle): clicking cards selects up to 2; a sticky bottom bar shows a "Create Fusion Dish →" button that calls `onRemix(recipeA, recipeB)`.
 
-**`useRecipeHistory`** — `updateRecipeWithVersion(id, newRecipe, newImageUrl)` pushes the current recipe into `entry.versions[]` before overwriting — called by `handleVariantReady` in `App.jsx` whenever a variant is applied to a saved recipe.
+**`CookingStats.jsx`** — Stats tab content. Summary cards (total saved, favourites, approval rate, most-cooked count). Tab-based charts: Top Ingredients, Cuisine Breakdown, Weekly Activity (last 8 weeks column chart), Difficulty Distribution. All charts are pure CSS/inline-style bars — no external charting library.
+
+**`SyncPlanner.jsx`** — Multi-dish timing calculator (`view === 'sync'`, Navbar "Sync" button). User enters dishes with cook times + a serve-in minutes value; component calculates `startIn = serveInMins - cookMins` for each dish and renders a timeline sorted by start time. Shows "NOW" for dishes that should already be started; warns if `startIn < 0`.
+
+**`useRecipeHistory`** — `updateRecipeWithVersion(id, newRecipe, newImageUrl)` pushes the current recipe into `entry.versions[]` before overwriting. `incrementCookCount(id)` increments `entry.cookCount`; called by `handleCookDone` in `App.jsx` when CookingMode fires `onCookDone` (the Done button on the last step).
 
 ### Utility libraries
 
@@ -185,6 +203,8 @@ Theme and display classes are applied on the root `<div id="app-root">` in `App.
 - `no-unused-vars` allows vars matching `/^[A-Z_]/` — use an uppercase name to suppress when needed
 - `react-hooks/set-state-in-effect` is enforced — avoid calling `setState` directly in `useEffect` body; use `setTimeout(..., 0)` to defer
 - `eslint-plugin-react-refresh` is active — all component files must export a single component as default
+
+**`PantryDrawer.jsx`** — pantry items are objects `{ name, expiresAt }` (ISO string or null). Legacy string items are migrated by a `normalise()` function on read. `ExpiryBadge` component renders red/orange/green based on days until expiry. Receipt import UI calls `parseGroceryReceipt()` from `groq.js` and bulk-adds returned ingredient strings.
 
 ### Auto-save flow
 
