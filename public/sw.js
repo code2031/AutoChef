@@ -1,4 +1,4 @@
-const CACHE_NAME = 'autochef-v1';
+const CACHE_NAME = 'autochef-v2';
 const PRECACHE = [
   '/AutoChef/',
   '/AutoChef/index.html',
@@ -19,23 +19,35 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  // Only intercept same-origin GET requests
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   if (url.origin !== self.location.origin) return;
 
+  // Network-first for HTML / navigation — ensures deploys propagate immediately
+  if (e.request.mode === 'navigate' || (e.request.headers.get('accept') || '').includes('text/html')) {
+    e.respondWith(
+      fetch(e.request)
+        .then(response => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(e.request).then(cached => cached || caches.match('/AutoChef/')))
+    );
+    return;
+  }
+
+  // Cache-first for versioned assets (hashed JS/CSS filenames)
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
       return fetch(e.request).then(response => {
-        // Cache successful HTML/JS/CSS responses
-        if (response.ok && (response.headers.get('content-type') || '').match(/html|javascript|css/)) {
+        if (response.ok && (response.headers.get('content-type') || '').match(/javascript|css/)) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
         }
         return response;
       }).catch(() => {
-        // Offline fallback for navigation
         if (e.request.mode === 'navigate') return caches.match('/AutoChef/');
       });
     })
