@@ -116,3 +116,101 @@ export async function generateAutoTags(recipe) {
   const parsed = JSON.parse(data.choices[0].message.content);
   return parsed.tags || [];
 }
+
+export async function generateSecretIngredient(recipe) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `For the recipe "${recipe.name}", suggest one surprising secret ingredient that would elevate this dish. Return JSON: {"ingredient": "ingredient name", "reason": "why it works", "howToAdd": "when/how to add it"}` }],
+    temperature: 0.9,
+    response_format: { type: 'json_object' },
+  });
+  return JSON.parse(data.choices[0].message.content);
+}
+
+export async function generateChefLetter(recipe, persona) {
+  const personaDesc = persona === 'michelin' ? 'a Michelin-star chef' : persona === 'pro' ? 'a professional chef' : persona === 'street' ? 'a street food chef' : 'a home cook';
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Write a short personal note (2-4 sentences) from ${personaDesc} about "${recipe.name}". Make it warm and personal, like a note tucked into a recipe card. Return JSON: {"letter": "the note text"}` }],
+    temperature: 0.85,
+    response_format: { type: 'json_object' },
+  });
+  const parsed = JSON.parse(data.choices[0].message.content);
+  return parsed.letter || '';
+}
+
+export async function generateRecipeHaiku(recipe) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Write a haiku (3 lines: 5-7-5 syllables) about the recipe "${recipe.name}". Evoke its flavors, textures, or mood. Return JSON: {"haiku": "line1\\nline2\\nline3"}` }],
+    temperature: 0.9,
+    response_format: { type: 'json_object' },
+  });
+  const parsed = JSON.parse(data.choices[0].message.content);
+  return parsed.haiku || '';
+}
+
+export async function generateBatchPrep(recipe, servings) {
+  const orig = parseInt(recipe.servings) || 4;
+  const factor = (parseInt(servings) || 20) / orig;
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Scale the recipe "${recipe.name}" from ${orig} to ${servings} servings (${factor.toFixed(1)}x). Scale ALL ingredient quantities proportionally.\n\nOriginal ingredients:\n${(recipe.ingredients || []).join('\n')}\n\nReturn JSON: {"servings": ${servings}, "ingredients": ["scaled ingredient 1"], "tip": "one practical tip for cooking at this scale"}` }],
+    temperature: 0.3,
+    response_format: { type: 'json_object' },
+  });
+  return JSON.parse(data.choices[0].message.content);
+}
+
+export async function generateRecipeStory(recipe) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Write a 1-2 sentence origin story or fun cultural fact about "${recipe.name}". Keep it brief, interesting, and accurate. Return JSON: {"story": "the story text"}` }],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
+  const parsed = JSON.parse(data.choices[0].message.content);
+  return parsed.story || '';
+}
+
+export async function generateCommonMistakes(recipe) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `List 3 common mistakes people make when cooking "${recipe.name}", and how to fix each one.\n\nReturn JSON: {"mistakes": [{"mistake": "what goes wrong", "fix": "how to avoid it"}]}` }],
+    temperature: 0.6,
+    response_format: { type: 'json_object' },
+  });
+  const parsed = JSON.parse(data.choices[0].message.content);
+  return parsed.mistakes || [];
+}
+
+export async function generateIngredientPrepTip(ingredient) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Give a practical prep tip for "${ingredient}" in cooking. Include how to prep it and how to store it.\n\nReturn JSON: {"tip": "prep tip (1-2 sentences)", "storage": "storage advice", "shelf_life": "how long it keeps"}` }],
+    temperature: 0.5,
+    response_format: { type: 'json_object' },
+  });
+  return JSON.parse(data.choices[0].message.content);
+}
+
+export async function generateIngredientSubs(ingredient, recipeName) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Suggest 3 ingredient substitutions for "${ingredient}" in the recipe "${recipeName}". Return JSON: {"subs": [{"name": "substitute name", "notes": "how to use and any adjustments needed"}]}` }],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
+  const parsed = JSON.parse(data.choices[0].message.content);
+  return parsed.subs || [];
+}
+
+export async function generateHistoricalRecipe(promptText) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: promptText }],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
+  return JSON.parse(data.choices[0].message.content);
+}

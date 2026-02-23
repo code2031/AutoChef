@@ -25,6 +25,9 @@ export function usePreferences() {
   const [imageStyle, setImageStyle] = useLocalStorage('pref_image_style', 'plated');
   const [persona, setPersona] = useLocalStorage('pref_persona', '');
   const [maxTime, setMaxTime] = useLocalStorage('pref_max_time', '');
+  const [gutHealth, setGutHealth] = useLocalStorage('pref_gut_health', false);
+  const [rootToStem, setRootToStem] = useLocalStorage('pref_root_to_stem', false);
+  const [customPrompt, setCustomPrompt] = useLocalStorage('pref_custom_prompt', '');
 
   const toggleAllergy = (allergy) => {
     setAllergies(prev =>
@@ -65,5 +68,8 @@ export function usePreferences() {
     imageStyle, setImageStyle,
     persona, setPersona,
     maxTime, setMaxTime,
+    gutHealth, setGutHealth,
+    rootToStem, setRootToStem,
+    customPrompt, setCustomPrompt,
   };
 }

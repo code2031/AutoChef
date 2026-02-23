@@ -3,6 +3,7 @@ import { Zap, ShoppingBag, Shuffle, X, Ban, UtensilsCrossed, ListOrdered, Dices,
 import IngredientInput from './IngredientInput.jsx';
 import SelectorGroup from './SelectorGroup.jsx';
 import PantryDrawer from './PantryDrawer.jsx';
+import HistoricalRecipe from './HistoricalRecipe.jsx';
 import { getSeasonalIngredients } from '../lib/seasonal.js';
 import { getRandomSurpriseIngredients, INGREDIENT_SUGGESTIONS } from '../lib/ingredients.js';
 
@@ -37,9 +38,9 @@ function getIngredientOfWeek() {
 export default function GenerateView({
   ingredients, setIngredients,
   prefs, onGenerate, onDishGenerate, onLucky, onImport, isGenerating, isScanning, onScan, error,
-  recentIngredients,
+  recentIngredients, onHistoricalGenerate, onABGenerate,
 }) {
-  const [mode, setMode] = useState('ingredients'); // 'ingredients' | 'dish' | 'import'
+  const [mode, setMode] = useState('ingredients'); // 'ingredients' | 'dish' | 'import' | 'historical'
   const [dishInput, setDishInput] = useState('');
   const [importText, setImportText] = useState('');
   const [showPantry, setShowPantry] = useState(false);
@@ -56,6 +57,8 @@ export default function GenerateView({
     imageStyle, setImageStyle,
     persona, setPersona,
     maxTime, setMaxTime,
+    gutHealth, setGutHealth,
+    rootToStem, setRootToStem,
   } = prefs;
 
   const addIngredient = (name) => {
@@ -192,6 +195,13 @@ export default function GenerateView({
           <FileText size={15} />
           Import Recipe
         </button>
+        <button
+          onClick={() => setMode('historical')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${mode === 'historical' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'}`}
+        >
+          <Clock size={15} />
+          Historical
+        </button>
       </div>
 
       {mode === 'dish' ? (
@@ -252,6 +262,8 @@ export default function GenerateView({
             </div>
           )}
         </div>
+      ) : mode === 'historical' ? (
+        <HistoricalRecipe onGenerate={onHistoricalGenerate} isGenerating={isGenerating} />
       ) : (
       <>
       <div className="flex items-start justify-between gap-4">
@@ -459,6 +471,26 @@ export default function GenerateView({
             >
               👶 Kid-Friendly
             </button>
+            <button
+              onClick={() => setGutHealth(!gutHealth)}
+              className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
+                gutHealth
+                  ? 'bg-green-500/10 border-green-500/40 text-green-400'
+                  : 'bg-slate-900 border-white/5 text-slate-400 hover:border-white/20'
+              }`}
+            >
+              🦠 Gut Health
+            </button>
+            <button
+              onClick={() => setRootToStem(!rootToStem)}
+              className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
+                rootToStem
+                  ? 'bg-teal-500/10 border-teal-500/40 text-teal-400'
+                  : 'bg-slate-900 border-white/5 text-slate-400 hover:border-white/20'
+              }`}
+            >
+              🌿 Zero-Waste
+            </button>
           </div>
         </div>
       </div>
@@ -469,7 +501,7 @@ export default function GenerateView({
         </div>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 flex-wrap">
         <button
           onClick={onGenerate}
           disabled={ingredients.length === 0 || isGenerating}
@@ -482,6 +514,21 @@ export default function GenerateView({
           <Zap size={20} fill="currentColor" />
           {isGenerating ? 'Generating...' : 'Generate Gourmet Recipe'}
         </button>
+        {onABGenerate && (
+          <button
+            onClick={onABGenerate}
+            disabled={ingredients.length === 0 || isGenerating}
+            title="Generate two recipe options to compare"
+            className={`px-5 py-5 rounded-2xl font-bold flex items-center gap-2 transition-all border text-sm ${
+              ingredients.length > 0 && !isGenerating
+                ? 'bg-slate-900 border-orange-500/30 text-orange-400 hover:border-orange-500/60'
+                : 'bg-slate-800 border-white/5 text-slate-600 cursor-not-allowed'
+            }`}
+          >
+            <Shuffle size={18} />
+            <span className="hidden sm:inline">A/B Test</span>
+          </button>
+        )}
         <button
           onClick={onLucky}
           disabled={isGenerating}

@@ -14,10 +14,11 @@ import { usePreferences } from './hooks/usePreferences.js';
 import { useRecipeHistory } from './hooks/useRecipeHistory.js';
 import { useGamification } from './hooks/useGamification.js';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
-import { scanImageForIngredients, generateRecipe, generateSuggestions, generateVariant, importRecipe, generatePairingSuggestions, generateAutoTags, generateRemix } from './lib/groq.js';
+import { scanImageForIngredients, generateRecipe, generateSuggestions, generateVariant, importRecipe, generatePairingSuggestions, generateAutoTags, generateRemix, generateHistoricalRecipe } from './lib/groq.js';
 import { buildImageUrl } from './lib/pollinations.js';
 import { getRandomSurpriseIngredients } from './lib/ingredients.js';
-import { buildRecipePrompt, buildSuggestionsPrompt, buildDishPrompt, buildSimilarPrompt, buildImportPrompt, buildRemixPrompt } from './lib/prompts.js';
+import { buildRecipePrompt, buildSuggestionsPrompt, buildDishPrompt, buildSimilarPrompt, buildImportPrompt, buildRemixPrompt, buildHistoricalPrompt } from './lib/prompts.js';
+import ABRecipeTest from './components/ABRecipeTest.jsx';
 
 export default function App() {
   // View state — start on 'result' immediately if URL carries a recipe
@@ -55,6 +56,10 @@ export default function App() {
 
   // Pairing suggestions
   const [pairings, setPairings] = useState([]);
+
+  // A/B Recipe Test
+  const [abRecipes, setAbRecipes] = useState(null); // { a, b, imgA, imgB }
+  const [isABLoading, setIsABLoading] = useState(false);
 
   // Badge popup
   const [newBadges, setNewBadges] = useState([]);
@@ -248,6 +253,9 @@ export default function App() {
         maxCalories: prefs.maxCalories,
         persona: prefs.persona,
         maxTime: prefs.maxTime,
+        gutHealth: prefs.gutHealth,
+        rootToStem: prefs.rootToStem,
+        customPrompt: prefs.customPrompt,
       });
 
       const result = await generateRecipe(prompt);
@@ -305,6 +313,9 @@ export default function App() {
         maxCalories: prefs.maxCalories,
         persona: prefs.persona,
         maxTime: prefs.maxTime,
+        gutHealth: prefs.gutHealth,
+        rootToStem: prefs.rootToStem,
+        customPrompt: prefs.customPrompt,
       });
 
       const result = await generateRecipe(prompt);
@@ -535,6 +546,78 @@ export default function App() {
     }, 300);
   };
 
+  // --- Historical Recipe ---
+  const handleHistoricalGenerate = async (dishName, era) => {
+    setError(null);
+    setView('result');
+    setRecipe(null);
+    setRecipeImage(null);
+    setCurrentSavedId(null);
+    setCurrentRating(null);
+    setDupWarning('');
+    setIsGenerating(true);
+    try {
+      const prompt = buildHistoricalPrompt({
+        dishName, era,
+        diet: prefs.diet,
+        allergies: prefs.allergies,
+        banned: prefs.banned,
+        customPrompt: prefs.customPrompt,
+      });
+      const result = await generateHistoricalRecipe(prompt);
+      setRecipe(result);
+      setIsGenerating(false);
+      setIsGeneratingImage(true);
+      const imgUrl = buildImageUrl(result.name, result.description, prefs.imageStyle);
+      setRecipeImage(imgUrl);
+      generatePairingSuggestions(result.name, result.description).then(setPairings).catch(() => {});
+    } catch (err) {
+      setError(err.message || "Couldn't generate the historical recipe.");
+      setIsGenerating(false);
+      setView('generate');
+    }
+  };
+
+  // --- A/B Recipe Test ---
+  const handleABGenerate = async () => {
+    if (ingredients.length === 0) return;
+    setAbRecipes(null);
+    setIsABLoading(true);
+    setView('abtest');
+    try {
+      const baseOpts = {
+        ingredients,
+        diet: prefs.diet, vibe: prefs.vibe, cuisine: prefs.cuisine,
+        allergies: prefs.allergies, spice: prefs.spice, servings: prefs.servings,
+        language: navigator.language, mood: prefs.mood, leftover: prefs.leftover,
+        kidFriendly: prefs.kidFriendly, banned: prefs.banned, maxCalories: prefs.maxCalories,
+        persona: prefs.persona, maxTime: prefs.maxTime,
+        gutHealth: prefs.gutHealth, rootToStem: prefs.rootToStem, customPrompt: prefs.customPrompt,
+      };
+      const promptA = buildRecipePrompt({ ...baseOpts, ingredients: ['Option A — be creative and unexpected. ' + ingredients.join(', ')] });
+      const promptB = buildRecipePrompt({ ...baseOpts, ingredients: ['Option B — try a completely different approach. ' + ingredients.join(', ')] });
+      const [recipeA, recipeB] = await Promise.all([generateRecipe(promptA), generateRecipe(promptB)]);
+      const imgA = buildImageUrl(recipeA.name, recipeA.description, prefs.imageStyle);
+      const imgB = buildImageUrl(recipeB.name, recipeB.description, prefs.imageStyle);
+      setAbRecipes({ a: recipeA, b: recipeB, imgA, imgB });
+    } catch {
+      setView('generate');
+    } finally {
+      setIsABLoading(false);
+    }
+  };
+
+  const handlePickAB = (picked, pickedImage) => {
+    setRecipe(picked);
+    setRecipeImage(pickedImage);
+    setCurrentSavedId(null);
+    setCurrentRating(null);
+    setPairings([]);
+    setAbRecipes(null);
+    setView('result');
+    generatePairingSuggestions(picked.name, picked.description).then(setPairings).catch(() => {});
+  };
+
   const reset = () => {
     setIngredients([]);
     setRecipe(null);
@@ -567,6 +650,8 @@ export default function App() {
         setTempUnit={prefs.setTempUnit}
         nutritionGoals={prefs.nutritionGoals}
         setNutritionGoals={prefs.setNutritionGoals}
+        customPrompt={prefs.customPrompt}
+        setCustomPrompt={prefs.setCustomPrompt}
       />
 
       {/* Progress bar during generation */}
@@ -607,6 +692,8 @@ export default function App() {
             onScan={handleScan}
             error={error}
             recentIngredients={recentIngredients}
+            onHistoricalGenerate={handleHistoricalGenerate}
+            onABGenerate={handleABGenerate}
           />
         )}
 
@@ -654,6 +741,7 @@ export default function App() {
               nutritionGoals={prefs.nutritionGoals}
               pairings={pairings}
               onCookDone={handleCookDone}
+              persona={prefs.persona}
             />
             {/* Cook Tonight notification button */}
             {recipe && !isGenerating && (
@@ -685,6 +773,19 @@ export default function App() {
             onDeleteCollection={deleteCollection}
             onSetEntryCollection={setEntryCollection}
             onRemix={handleRemix}
+          />
+        )}
+
+        {view === 'abtest' && (
+          <ABRecipeTest
+            recipeA={abRecipes?.a}
+            imageA={abRecipes?.imgA}
+            recipeB={abRecipes?.b}
+            imageB={abRecipes?.imgB}
+            isLoading={isABLoading}
+            onPickA={() => abRecipes && handlePickAB(abRecipes.a, abRecipes.imgA)}
+            onPickB={() => abRecipes && handlePickAB(abRecipes.b, abRecipes.imgB)}
+            onClose={() => { setView('generate'); setAbRecipes(null); }}
           />
         )}
 

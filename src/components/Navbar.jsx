@@ -33,7 +33,7 @@ function KeyboardShortcutsModal({ onClose }) {
 export default function Navbar({
   view, setView, theme, setTheme, historyCount,
   fontSz, setFontSz, highContrast, setHighContrast, tempUnit, setTempUnit,
-  nutritionGoals, setNutritionGoals,
+  nutritionGoals, setNutritionGoals, customPrompt, setCustomPrompt,
 }) {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -208,6 +208,23 @@ export default function Navbar({
                         </div>
                       ))}
                       <p className="text-xs text-slate-600">Shows vs. recipe in macro bars</p>
+                    </div>
+                  )}
+
+                  <div className="border-t border-white/5 my-1" />
+
+                  {/* Custom Prompt */}
+                  {setCustomPrompt && (
+                    <div className="px-3 py-2 space-y-1.5">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Custom Prompt</p>
+                      <p className="text-xs text-slate-600">Appended to every recipe generation</p>
+                      <textarea
+                        value={customPrompt || ''}
+                        onChange={e => setCustomPrompt(e.target.value)}
+                        placeholder="e.g. Always include a variation for vegans..."
+                        rows={3}
+                        className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300 outline-none focus:border-orange-500/50 placeholder:text-slate-600 resize-none transition-all"
+                      />
                     </div>
                   )}
 

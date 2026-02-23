@@ -1,5 +1,30 @@
 import React, { useState } from 'react';
-import { BarChart2 } from 'lucide-react';
+import { BarChart2, Download } from 'lucide-react';
+
+function exportCSV(history) {
+  const headers = ['Name', 'Date', 'Difficulty', 'Calories', 'Protein', 'Carbs', 'Fat', 'Fiber', 'Rating', 'Cook Count', 'Tags'];
+  const rows = history.map(e => [
+    e.recipe?.name || '',
+    e.savedAt ? new Date(e.savedAt).toLocaleDateString() : '',
+    e.recipe?.difficulty || '',
+    e.recipe?.calories || '',
+    e.recipe?.nutrition?.protein || '',
+    e.recipe?.nutrition?.carbs || '',
+    e.recipe?.nutrition?.fat || '',
+    e.recipe?.nutrition?.fiber || '',
+    e.rating || '',
+    e.cookCount || 0,
+    (e.tags || []).join('; '),
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'autochef-history.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 // Top N ingredients across all recipes
 function getTopIngredients(history, n = 10) {
@@ -110,6 +135,19 @@ export default function CookingStats({ history }) {
 
   return (
     <div className="space-y-6">
+      {/* Header with CSV export */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Cooking Statistics</p>
+        <button
+          onClick={() => exportCSV(history)}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 border border-white/10 text-slate-400 hover:text-white hover:border-white/20 text-xs transition-all"
+          title="Export to CSV"
+        >
+          <Download size={13} />
+          Export CSV
+        </button>
+      </div>
+
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[

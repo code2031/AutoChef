@@ -3,7 +3,7 @@ import { getSeasonalHint } from './seasonal.js';
 export function buildRecipePrompt({
   ingredients, diet, vibe, cuisine, allergies, spice, servings,
   language, mood, leftover, kidFriendly, banned, maxCalories,
-  persona, maxTime,
+  persona, maxTime, gutHealth, rootToStem, customPrompt,
 }) {
   const seasonalHint = getSeasonalHint();
   const allergyText = allergies && allergies.length > 0
@@ -35,6 +35,9 @@ The recipe name should reflect that it is a creative leftover dish.`
   };
   const personaText = persona && personaInstructions[persona] ? personaInstructions[persona] : '';
   const maxTimeText = maxTime ? `Total cooking time must be under ${maxTime} minutes. Choose quick techniques (sauté, stir-fry, one-pan) accordingly.` : '';
+  const gutHealthText = gutHealth ? 'Prioritise gut-health: include fermented foods (yogurt, kimchi, kefir, miso), prebiotic-rich ingredients (garlic, onion, oats, bananas), and fibre-dense vegetables.' : '';
+  const rootToStemText = rootToStem ? 'Zero-waste root-to-stem cooking: use every part of each vegetable — stems, leaves, peels, tops. Minimise food waste. Suggest what to do with scraps.' : '';
+  const customText = customPrompt ? customPrompt.trim() : '';
 
   return `You are AutoChef, a world-class AI culinary assistant.
 ${personaText}
@@ -51,6 +54,9 @@ ${leftoverText}
 ${kidText}
 ${calorieText}
 ${maxTimeText}
+${gutHealthText}
+${rootToStemText}
+${customText}
 ${seasonalHint}
 ${languageInstruction}
 
@@ -73,7 +79,7 @@ Return a JSON object with this exact structure (no markdown):
 }`;
 }
 
-export function buildDishPrompt({ dishName, diet, vibe, cuisine, allergies, spice, servings, kidFriendly, banned, maxCalories, persona, maxTime }) {
+export function buildDishPrompt({ dishName, diet, vibe, cuisine, allergies, spice, servings, kidFriendly, banned, maxCalories, persona, maxTime, gutHealth, rootToStem, customPrompt }) {
   const allergyText = allergies && allergies.length > 0
     ? `Strictly avoid these allergens: ${allergies.join(', ')}.`
     : '';
@@ -92,6 +98,9 @@ export function buildDishPrompt({ dishName, diet, vibe, cuisine, allergies, spic
   };
   const personaText = persona && personaInstructions[persona] ? personaInstructions[persona] : '';
   const maxTimeText = maxTime ? `Total cooking time must be under ${maxTime} minutes. Choose quick techniques (sauté, stir-fry, one-pan) accordingly.` : '';
+  const gutHealthText = gutHealth ? 'Prioritise gut-health: include fermented foods (yogurt, kimchi, kefir, miso), prebiotic-rich ingredients (garlic, onion, oats, bananas), and fibre-dense vegetables.' : '';
+  const rootToStemText = rootToStem ? 'Zero-waste root-to-stem cooking: use every part of each vegetable — stems, leaves, peels, tops. Minimise food waste. Suggest what to do with scraps.' : '';
+  const customText = customPrompt ? customPrompt.trim() : '';
 
   return `You are AutoChef, a world-class AI culinary assistant.
 ${personaText}
@@ -106,6 +115,9 @@ Servings: ${servings || 2}.
 ${kidText}
 ${calorieText}
 ${maxTimeText}
+${gutHealthText}
+${rootToStemText}
+${customText}
 
 Return a JSON object with this exact structure (no markdown):
 {
@@ -224,6 +236,35 @@ Return a JSON object with this exact structure (no markdown):
   "winePairing": "A wine or drink suggestion",
   "chefTip": "A pro tip about the fusion",
   "smartSub": "One smart substitution"
+}`;
+}
+
+export function buildHistoricalPrompt({ dishName, era, diet, allergies, banned, customPrompt }) {
+  const allergyText = allergies && allergies.length > 0 ? `Strictly avoid these allergens: ${allergies.join(', ')}.` : '';
+  const bannedText = banned && banned.length > 0 ? `Do not use these ingredients: ${banned.join(', ')}.` : '';
+  const customText = customPrompt ? customPrompt.trim() : '';
+  return `You are AutoChef. Imagine how "${dishName}" would have been cooked in ${era}. Use ingredients, techniques, and cooking methods that were available in that era. The recipe should feel authentic to the historical period.
+Dietary preference: ${diet || 'none'}.
+${allergyText}
+${bannedText}
+${customText}
+
+Return a JSON object with this exact structure (no markdown):
+{
+  "name": "${dishName} (${era} style)",
+  "prepTime": "Prep time",
+  "cookTime": "Cook time",
+  "time": "Total time",
+  "difficulty": "Easy/Medium/Hard",
+  "calories": "Estimated per serving",
+  "servings": 4,
+  "description": "A brief description noting the historical context",
+  "ingredients": ["period-appropriate item 1 with quantity"],
+  "instructions": ["step 1", "step 2"],
+  "nutrition": { "protein": "Xg", "carbs": "Xg", "fat": "Xg", "fiber": "Xg" },
+  "winePairing": "A period-appropriate drink",
+  "chefTip": "A historical fun fact or tip",
+  "smartSub": "A modern substitute for a hard-to-find historical ingredient"
 }`;
 }
 
