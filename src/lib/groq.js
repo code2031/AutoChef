@@ -1,7 +1,6 @@
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
 
 async function groqFetch(body) {
-  if (!GROQ_API_KEY) throw new Error('API Key missing. Ensure GitHub Actions secrets are mapped correctly.');
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -10,7 +9,9 @@ async function groqFetch(body) {
     },
     body: JSON.stringify(body),
   });
-  if (!response.ok) throw new Error(`Groq API error: ${response.status}`);
+  if (!response.ok) throw new Error(
+    `Groq API error: ${response.status}${!GROQ_API_KEY ? ' — set VITE_GROQ_API_KEY in .env.local' : ''}`
+  );
   return response.json();
 }
 

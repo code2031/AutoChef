@@ -22,7 +22,12 @@ npx playwright test tests/autochef.spec.js:271  # run one test by line
 npx playwright show-report                  # view last HTML report
 ```
 
-Tests use `mockGroq(page)` to intercept `**/openai/v1/chat/completions` and return canned JSON — no real API key needed. Pollinations and is.gd are also mocked. Run `npx playwright install chromium` once to install the browser.
+Tests use `mockGroq(page)` to intercept `**/openai/v1/chat/completions` and return a single `UNIVERSAL_MOCK_RESPONSE` JSON that contains fields for every Groq function (recipe fields, `suggestions[]`, `story`, `mistakes[]`, `haiku`, `letter`, `ingredient`, `variants[]`, etc.) — no routing logic needed. Pollinations and is.gd are also mocked. Run `npx playwright install chromium` once to install the browser.
+
+**Important test gotchas:**
+- `groqFetch` in `lib/groq.js` does **not** throw before making the fetch request (even if `VITE_GROQ_API_KEY` is empty) — this allows Playwright to intercept via `page.route()`. The error message on non-OK responses includes a hint about the missing key.
+- Playwright `.or()` locator chains resolve to all matching elements and trigger strict-mode violations if >1 matches. Always append `.first()` to any `.or()` chain before `toBeVisible()`.
+- The Navbar has `backdrop-filter` which creates a CSS stacking context — children of the nav are in the nav's stacking context. The `fixed inset-0 z-40` overlay rendered inside the nav (for Timer/Settings dropdowns) is above other nav children (z-auto) within that stacking context, so clicking nav buttons while a dropdown is open may be blocked. Close the dropdown via its overlay div click instead.
 
 Local dev requires a `.env.local` file with `VITE_GROQ_API_KEY` and `VITE_POLLINATIONS_API_KEY`.
 
@@ -214,7 +219,7 @@ All `localStorage` keys:
 
 **`KitchenTimer.jsx`** — floating multi-timer widget rendered as a dropdown from the Navbar Timer button. Accepts duration input in multiple formats: bare number (treated as minutes), `5m`, `1:30`, `1h30m`, `90s`. Multiple named timers run simultaneously via a single `setInterval`. Plays a Web Audio API beep when each timer finishes. **Long Cook mode** (toggle in header) uses `useLongCookTimers` hook which persists `[{ id, label, startedAt, durationMs }]` to `long_cook_timers` in localStorage; accepts `24h`, `2d`, `3d12h` formats; shows elapsed + remaining time computed from `Date.now() - startedAt`.
 
-**`MealPlanner.jsx`** — weekly Mon–Sun grid with Breakfast/Lunch/Dinner slots. Saved recipes are dragged from a sidebar using both HTML5 drag-and-drop (`draggable`, `onDragStart`, `onDrop`) and touch drag-and-drop (`onTouchStart/Move/End` + imperative ghost `div` element). Touch drag works by setting `pointer-events:none` on the ghost to call `document.elementFromPoint()` and find the drop zone under the finger (zones have `data-drop-day` and `data-drop-meal` attributes). Meal slots stack vertically on mobile (`grid-cols-1 sm:grid-cols-3`). Builds a combined shopping list from all assigned recipes. Plan persists in `meal_plan` localStorage key.
+**`MealPlanner.jsx`** — weekly Mon–Sun grid with Breakfast/Lunch/Dinner slots. Uses **tap-to-assign** UX (works on both mobile and desktop): tap a recipe card in the sidebar to select it (orange highlight + checkmark circle), then tap any meal slot to assign it; click anywhere outside to deselect. Slots show an orange dashed border with a `+` icon while a recipe is selected. The status subtitle updates to say which recipe is pending assignment. Builds a combined shopping list from all assigned recipes. Plan persists in `meal_plan` localStorage key.
 
 **`GenerateView.jsx`** — four mode tabs: Ingredients, By Dish Name, Import, Historical. Historical tab renders `HistoricalRecipe.jsx` (era selector: Medieval Europe, Victorian England, 1920s Paris, Ancient Rome, Ming Dynasty, Ottoman Empire). Mode section also has 🦠 Gut Health and 🌿 Zero-Waste toggles. "Generate Two" button triggers A/B test via `onABGenerate` prop.
 
@@ -281,5 +286,6 @@ When a recipe is saved (`handleSave` in `App.jsx`):
 
 GitHub Actions (`.github/workflows/deploy.yml`) deploys to GitHub Pages on every push to `main`. Uses `npm install --legacy-peer-deps` (required because `canvas-confetti` peer deps conflict with React 19).
 
-- Vite `base` is `/AutoChef/` — must match the repo name exactly (GitHub Pages is case-sensitive)
+- Vite `base` is `/` — custom domain `autochef.online` serves from root (if switching back to a subdirectory GitHub Pages URL, change this to the repo name e.g. `/AutoChef/` and update `public/sw.js` and `src/main.jsx` SW paths accordingly)
+- `public/CNAME` contains `autochef.online` — GitHub Pages reads this on each deploy to configure the custom domain
 - Both `VITE_GROQ_API_KEY` and `VITE_POLLINATIONS_API_KEY` must exist as repository secrets

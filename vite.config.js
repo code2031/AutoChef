@@ -4,5 +4,5 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: '/AutoChef/', // Must match the exact GitHub repo name (case-sensitive)
+  base: '/', // Custom domain autochef.online — serve from root
 })

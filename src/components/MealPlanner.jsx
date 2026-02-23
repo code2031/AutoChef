@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { X, ShoppingCart, Trash2, ChevronDown, ChevronUp, GripVertical } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, ShoppingCart, Trash2, ChevronDown, ChevronUp, Check, Plus } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -23,12 +23,10 @@ function buildShoppingList(plan, history) {
 }
 
 export default function MealPlanner({ history, onClose }) {
-  // plan shape: { Monday: { Breakfast: entryId | null, Lunch: entryId | null, Dinner: entryId | null }, ... }
+  // plan shape: { Monday: { Breakfast: entryId | null, ... }, ... }
   const [plan, setPlan] = useLocalStorage('meal_plan', {});
   const [showList, setShowList] = useState(false);
-  const [dragEntry, setDragEntry] = useState(null);
-  const [dragOver, setDragOver] = useState(null); // { day, meal }
-  const touchRef = useRef(null); // { entry, ghost }
+  const [selectedEntry, setSelectedEntry] = useState(null); // tap-to-assign selection
   const [expandedDays, setExpandedDays] = useState(() => {
     const d = new Date();
     const idx = (d.getDay() + 6) % 7; // Mon=0 … Sun=6
@@ -52,72 +50,15 @@ export default function MealPlanner({ history, onClose }) {
     });
   };
 
-  // ── Mouse/pointer drag-and-drop ─────────────────────────
-  const handleDragStart = (e, entry) => {
-    setDragEntry(entry);
-    e.dataTransfer.effectAllowed = 'copy';
+  // Tap-to-assign: click recipe → select it; click slot → assign; click same recipe → deselect
+  const handleRecipeTap = (entry) => {
+    setSelectedEntry(prev => prev?.id === entry.id ? null : entry);
   };
 
-  const handleDrop = (e, day, meal) => {
-    e.preventDefault();
-    if (dragEntry) setSlot(day, meal, dragEntry.id);
-    setDragEntry(null);
-    setDragOver(null);
-  };
-
-  const handleDragOver = (e, day, meal) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-    setDragOver({ day, meal });
-  };
-
-  const handleDragLeave = () => setDragOver(null);
-
-  // ── Touch drag-and-drop ──────────────────────────────────
-  const handleTouchStart = (e, entry) => {
-    e.preventDefault();
-    const touch = e.touches[0];
-    const ghost = document.createElement('div');
-    ghost.style.cssText = `position:fixed;z-index:9999;background:#1e293b;border:2px solid rgba(249,115,22,0.7);border-radius:12px;padding:8px 14px;font-size:13px;font-weight:600;color:#e2e8f0;pointer-events:none;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 8px 24px rgba(0,0,0,0.6);transform:translate(-50%,-50%);top:${touch.clientY}px;left:${touch.clientX}px;`;
-    ghost.textContent = entry.recipe?.name || 'Recipe';
-    document.body.appendChild(ghost);
-    touchRef.current = { entry, ghost };
-    setDragEntry(entry);
-  };
-
-  const handleTouchMove = (e) => {
-    if (!touchRef.current) return;
-    e.preventDefault();
-    const touch = e.touches[0];
-    const { ghost } = touchRef.current;
-    ghost.style.top = `${touch.clientY}px`;
-    ghost.style.left = `${touch.clientX}px`;
-    // Detect drop zone under finger
-    ghost.style.display = 'none';
-    const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    ghost.style.display = '';
-    const slotEl = el?.closest('[data-drop-day]');
-    if (slotEl) {
-      setDragOver({ day: slotEl.dataset.dropDay, meal: slotEl.dataset.dropMeal });
-    } else {
-      setDragOver(null);
-    }
-  };
-
-  const handleTouchEnd = (e) => {
-    if (!touchRef.current) return;
-    const touch = e.changedTouches[0];
-    const { entry, ghost } = touchRef.current;
-    ghost.remove();
-    touchRef.current = null;
-    // Find slot under finger
-    const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    const slotEl = el?.closest('[data-drop-day]');
-    if (slotEl && entry) {
-      setSlot(slotEl.dataset.dropDay, slotEl.dataset.dropMeal, entry.id);
-    }
-    setDragEntry(null);
-    setDragOver(null);
+  const handleSlotTap = (day, meal) => {
+    if (!selectedEntry) return;
+    setSlot(day, meal, selectedEntry.id);
+    setSelectedEntry(null);
   };
 
   const getEntry = (entryId) => history.find(h => h.id === entryId) || null;
@@ -125,11 +66,20 @@ export default function MealPlanner({ history, onClose }) {
   const shoppingList = buildShoppingList(plan, history);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" onClick={e => {
+      // Deselect if clicking outside recipe cards and slots
+      if (!e.target.closest('[data-recipe-card]') && !e.target.closest('[data-drop-slot]') && !e.target.closest('[data-clear-slot]')) {
+        setSelectedEntry(null);
+      }
+    }}>
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Meal Planner</h2>
-          <p className="text-sm text-slate-400 mt-0.5">Drag saved recipes onto the weekly grid</p>
+          <p className="text-sm text-slate-400 mt-0.5">
+            {selectedEntry
+              ? <span className="text-orange-400 font-medium">Tap a meal slot to assign "{selectedEntry.recipe?.name}"</span>
+              : 'Tap a recipe, then tap a meal slot to assign it'}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {shoppingList.length > 0 && (
@@ -176,31 +126,47 @@ export default function MealPlanner({ history, onClose }) {
           {history.length === 0 ? (
             <p className="text-sm text-slate-500">No saved recipes yet. Save some recipes first!</p>
           ) : (
-            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
-              {history.map(entry => (
-                <div
-                  key={entry.id}
-                  draggable
-                  onDragStart={e => handleDragStart(e, entry)}
-                  onTouchStart={e => handleTouchStart(e, entry)}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
-                  className="flex items-center gap-3 p-3 bg-slate-800 border border-white/5 rounded-xl cursor-grab active:cursor-grabbing hover:border-orange-500/30 transition-all group select-none touch-none"
-                >
-                  <GripVertical size={14} className="text-slate-600 group-hover:text-slate-400 shrink-0" />
-                  {entry.imageUrl && (
-                    <img src={entry.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-200 truncate">{entry.recipe?.name}</p>
-                    <p className="text-xs text-slate-500">{entry.recipe?.time || '—'}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="space-y-2 max-h-[40vh] lg:max-h-[60vh] overflow-y-auto pr-1">
+              {history.map(entry => {
+                const isSelected = selectedEntry?.id === entry.id;
+                return (
+                  <button
+                    key={entry.id}
+                    data-recipe-card="true"
+                    onClick={() => handleRecipeTap(entry)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left group select-none ${
+                      isSelected
+                        ? 'bg-orange-500/15 border-orange-500/50 shadow-lg shadow-orange-500/10'
+                        : 'bg-slate-800 border-white/5 hover:border-orange-500/30 hover:bg-slate-700/60'
+                    }`}
+                  >
+                    <div className={`shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                      isSelected ? 'border-orange-500 bg-orange-500' : 'border-slate-600 group-hover:border-slate-400'
+                    }`}>
+                      {isSelected && <Check size={11} className="text-white" strokeWidth={3} />}
+                    </div>
+                    {entry.imageUrl && (
+                      <img src={entry.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium truncate ${isSelected ? 'text-orange-200' : 'text-slate-200'}`}>{entry.recipe?.name}</p>
+                      <p className="text-xs text-slate-500">{entry.recipe?.time || '—'}</p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
-          <p className="text-xs text-slate-600 pt-1 hidden sm:block">Drag recipes to meal slots →</p>
-          <p className="text-xs text-slate-600 pt-1 sm:hidden">Touch &amp; drag recipes to meal slots ↓</p>
+          {selectedEntry && (
+            <p className="text-xs text-orange-400 pt-1 animate-pulse">
+              ↓ Tap a meal slot below to assign
+            </p>
+          )}
+          {!selectedEntry && history.length > 0 && (
+            <p className="text-xs text-slate-600 pt-1">
+              Tap a recipe to select it, then tap a slot
+            </p>
+          )}
         </div>
 
         {/* Weekly grid */}
@@ -228,25 +194,27 @@ export default function MealPlanner({ history, onClose }) {
                     {MEALS.map(meal => {
                       const slotId = getSlot(day, meal);
                       const entry = slotId ? getEntry(slotId) : null;
-                      const isOver = dragOver?.day === day && dragOver?.meal === meal;
+                      const isAssignable = !!selectedEntry;
 
                       return (
                         <div
                           key={meal}
-                          data-drop-day={day}
-                          data-drop-meal={meal}
-                          onDrop={e => handleDrop(e, day, meal)}
-                          onDragOver={e => handleDragOver(e, day, meal)}
-                          onDragLeave={handleDragLeave}
-                          className={`min-h-[80px] rounded-xl border-2 border-dashed transition-all relative ${
-                            isOver
-                              ? 'border-orange-500/60 bg-orange-500/10'
+                          data-drop-slot="true"
+                          onClick={() => handleSlotTap(day, meal)}
+                          className={`min-h-[80px] rounded-xl border-2 transition-all relative ${
+                            isAssignable
+                              ? 'border-orange-500/50 bg-orange-500/5 cursor-pointer hover:bg-orange-500/10 hover:border-orange-500/70'
                               : entry
                               ? 'border-white/10 bg-slate-800/60'
-                              : 'border-white/5 bg-slate-800/20 hover:border-white/10'
+                              : 'border-dashed border-white/5 bg-slate-800/20'
                           }`}
                         >
                           <p className="absolute top-1.5 left-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">{meal}</p>
+                          {isAssignable && !entry && (
+                            <div className="flex items-center justify-center h-full pt-5 pb-2">
+                              <Plus size={16} className="text-orange-500/60" />
+                            </div>
+                          )}
                           {entry ? (
                             <div className="pt-6 px-2 pb-2 flex sm:block items-center gap-3">
                               {entry.imageUrl && (
@@ -255,18 +223,19 @@ export default function MealPlanner({ history, onClose }) {
                               <div>
                                 <p className="text-xs text-slate-300 font-medium leading-tight line-clamp-2">{entry.recipe?.name}</p>
                                 <button
-                                  onClick={() => clearSlot(day, meal)}
+                                  data-clear-slot="true"
+                                  onClick={e => { e.stopPropagation(); clearSlot(day, meal); }}
                                   className="mt-1 flex items-center gap-1 text-[10px] text-slate-600 hover:text-red-400 transition-colors"
                                 >
                                   <Trash2 size={10} /> Remove
                                 </button>
                               </div>
                             </div>
-                          ) : (
+                          ) : !isAssignable ? (
                             <div className="flex items-center justify-center h-full pt-5 pb-2">
-                              <p className="text-xs text-slate-600">Drop here</p>
+                              <p className="text-xs text-slate-600">Empty</p>
                             </div>
-                          )}
+                          ) : null}
                         </div>
                       );
                     })}
