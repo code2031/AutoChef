@@ -333,6 +333,7 @@ export default function ResultView({
   tempUnit,
   nutritionGoals,
   pairings,
+  onCookDone,
 }) {
   const confettiFired = useRef(false);
   const [checked, setChecked] = useState({});
@@ -466,6 +467,7 @@ export default function ResultView({
       {showCookingMode && (
         <CookingMode
           recipe={recipe}
+          onCookDone={onCookDone}
           onExit={(notes) => {
             setShowCookingMode(false);
             if (onSaveCookingNotes && notes && Object.keys(notes).length > 0) onSaveCookingNotes(notes);
