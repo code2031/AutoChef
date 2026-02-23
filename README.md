@@ -9,6 +9,8 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **By Ingredients** — Enter what you have; pick from 3 AI-suggested recipe names before full generation
 - **By Dish Name** — Type any dish (e.g. "Tiramisu", "Pad Thai") and get a complete recipe instantly
 - **Import Recipe** — Paste a URL or any raw recipe text; AI parses it into the full recipe format
+- **Historical Recipe** — Generate any dish as it would have been cooked in a chosen era: Medieval Europe, Victorian England, 1920s Paris, Ancient Rome, Ming Dynasty, or Ottoman Empire
+- **A/B Recipe Test** — Generate two variations of a recipe side by side and pick your favourite
 - **I'm Feeling Lucky** — Skip suggestions entirely; generates a recipe from your ingredients in one click
 - **Gourmet Recipes** — Full recipe with ingredients, instructions, nutrition macros, wine pairing, chef's tip, and a smart substitution
 - **Dish Visualization** — Pollinations.ai renders a photorealistic food photo with selectable style (plated / overhead / rustic / close-up)
@@ -29,7 +31,11 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Mood / Occasion** — Dinner party, meal prep, quick lunch, BBQ, and more
 - **Leftover Mode** — Forces every listed ingredient to appear; zero-waste cooking
 - **Kid-Friendly Mode** — Overrides spice to mild; simple techniques, no alcohol
-- **Persistent Pantry** — Save staple ingredients with optional expiry dates; colour-coded freshness badges; add all to any recipe in one click
+- **Gut Health Mode** — Steers recipes toward fermented foods, high-fibre ingredients, and probiotics
+- **Zero-Waste / Root-to-Stem Mode** — Encourages use of the whole vegetable including peels, stems, and tops
+- **Custom Prompt** — Append your own instruction to every recipe generation (e.g. "always include a vegan variation")
+- **Persistent Pantry** — Save staple ingredients with optional expiry dates and storage zone (🗄️ Pantry / 🧊 Fridge / ❄️ Freezer); colour-coded freshness badges; zone filter tabs; add all to any recipe in one click
+- **Auto-Reorder List** — Expired pantry items are automatically collected into a collapsible reorder list with one-click copy
 - **Grocery Receipt Import** — Paste a receipt or ingredient list in the Pantry drawer; AI extracts food items and bulk-adds them
 
 ### Cooking Experience
@@ -40,9 +46,11 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Swipe Gestures** — Swipe left/right in cooking mode to navigate steps
 - **Kitchen Timer** — Floating multi-timer widget from the Navbar; multiple named timers simultaneously; Long Cook mode for multi-day timers (sourdough, brining) persisted across reloads
 - **Multi-Dish Sync Planner** — Enter dishes with cook times, set a serve time, and get a backwards-calculated start schedule so everything finishes together
+- **Batch Prep Scaling** — AI scales any recipe to a custom number of servings (e.g. 20 for meal prep), with adjusted quantities and tips
 - **Inline Step Timers** — Tap any time-mentioned step to start a countdown directly in the recipe view
 - **Safe Temperature Guide** — Inline 🌡️ badge on steps containing meat or fish showing the safe internal temp; respects °C/°F setting
 - **Technique Explainer** — Hover or tap underlined cooking terms (julienne, deglaze, braise, etc.) for plain-English definitions
+- **Knife Cuts Guide** — Tap any cut technique (julienne, brunoise, chiffonade, dice, mince, bias cut) to open a step-by-step diagram modal
 - **Ingredient Checklist** — Tap ingredients to cross them off as you cook
 - **Serving Scaler** — Scale ingredient quantities ½x, 1x, 2x, 3x, or any custom number
 
@@ -55,12 +63,25 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Surprise Cuisine** — Randomly picks a cuisine style for you
 
 ### Recipe Details
+- **Recipe Story** — AI-generated 2–3 sentence cultural or historical background, auto-loaded with each recipe
+- **Common Mistakes** — AI lists 3 common pitfalls and fixes for the dish, auto-loaded and shown in a collapsible section
+- **Ingredient Prep Tips** — Tap any ingredient to get an AI tip on how to prep, store, and its shelf life
+- **Seasonal Availability** — 🌱 badge on ingredients that are currently in season
+- **Plating Guide** — 7 professional plating tips (odd numbers, clock method, height, sauce smearing, etc.) with recipe-specific colour advice
+- **Regional Variants** — Adapt the recipe to 8 cuisine styles (Mexican, Italian, Indian, Japanese, Thai, French, American, Mediterranean) via AI
+- **Secret Ingredient** — AI suggests one surprising ingredient to elevate the dish, with reasoning and instructions
+- **Chef's Letter** — AI writes a personal note from the chosen chef persona about the recipe
+- **Recipe Haiku** — AI generates a 5-7-5 haiku about the dish
 - **Flavor Profile Radar** — SVG spider chart showing sweet, savory, spicy, umami, tangy, and fresh scores
 - **Recipe Card Export** — Save a styled 800×500px PNG card (dish photo, stats, description) via the native Canvas API — no dependencies
-- **Nutrition Bars** — Visual macro bars for protein, carbs, fat, and fiber; turn red when a bar exceeds your daily goal
+- **Nutrition Bars** — Visual macro bars for protein, carbs, fat, and fiber; turn red when a bar exceeds your daily goal; calories shown per serving
 - **Nutrition Goals** — Set personal daily targets (calories, protein, carbs, fat) in settings
+- **Anti-Inflammatory Score** — Keyword-based badge showing whether the recipe is anti-inflammatory, moderate, or pro-inflammatory
+- **GI Estimate** — Glycemic index estimate badge (Low / Medium / High GI) based on key ingredient detection
+- **Hydration Badge** — Shown when the recipe contains 2+ high-water ingredients (cucumber, broth, watermelon, etc.)
+- **Equipment List** — Collapsible list of kitchen tools needed, auto-detected from the instructions
 - **Prep/Cook Time Split** — Separate prep and cook times when provided
-- **Estimated Cost** — Rough per-batch ingredient cost estimate
+- **Estimated Cost** — Rough per-batch ingredient cost estimate (uses recipe ingredients, not input tags)
 - **Carbon Footprint** — Colour-coded environmental impact score
 - **Allergen Highlights** — Flagged ingredients that match your allergy settings
 - **Difficulty Tooltip** — Hover the difficulty badge for a plain-language explanation
@@ -72,7 +93,8 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Recipe Collections** — Organise saved recipes into named cookbooks / folders
 - **Recipe Remix** — Select 2 recipes from history; AI fuses them into a creative fusion dish
 - **Cook Count** — "Done!" in Cooking Mode increments a per-recipe counter shown on history cards; Stats highlights your most-cooked dish
-- **Cooking Stats Dashboard** — Stats tab in History: summary cards, top ingredients chart, cuisine breakdown, weekly activity, difficulty distribution
+- **Cooking Stats Dashboard** — Stats tab in History: summary cards, top ingredients chart, cuisine breakdown, weekly activity, difficulty distribution; **Export CSV** downloads all data as a spreadsheet
+- **Pantry Analytics** — Toggle in the Pantry drawer: freshness distribution, expiring-soon count, and category breakdown
 - **Meal Planner** — Drag saved recipes onto a Mon–Sun weekly grid with Breakfast / Lunch / Dinner slots; generates a combined shopping list for the whole week
 - **Monthly Challenges** — Track four monthly goals: cook 10 recipes, try 5 cuisines, save 5 favourites, use 20 unique ingredients
 - **Search & Sort** — Search history by name, tags, or notes; sort by date, name, or rating
@@ -106,7 +128,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 
 - **React 19** + **Vite 7**
 - **Tailwind CSS v4** (via `@tailwindcss/vite` plugin)
-- **Groq API** — LLM text generation and vision
+- **Groq API** — LLM text generation and vision (`llama-3.3-70b-versatile`, `llama-4-scout-17b-16e-instruct`)
 - **Pollinations.ai** — Image generation (free, no account required)
 - **canvas-confetti** — Celebration animation on first recipe
 - **is.gd** — Free URL shortening for scannable QR codes (no API key required)
