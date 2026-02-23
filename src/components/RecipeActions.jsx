@@ -100,39 +100,171 @@ export default function RecipeActions({
   };
 
   const handleExportCard = async () => {
+    const W = 800;
+    const FRONT_H = 500;
+    const BACK_H = 660;
     const canvas = document.createElement("canvas");
-    canvas.width = 800;
-    canvas.height = 500;
+    canvas.width = W;
+    canvas.height = FRONT_H + BACK_H;
     const ctx = canvas.getContext("2d");
+
+    // Helper: word-wrap text, returns final y position
+    const wrapText = (text, x, y, maxW, lineH, maxLines = 3) => {
+      const words = String(text).split(' ');
+      let line = '';
+      let linesDrawn = 0;
+      for (const word of words) {
+        const test = line ? line + ' ' + word : word;
+        if (ctx.measureText(test).width > maxW && line) {
+          ctx.fillText(line, x, y);
+          line = word; y += lineH; linesDrawn++;
+          if (linesDrawn >= maxLines) { ctx.fillText(line.slice(0,50)+'…', x, y); return y + lineH; }
+        } else { line = test; }
+      }
+      if (line) ctx.fillText(line, x, y);
+      return y + lineH;
+    };
+
+    // ── FRONT ────────────────────────────────────────────────
     ctx.fillStyle = "#020617";
-    ctx.fillRect(0, 0, 800, 500);
+    ctx.fillRect(0, 0, W, FRONT_H);
+    // Orange left accent bar
     ctx.fillStyle = "#f97316";
-    ctx.fillRect(0, 0, 8, 500);
+    ctx.fillRect(0, 0, 8, FRONT_H);
+
+    // Dish photo (right half)
     if (recipeImage) {
       try {
         const img = new Image();
         img.crossOrigin = "anonymous";
         await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = recipeImage; });
-        ctx.drawImage(img, 300, 0, 500, 500);
-        const grad = ctx.createLinearGradient(300, 0, 800, 0);
+        ctx.drawImage(img, 300, 0, 500, FRONT_H);
+        const grad = ctx.createLinearGradient(300, 0, W, 0);
         grad.addColorStop(0, "rgba(2,6,23,1)");
-        grad.addColorStop(0.3, "rgba(2,6,23,0.6)");
-        grad.addColorStop(1, "rgba(2,6,23,0)");
+        grad.addColorStop(0.35, "rgba(2,6,23,0.75)");
+        grad.addColorStop(1, "rgba(2,6,23,0.05)");
         ctx.fillStyle = grad;
-        ctx.fillRect(300, 0, 500, 500);
-      } catch { /* image load failed */ }
+        ctx.fillRect(300, 0, 500, FRONT_H);
+      } catch { /* image unavailable */ }
     }
+
+    // Dish name
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 32px sans-serif";
-    ctx.fillText((recipe.name||"Recipe").slice(0,28), 30, 80);
+    ctx.font = "bold 34px sans-serif";
+    ctx.fillText((recipe.name || "Recipe").slice(0, 26), 30, 85);
+
+    // Subtitle line
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "14px sans-serif";
+    wrapText(recipe.description || '', 30, 115, 260, 20, 2);
+
+    // Stats chips
+    const chips = [
+      { label: "⏱", value: recipe.time || recipe.cookTime || "—" },
+      { label: "🔥", value: recipe.calories || "—" },
+      { label: "📊", value: recipe.difficulty || "—" },
+      { label: "👥", value: (recipe.servings || "2") + " servings" },
+    ];
+    ctx.font = "bold 13px sans-serif";
+    let chipY = 185;
+    chips.forEach(({ label, value }) => {
+      ctx.fillStyle = "rgba(249,115,22,0.15)";
+      ctx.beginPath();
+      ctx.roundRect(30, chipY - 15, 240, 26, 8);
+      ctx.fill();
+      ctx.fillStyle = "#f97316";
+      ctx.fillText(label + "  " + String(value).slice(0, 28), 44, chipY + 5);
+      chipY += 36;
+    });
+
+    // Branding
     ctx.fillStyle = "#f97316";
-    ctx.font = "bold 14px sans-serif";
-    ctx.fillText("Time: "+(recipe.time||"—"), 30, 130);
-    ctx.fillText("Calories: "+(recipe.calories||"—"), 30, 155);
-    ctx.fillText("Difficulty: "+(recipe.difficulty||"—"), 30, 180);
+    ctx.font = "bold 11px sans-serif";
+    ctx.fillText("AutoChef AI", 30, FRONT_H - 22);
+    ctx.fillStyle = "#334155";
+    ctx.font = "11px sans-serif";
+    ctx.fillText("autochef.app", 110, FRONT_H - 22);
+
+    // ── DIVIDER ──────────────────────────────────────────────
     ctx.fillStyle = "#f97316";
-    ctx.font = "bold 12px sans-serif";
-    ctx.fillText("AutoChef AI", 30, 470);
+    ctx.fillRect(0, FRONT_H, W, 4);
+
+    // ── BACK ─────────────────────────────────────────────────
+    const BY = FRONT_H + 4;
+    ctx.fillStyle = "#0f172a";
+    ctx.fillRect(0, BY, W, BACK_H);
+    ctx.fillStyle = "#f97316";
+    ctx.fillRect(0, BY, 8, BACK_H);
+
+    // Vertical column divider
+    ctx.fillStyle = "#1e293b";
+    ctx.fillRect(W / 2, BY + 20, 2, BACK_H - 40);
+
+    // ── LEFT: INGREDIENTS ────────────────────────────────────
+    const COL_L = 30;
+    const COL_R = W / 2 + 24;
+    const COL_W = W / 2 - 56;
+
+    ctx.fillStyle = "#f97316";
+    ctx.font = "bold 15px sans-serif";
+    ctx.fillText("INGREDIENTS", COL_L, BY + 48);
+
+    const ings = recipe.ingredients || [];
+    ctx.font = "13px sans-serif";
+    let ingY = BY + 76;
+    const maxIngs = Math.min(ings.length, 14);
+    for (let i = 0; i < maxIngs; i++) {
+      if (ingY > BY + BACK_H - 28) break;
+      // Bullet
+      ctx.fillStyle = "#f97316";
+      ctx.beginPath();
+      ctx.arc(COL_L + 4, ingY - 3, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#cbd5e1";
+      ctx.fillText(ings[i].slice(0, 40), COL_L + 14, ingY);
+      ingY += 22;
+    }
+    if (ings.length > maxIngs) {
+      ctx.fillStyle = "#64748b";
+      ctx.font = "italic 12px sans-serif";
+      ctx.fillText(`+ ${ings.length - maxIngs} more…`, COL_L + 14, ingY);
+    }
+
+    // ── RIGHT: STEPS ─────────────────────────────────────────
+    ctx.fillStyle = "#f97316";
+    ctx.font = "bold 15px sans-serif";
+    ctx.fillText("STEPS", COL_R, BY + 48);
+
+    const steps = recipe.instructions || [];
+    ctx.font = "12px sans-serif";
+    let stepY = BY + 76;
+    const maxSteps = Math.min(steps.length, 10);
+    for (let i = 0; i < maxSteps; i++) {
+      if (stepY > BY + BACK_H - 28) break;
+
+      // Step circle
+      ctx.fillStyle = "#f97316";
+      ctx.beginPath();
+      ctx.arc(COL_R + 10, stepY - 3, 9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 9px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(String(i + 1), COL_R + 10, stepY + 1);
+      ctx.textAlign = "left";
+
+      // Step text (2 lines max)
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "12px sans-serif";
+      const endY = wrapText(steps[i], COL_R + 26, stepY, COL_W - 26, 16, 2);
+      stepY = endY + 10;
+    }
+    if (steps.length > maxSteps) {
+      ctx.fillStyle = "#64748b";
+      ctx.font = "italic 11px sans-serif";
+      ctx.fillText(`+ ${steps.length - maxSteps} more steps`, COL_R + 10, stepY);
+    }
+
     const link = document.createElement("a");
     link.download = (recipe.name||"recipe").replace(/\s+/g,"-").toLowerCase()+"-card.png";
     link.href = canvas.toDataURL("image/png");

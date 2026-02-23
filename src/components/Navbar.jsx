@@ -31,7 +31,7 @@ function KeyboardShortcutsModal({ onClose }) {
 }
 
 export default function Navbar({
-  view, setView, theme, setTheme, historyCount,
+  view, setView, theme, setTheme,
   fontSz, setFontSz, highContrast, setHighContrast, tempUnit, setTempUnit,
   nutritionGoals, setNutritionGoals, customPrompt, setCustomPrompt,
 }) {
@@ -106,11 +106,6 @@ export default function Navbar({
           >
             <History size={16} />
             <span className="hidden sm:inline">History</span>
-            {historyCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center">
-                {historyCount > 9 ? '9+' : historyCount}
-              </span>
-            )}
           </button>
 
           {/* Settings dropdown */}

@@ -766,7 +766,6 @@ export default function App() {
             onAddTag={addTag}
             onRemoveTag={removeTag}
             onSetNotes={setNotes}
-            bestStreak={bestStreak}
             currentStreak={gamification.streak}
             collections={collections}
             onCreateCollection={createCollection}

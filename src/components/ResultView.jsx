@@ -326,6 +326,25 @@ export default function ResultView({
   const toggleCheck = (i) => setChecked(prev => ({ ...prev, [i]: !prev[i] }));
   const effectiveMultiplier = customMultiplier !== "" ? (parseFloat(customMultiplier) || 1) : servingMultiplier;
 
+  const scaleIngredient = (text, mult) => {
+    if (mult === 1) return text;
+    return text.replace(/(\d+(?:\/\d+)?(?:\.\d+)?)/g, (match) => {
+      let num;
+      if (match.includes('/')) {
+        const [a, b] = match.split('/');
+        num = parseFloat(a) / parseFloat(b);
+      } else {
+        num = parseFloat(match);
+      }
+      const scaled = num * mult;
+      if (scaled === 0.5) return '½';
+      if (scaled === 0.25) return '¼';
+      if (scaled === 0.75) return '¾';
+      if (Number.isInteger(scaled)) return String(scaled);
+      return String(Math.round(scaled * 10) / 10);
+    });
+  };
+
   const copyIngList = async () => {
     if (!recipe) return;
     const text = (recipe.ingredients || []).join("\n");
@@ -491,30 +510,33 @@ export default function ResultView({
         <div className="grid md:grid-cols-3 gap-5 md:gap-8">
           <div className="md:col-span-1 space-y-4">
             <div className="bg-slate-900 border border-white/5 p-6 rounded-2xl space-y-4">
-              <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                <h4 className="flex items-center gap-2 font-bold text-lg"><BookOpen size={18} className="text-orange-500" />Ingredients</h4>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1">
-                    {multiplierOptions.map(m => (
-                      <button key={m} onClick={()=>{setServingMultiplier(m);setCustomMultiplier("");}} className={(effectiveMultiplier===m&&customMultiplier===""?"bg-orange-500 text-white":"text-slate-500 hover:text-white")+" px-2 py-0.5 rounded text-xs font-bold transition-all"}>{m===0.5?"1/2x":m+"x"}</button>
-                    ))}
-                    <input type="number" value={customMultiplier} onChange={e=>{setCustomMultiplier(e.target.value);setServingMultiplier(1);}} placeholder="?" className="w-8 bg-slate-800 border border-white/10 rounded text-xs text-center text-slate-300 outline-none py-0.5" min="0.1" max="20" step="0.5" />
-                  </div>
+              <div className="border-b border-white/5 pb-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="flex items-center gap-2 font-bold text-lg"><BookOpen size={18} className="text-orange-500" />Ingredients</h4>
                   <button onClick={copyIngList} className="p-1.5 rounded-lg text-slate-500 hover:text-white transition-all">{copiedIngredients?<Check size={14} className="text-green-400" />:<Copy size={14} />}</button>
                 </div>
+                <div className="flex items-center gap-1 flex-wrap">
+                  {multiplierOptions.map(m => (
+                    <button key={m} onClick={()=>{setServingMultiplier(m);setCustomMultiplier("");}} className={(effectiveMultiplier===m&&customMultiplier===""?"bg-orange-500 text-white":"bg-slate-800 text-slate-400 hover:text-white border border-white/10")+" px-3 py-1 rounded-lg text-xs font-bold transition-all"}>{m===0.5?"½x":m+"x"}</button>
+                  ))}
+                  <input type="number" value={customMultiplier} onChange={e=>{setCustomMultiplier(e.target.value);setServingMultiplier(1);}} placeholder="×?" className="w-12 bg-slate-800 border border-white/10 rounded-lg text-xs text-center text-slate-300 outline-none py-1" min="0.1" max="20" step="0.5" />
+                  {effectiveMultiplier !== 1 && <span className="text-xs text-orange-400 font-medium">{effectiveMultiplier}× qty</span>}
+                </div>
               </div>
-              {effectiveMultiplier !== 1 && <p className="text-xs text-orange-400 px-3 py-1.5 rounded-lg">Showing {effectiveMultiplier}x quantities</p>}
               <ul className="space-y-3">
-                {(recipe.ingredients || []).map((item, i) => (
-                  <li key={i} className="relative">
-                    <div className={(checked[i]?"line-through text-slate-600":"text-slate-300")+" flex gap-2 text-sm cursor-pointer"} onClick={()=>toggleCheck(i)}>
-                      <span className={(checked[i]?"bg-slate-600":"bg-orange-500")+" w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"} />
-                      <span className="flex-1" onClick={e=>{e.stopPropagation();handleIngClick(item,i);}}>{item}</span>
-                      {GET_SEASONAL_BADGE(item) && <span className="text-green-400 text-[10px] font-bold shrink-0 self-center" title="In season now">🌱</span>}
-                    </div>
-                    {activeIngTip && activeIngTip.index===i && <IngPrepPopover data={activeIngTip} onClose={()=>setActiveIngTip(null)} />}
-                  </li>
-                ))}
+                {(recipe.ingredients || []).map((item, i) => {
+                  const displayItem = scaleIngredient(item, effectiveMultiplier);
+                  return (
+                    <li key={i} className="relative">
+                      <div className={(checked[i]?"line-through text-slate-600":"text-slate-300")+" flex gap-2 text-sm cursor-pointer"} onClick={()=>toggleCheck(i)}>
+                        <span className={(checked[i]?"bg-slate-600":"bg-orange-500")+" w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"} />
+                        <span className="flex-1" onClick={e=>{e.stopPropagation();handleIngClick(item,i);}}>{displayItem}</span>
+                        {GET_SEASONAL_BADGE(item) && <span className="text-green-400 text-[10px] font-bold shrink-0 self-center" title="In season now">🌱</span>}
+                      </div>
+                      {activeIngTip && activeIngTip.index===i && <IngPrepPopover data={activeIngTip} onClose={()=>setActiveIngTip(null)} />}
+                    </li>
+                  );
+                })}
               </ul>
               {Object.values(checked).some(Boolean) && <p className="text-xs text-slate-500">{Object.values(checked).filter(Boolean).length} / {(recipe.ingredients||[]).length} checked</p>}
             </div>

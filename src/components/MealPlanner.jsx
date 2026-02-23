@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { X, ShoppingCart, Trash2, ChevronDown, ChevronUp, GripVertical } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 
@@ -28,6 +28,7 @@ export default function MealPlanner({ history, onClose }) {
   const [showList, setShowList] = useState(false);
   const [dragEntry, setDragEntry] = useState(null);
   const [dragOver, setDragOver] = useState(null); // { day, meal }
+  const touchRef = useRef(null); // { entry, ghost }
   const [expandedDays, setExpandedDays] = useState(() => {
     const d = new Date();
     const idx = (d.getDay() + 6) % 7; // Mon=0 … Sun=6
@@ -51,7 +52,7 @@ export default function MealPlanner({ history, onClose }) {
     });
   };
 
-  // Drag-and-drop
+  // ── Mouse/pointer drag-and-drop ─────────────────────────
   const handleDragStart = (e, entry) => {
     setDragEntry(entry);
     e.dataTransfer.effectAllowed = 'copy';
@@ -71,6 +72,53 @@ export default function MealPlanner({ history, onClose }) {
   };
 
   const handleDragLeave = () => setDragOver(null);
+
+  // ── Touch drag-and-drop ──────────────────────────────────
+  const handleTouchStart = (e, entry) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const ghost = document.createElement('div');
+    ghost.style.cssText = `position:fixed;z-index:9999;background:#1e293b;border:2px solid rgba(249,115,22,0.7);border-radius:12px;padding:8px 14px;font-size:13px;font-weight:600;color:#e2e8f0;pointer-events:none;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 8px 24px rgba(0,0,0,0.6);transform:translate(-50%,-50%);top:${touch.clientY}px;left:${touch.clientX}px;`;
+    ghost.textContent = entry.recipe?.name || 'Recipe';
+    document.body.appendChild(ghost);
+    touchRef.current = { entry, ghost };
+    setDragEntry(entry);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!touchRef.current) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const { ghost } = touchRef.current;
+    ghost.style.top = `${touch.clientY}px`;
+    ghost.style.left = `${touch.clientX}px`;
+    // Detect drop zone under finger
+    ghost.style.display = 'none';
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    ghost.style.display = '';
+    const slotEl = el?.closest('[data-drop-day]');
+    if (slotEl) {
+      setDragOver({ day: slotEl.dataset.dropDay, meal: slotEl.dataset.dropMeal });
+    } else {
+      setDragOver(null);
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!touchRef.current) return;
+    const touch = e.changedTouches[0];
+    const { entry, ghost } = touchRef.current;
+    ghost.remove();
+    touchRef.current = null;
+    // Find slot under finger
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const slotEl = el?.closest('[data-drop-day]');
+    if (slotEl && entry) {
+      setSlot(slotEl.dataset.dropDay, slotEl.dataset.dropMeal, entry.id);
+    }
+    setDragEntry(null);
+    setDragOver(null);
+  };
 
   const getEntry = (entryId) => history.find(h => h.id === entryId) || null;
 
@@ -134,7 +182,10 @@ export default function MealPlanner({ history, onClose }) {
                   key={entry.id}
                   draggable
                   onDragStart={e => handleDragStart(e, entry)}
-                  className="flex items-center gap-3 p-3 bg-slate-800 border border-white/5 rounded-xl cursor-grab active:cursor-grabbing hover:border-orange-500/30 transition-all group select-none"
+                  onTouchStart={e => handleTouchStart(e, entry)}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  className="flex items-center gap-3 p-3 bg-slate-800 border border-white/5 rounded-xl cursor-grab active:cursor-grabbing hover:border-orange-500/30 transition-all group select-none touch-none"
                 >
                   <GripVertical size={14} className="text-slate-600 group-hover:text-slate-400 shrink-0" />
                   {entry.imageUrl && (
@@ -148,7 +199,8 @@ export default function MealPlanner({ history, onClose }) {
               ))}
             </div>
           )}
-          <p className="text-xs text-slate-600 pt-1">Drag recipes to meal slots →</p>
+          <p className="text-xs text-slate-600 pt-1 hidden sm:block">Drag recipes to meal slots →</p>
+          <p className="text-xs text-slate-600 pt-1 sm:hidden">Touch &amp; drag recipes to meal slots ↓</p>
         </div>
 
         {/* Weekly grid */}
@@ -172,7 +224,7 @@ export default function MealPlanner({ history, onClose }) {
                 </button>
 
                 {expanded && (
-                  <div className="grid grid-cols-3 gap-2 px-4 pb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 px-4 pb-4">
                     {MEALS.map(meal => {
                       const slotId = getSlot(day, meal);
                       const entry = slotId ? getEntry(slotId) : null;
@@ -181,6 +233,8 @@ export default function MealPlanner({ history, onClose }) {
                       return (
                         <div
                           key={meal}
+                          data-drop-day={day}
+                          data-drop-meal={meal}
                           onDrop={e => handleDrop(e, day, meal)}
                           onDragOver={e => handleDragOver(e, day, meal)}
                           onDragLeave={handleDragLeave}
@@ -194,17 +248,19 @@ export default function MealPlanner({ history, onClose }) {
                         >
                           <p className="absolute top-1.5 left-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">{meal}</p>
                           {entry ? (
-                            <div className="pt-6 px-2 pb-2">
+                            <div className="pt-6 px-2 pb-2 flex sm:block items-center gap-3">
                               {entry.imageUrl && (
-                                <img src={entry.imageUrl} alt="" className="w-full h-12 object-cover rounded-lg mb-1.5" />
+                                <img src={entry.imageUrl} alt="" className="w-16 h-16 sm:w-full sm:h-12 object-cover rounded-lg mb-0 sm:mb-1.5 shrink-0" />
                               )}
-                              <p className="text-xs text-slate-300 font-medium leading-tight line-clamp-2">{entry.recipe?.name}</p>
-                              <button
-                                onClick={() => clearSlot(day, meal)}
-                                className="mt-1.5 flex items-center gap-1 text-[10px] text-slate-600 hover:text-red-400 transition-colors"
-                              >
-                                <Trash2 size={10} /> Remove
-                              </button>
+                              <div>
+                                <p className="text-xs text-slate-300 font-medium leading-tight line-clamp-2">{entry.recipe?.name}</p>
+                                <button
+                                  onClick={() => clearSlot(day, meal)}
+                                  className="mt-1 flex items-center gap-1 text-[10px] text-slate-600 hover:text-red-400 transition-colors"
+                                >
+                                  <Trash2 size={10} /> Remove
+                                </button>
+                              </div>
                             </div>
                           ) : (
                             <div className="flex items-center justify-center h-full pt-5 pb-2">

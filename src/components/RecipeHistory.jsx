@@ -216,7 +216,6 @@ export default function RecipeHistory({
   onCreateCollection,
   onDeleteCollection,
   onSetEntryCollection,
-  bestStreak,
   currentStreak,
   onRemix,
 }) {
@@ -291,11 +290,6 @@ export default function RecipeHistory({
           {currentStreak >= 2 && (
             <span className="text-sm font-bold text-orange-400 bg-orange-500/10 px-3 py-1 rounded-full">
               🔥 {currentStreak} day streak
-            </span>
-          )}
-          {bestStreak > 0 && (
-            <span className="text-xs text-slate-500 bg-slate-900 px-2 py-1 rounded-full">
-              Best: {bestStreak}
             </span>
           )}
         </div>
