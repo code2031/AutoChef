@@ -280,7 +280,7 @@ When a recipe is saved (`handleSave` in `App.jsx`):
 
 ### PWA
 
-`public/manifest.json` + `public/sw.js` enable installable PWA with offline support. The service worker uses **network-first** strategy for HTML/JS/CSS — falls back to cache on failure, with `/AutoChef/` as the offline fallback. Registration happens in `src/main.jsx` on the `load` event. Vite's `base: '/AutoChef/'` means all SW cache paths must be prefixed with `/AutoChef/`.
+`public/manifest.json` + `public/sw.js` enable installable PWA with offline support. The service worker uses **network-first** strategy for HTML/JS/CSS — falls back to cache on failure, with `/` as the offline fallback. Registration happens in `src/main.jsx` on the `load` event (`/sw.js`). Cache name is `autochef-v3`; bump the version in `sw.js` whenever cached asset paths change (e.g. if switching the `base` between `/` and `/AutoChef/`).
 
 ## Deployment
 

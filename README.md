@@ -160,10 +160,10 @@ Get a free Groq API key at [console.groq.com](https://console.groq.com). The Pol
 npm run dev
 ```
 
-## Deployment (GitHub Pages)
+## Deployment
 
-The project deploys automatically to GitHub Pages on every push to `main` via GitHub Actions.
+Live at **[autochef.online](https://autochef.online)** — deploys automatically to GitHub Pages on every push to `main` via GitHub Actions.
 
 Add `VITE_GROQ_API_KEY` and `VITE_POLLINATIONS_API_KEY` as repository secrets — both are wired into the build step in `.github/workflows/deploy.yml`.
 
-The `base` in `vite.config.js` is set to `/AutoChef/` — update this to match your repository name exactly (GitHub Pages is case-sensitive).
+`public/CNAME` contains `autochef.online` and is copied into the deploy artifact so GitHub Pages applies the custom domain on every deploy. Vite `base` is `/` (root) to match the custom domain; the service worker and manifest paths are all root-relative.
