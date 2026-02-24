@@ -20,6 +20,9 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Variants** — Make any recipe Healthier, Cheaper, Easier (beginner-friendly), Harder (advanced techniques), or translated to another language
 - **Recipe Remix** — Pick any two saved recipes and AI fuses them into a new creative fusion dish
 - **Pairing Suggestions** — After each recipe loads, AI suggests 3 complementary sides, starters, or desserts
+- **Restaurant Dish Recreator** — Enter a restaurant name and dish (e.g. "Noma, Celeriac shawarma") and AI recreates the recipe in that restaurant's style
+- **Flavor Pairing Explorer** — AI identifies complementary flavors for a recipe with explanations of why each pairing works
+- **Smart Recommender** — "What should I cook?" button suggests a dish based on your recipe history, pantry contents, and time of day
 
 ### Customization
 - **Dietary filters** — Vegetarian, vegan, keto, gluten-free, plus cuisine style, spice level, and serving size
@@ -42,7 +45,10 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Mise en Place** — Pre-cooking prep checklist extracted from the instructions; check off tasks before starting
 - **Cooking Mode** — Full-screen step-by-step overlay with simultaneous countdown timers per step and audio beep when done
 - **Cooking Notes** — Add notes to individual steps during cooking mode; saved back to recipe history when you exit
-- **Voice Readout** — Cooking mode reads each step aloud via Web Speech API
+- **Voice Readout** — Cooking mode reads each step aloud via Web Speech API; a separate **Read Aloud** button on the recipe view reads the full recipe (ingredients + all steps) outside of cooking mode
+- **Hands-Free Voice Commands** — Enable mic in Cooking Mode to say "next", "back", or "start/stop timer" without touching the screen
+- **Beat-the-Clock Mode** — Start Cooking Mode with a countdown timer; bar turns amber then red as the deadline approaches
+- **Cook-with-a-Friend** — Split steps between 2–4 people in Cooking Mode; each person sees only their assigned steps highlighted
 - **Swipe Gestures** — Swipe left/right in cooking mode to navigate steps
 - **Kitchen Timer** — Floating multi-timer widget from the Navbar; multiple named timers simultaneously; Long Cook mode for multi-day timers (sourdough, brining) persisted across reloads
 - **Multi-Dish Sync Planner** — Enter dishes with cook times, set a serve time, and get a backwards-calculated start schedule so everything finishes together
@@ -65,7 +71,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 ### Recipe Details
 - **Recipe Story** — AI-generated 2–3 sentence cultural or historical background, auto-loaded with each recipe
 - **Common Mistakes** — AI lists 3 common pitfalls and fixes for the dish, auto-loaded and shown in a collapsible section
-- **Ingredient Prep Tips** — Tap any ingredient to get an AI tip on how to prep, store, and its shelf life
+- **Ingredient Prep Tips** — Tap any ingredient to get an AI tip on how to prep, store, and its shelf life; tap "See substitutes →" in the popover to load 3 AI-suggested alternatives
 - **Seasonal Availability** — 🌱 badge on ingredients that are currently in season
 - **Plating Guide** — 7 professional plating tips (odd numbers, clock method, height, sauce smearing, etc.) with recipe-specific colour advice
 - **Regional Variants** — Adapt the recipe to 8 cuisine styles (Mexican, Italian, Indian, Japanese, Thai, French, American, Mediterranean) via AI
@@ -85,6 +91,14 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Carbon Footprint** — Colour-coded environmental impact score
 - **Allergen Highlights** — Flagged ingredients that match your allergy settings
 - **Difficulty Tooltip** — Hover the difficulty badge for a plain-language explanation
+- **Recipe Complexity Score** — Simple / Moderate / Complex / Expert badge computed from ingredient count, step count, and equipment
+- **Calorie Burn Estimator** — Collapsible panel showing minutes of walking, cycling, and running needed to burn the meal's calories (assumes avg 70 kg)
+- **Pantry Match Checker** — 🧺 Pantry button in the ingredient list cross-references recipe ingredients against your saved pantry items and shows a have / need-to-buy breakdown instantly
+- **Read Aloud** — Reads the full recipe (name → ingredients → steps) via the Web Speech API; toggle to stop mid-read
+- **Metric ↔ Imperial Toggle** — Switch any recipe's ingredient quantities between grams/ml and oz/fl oz/lbs with one tap
+- **Banned Ingredient Warning** — Ingredients matching your banned list are highlighted with a red ⚠️ badge directly in the recipe
+- **Save as HTML** — Download a fully self-contained offline recipe card as a `.html` file (no internet required to view)
+- **Recipe Card Theme** — Choose from 5 colour themes (orange, blue, green, purple, red) before exporting the recipe card PNG
 
 ### History & Saving
 - **Recipe History** — All generated recipes saved to localStorage with thumbnail, rating, and favourite toggle
@@ -93,19 +107,36 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Recipe Collections** — Organise saved recipes into named cookbooks / folders
 - **Recipe Remix** — Select 2 recipes from history; AI fuses them into a creative fusion dish
 - **Cook Count** — "Done!" in Cooking Mode increments a per-recipe counter shown on history cards; Stats highlights your most-cooked dish
-- **Cooking Stats Dashboard** — Stats tab in History: summary cards, top ingredients chart, cuisine breakdown, weekly activity, difficulty distribution; **Export CSV** downloads all data as a spreadsheet
+- **Cooking Stats Dashboard** — Stats tab in History: **Signature Dish** banner (most-cooked recipe with image, shown when cooked ≥2×), summary cards, top ingredients chart, cuisine breakdown, weekly activity, difficulty distribution; **Export CSV** downloads all data as a spreadsheet
+- **Difficulty Progression Chart** — SVG polyline showing your last 20 recipes plotted by difficulty (Easy→Hard) over time, colour-coded per level
+- **Weekly Digest** — AI-generated weekly recap of your cooking activity: highlights, encouragement, and a personal summary
+- **Recipe Clone** — Clone any saved recipe (adds a "(Copy)" suffix) to create a variant without overwriting the original
+- **Side-by-Side Recipe Comparison** — Select 2 history entries and compare them across all stats (time, nutrition, difficulty, ingredients) in a full modal table
+- **Cuisine Passport** — Visual stamp collection showing which of 8 global cuisines you've cooked; stamps unlock as you save recipes from each cuisine
+- **Cooking Journal** — Daily free-text diary attached to History; record observations, experiments, and notes over time
+- **Daily Food Log** — Log every meal with name and macros; see today's totals, goal progress bars (green/amber/red vs your daily targets), macro balance score, a collapsible 7-day average, and a hydration reminder calibrated to your calorie intake; quick-log chip pre-fills from your last generated recipe
+- **Seasonal Recipe Calendar** — Browse in-season produce month by month; tap any ingredient to add it directly to your recipe inputs
+- **Random Recipe** — 🎲 Random button in History header instantly loads a random saved recipe
+- **Want-to-Cook Wishlist** — 🔖 Bookmark icon on every history card adds the recipe to a dedicated Wishlist tab for recipes you plan to cook next
 - **Pantry Analytics** — Toggle in the Pantry drawer: freshness distribution, expiring-soon count, and category breakdown
-- **Meal Planner** — Tap a saved recipe to select it, then tap any meal slot to assign it (Mon–Sun weekly grid, Breakfast / Lunch / Dinner); fully works on mobile and desktop; generates a combined shopping list for the whole week
+- **Expiry Recipe Rush** — 🚨 button in Pantry drawer adds all items expiring within 3 days to the ingredient input so you can use them before they go off
+- **Weekly Grocery Budget** — Set a weekly budget in Settings; displayed in the Cooking Stats dashboard
+- **Multi-Recipe Shopping Merge** — Multi-select recipes from History and merge their ingredient lists into a single deduplicated, aisle-grouped smart shopping list
+- **Meal Planner** — Tap a saved recipe to select it, then tap any meal slot to assign it (Mon–Sun weekly grid, Breakfast / Lunch / Dinner); fully works on mobile and desktop; generates a combined smart shopping list for the whole week, deduplicated and grouped by supermarket aisle
 - **Monthly Challenges** — Track four monthly goals: cook 10 recipes, try 5 cuisines, save 5 favourites, use 20 unique ingredients
 - **Search & Sort** — Search history by name, tags, or notes; sort by date, name, or rating
 - **Tags & Notes** — Add custom tags and personal notes to any saved recipe
 - **Export** — Download your full recipe history as a JSON file
 - **Activity Heatmap** — 5-week grid showing your cooking frequency
 - **Streak Tracking** — Daily streak counter with personal best
+- **XP Level System** — Earn XP for every recipe generated, saved, and cooked; progress through 21 levels (Apprentice → Grand Maître) with a visual progress bar and gradient level banner in the new Trophy tab
+- **Trophy Case** — Dedicated 🏆 tab in History: level banner, streak stats, and a 5-column badge grid showing all 10 badges with unlock hints for locked badges and full descriptions for unlocked ones
+- **Gallery / Moodboard View** — Toggle between the standard card grid and an image-first masonry gallery layout in Recipe History; hover (desktop) or always-visible strip (mobile) shows recipe name and rating
+- **Post-Cooking Summary** — After finishing Cooking Mode, a modal shows your elapsed cook time, a 5-star rating prompt, a one-tap "Log to Food Log" button, and AI-generated leftover storage tips per component
 
 ### Sharing & Output
 - **Share & QR** — Every recipe gets its own shareable URL (compressed, shortened via is.gd); QR code links directly to the exact recipe including its image — no re-render needed on the recipient's end
-- **Shopping List** — One-click grocery list with ingredients grouped by category (meat, produce, dairy, herbs, pantry); checkboxes and copy to clipboard
+- **Shopping List** — One-click grocery list deduplicated and grouped by supermarket aisle (Produce, Meat & Fish, Dairy & Eggs, Bakery, Canned & Dry Goods, Frozen, Herbs & Spices, Oils & Condiments); checkboxes and copy to clipboard
 - **Print** — Print-optimised stylesheet renders the recipe with the AI-generated image, clean layout, and no UI chrome
 - **Download as Text** — Save any recipe as a plain `.txt` file
 - **Copy Ingredients** — One-click copy of the full ingredient list
@@ -149,10 +180,9 @@ Create a `.env.local` file in the project root:
 
 ```
 VITE_GROQ_API_KEY=your_groq_api_key
-VITE_POLLINATIONS_API_KEY=your_pollinations_api_key
 ```
 
-Get a free Groq API key at [console.groq.com](https://console.groq.com). The Pollinations key is optional but gives higher rate limits — get one at [enter.pollinations.ai](https://enter.pollinations.ai).
+Get a free Groq API key at [console.groq.com](https://console.groq.com). Pollinations.ai (image generation) requires no API key — it works out of the box.
 
 ### 3. Run the dev server
 
@@ -164,6 +194,6 @@ npm run dev
 
 Live at **[autochef.online](https://autochef.online)** — deploys automatically to GitHub Pages on every push to `main` via GitHub Actions.
 
-Add `VITE_GROQ_API_KEY` and `VITE_POLLINATIONS_API_KEY` as repository secrets — both are wired into the build step in `.github/workflows/deploy.yml`.
+Add `VITE_GROQ_API_KEY` as a repository secret — it is wired into the build step in `.github/workflows/deploy.yml`. Pollinations.ai needs no key.
 
 `public/CNAME` contains `autochef.online` and is copied into the deploy artifact so GitHub Pages applies the custom domain on every deploy. Vite `base` is `/` (root) to match the custom domain; the service worker and manifest paths are all root-relative.

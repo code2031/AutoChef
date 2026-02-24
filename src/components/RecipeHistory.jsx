@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
-import { Heart, Trash2, Clock, Search, Download, SortAsc, X, FolderPlus, BarChart2, Shuffle } from 'lucide-react';
+import { Heart, Trash2, Clock, Search, Download, SortAsc, X, FolderPlus, BarChart2, Shuffle, Bookmark, LayoutGrid, List } from 'lucide-react';
 import { Image as ImageIcon } from 'lucide-react';
 import CookingStats from './CookingStats.jsx';
+import { useRecipeHistory } from '../hooks/useRecipeHistory.js';
+import CuisinePassport from './CuisinePassport.jsx';
+import CookingJournal from './CookingJournal.jsx';
+import DailyFoodLog from './DailyFoodLog.jsx';
+import RecipeCompare from './RecipeCompare.jsx';
+import TrophyCase from './TrophyCase.jsx';
+import { buildSmartShoppingList } from '../lib/shoppingList.js';
 
 function TagEditor({ entry, onAddTag, onRemoveTag }) {
   const [inputVal, setInputVal] = useState('');
@@ -208,6 +215,7 @@ export default function RecipeHistory({
   favourites,
   collections,
   onToggleFavourite,
+  onToggleWantToCook,
   onDelete,
   onSelect,
   onAddTag,
@@ -218,7 +226,13 @@ export default function RecipeHistory({
   onSetEntryCollection,
   currentStreak,
   onRemix,
+  onClone,
+  gamification,
+  bestStreak,
+  nutritionGoals,
+  lastRecipe,
 }) {
+  const { cloneRecipe } = useRecipeHistory();
   const [tab, setTab] = useState('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('date');
@@ -226,8 +240,14 @@ export default function RecipeHistory({
   const [newCollectionName, setNewCollectionName] = useState('');
   const [remixMode, setRemixMode] = useState(false);
   const [remixSelection, setRemixSelection] = useState([]);
+  const [multiSelect, setMultiSelect] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [showCompare, setShowCompare] = useState(false);
+  const [mergedShoppingList, setMergedShoppingList] = useState(null);
+  const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'gallery'
 
-  const baseItems = tab === 'favourites' ? favourites : history;
+  const wishlistItems = history.filter(e => e.wantToCook);
+  const baseItems = tab === 'favourites' ? favourites : tab === 'wishlist' ? wishlistItems : history;
 
   const filtered = baseItems
     .filter(e => {
@@ -272,6 +292,10 @@ export default function RecipeHistory({
     });
   };
 
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
   const handleCreateFusion = () => {
     if (remixSelection.length !== 2 || !onRemix) return;
     const [entry1, entry2] = remixSelection.map(id => history.find(e => e.id === id));
@@ -279,6 +303,14 @@ export default function RecipeHistory({
       onRemix(entry1.recipe, entry2.recipe);
       setRemixMode(false);
       setRemixSelection([]);
+    }
+  };
+
+  const handleClone = (id) => {
+    if (onClone) {
+      onClone(id);
+    } else {
+      cloneRecipe(id);
     }
   };
 
@@ -293,7 +325,41 @@ export default function RecipeHistory({
             </span>
           )}
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center flex-wrap">
+          {history.length > 0 && (
+            <button
+              onClick={() => { const pick = history[Math.floor(Math.random() * history.length)]; onSelect(pick); }}
+              title="Load a random saved recipe"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-white/5 text-slate-400 text-xs hover:border-orange-500/30 hover:text-orange-400 transition-all"
+            >
+              🎲 Random
+            </button>
+          )}
+          {history.length >= 1 && (
+            <button
+              onClick={() => { setMultiSelect(v => !v); setSelectedIds([]); setMergedShoppingList(null); }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs border transition-all ${multiSelect ? 'bg-orange-500/10 border-orange-500/30 text-orange-400' : 'bg-slate-800 border-white/5 text-slate-400 hover:text-white'}`}
+            >
+              {multiSelect ? '✕ Done' : '🛒 Multi-select'}
+            </button>
+          )}
+          {/* Gallery / Card view toggle */}
+          <div className="flex items-center bg-slate-900 border border-white/5 rounded-xl p-1">
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`p-1.5 rounded-lg transition-all ${viewMode === 'cards' ? 'bg-orange-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+              title="Card view"
+            >
+              <List size={14} />
+            </button>
+            <button
+              onClick={() => setViewMode('gallery')}
+              className={`p-1.5 rounded-lg transition-all ${viewMode === 'gallery' ? 'bg-orange-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+              title="Gallery view"
+            >
+              <LayoutGrid size={14} />
+            </button>
+          </div>
           <button
             onClick={exportJSON}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-white/5 text-slate-400 text-xs hover:border-white/20 hover:text-white transition-all"
@@ -301,7 +367,7 @@ export default function RecipeHistory({
             <Download size={14} />
             Export
           </button>
-          <div className="flex gap-1 bg-slate-900 rounded-xl p-1">
+          <div className="flex gap-1 bg-slate-900 rounded-xl p-1 flex-wrap">
             <button
               onClick={() => setTab('all')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === 'all' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
@@ -313,6 +379,12 @@ export default function RecipeHistory({
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === 'favourites' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
             >
               Saved ({favourites.length})
+            </button>
+            <button
+              onClick={() => setTab('wishlist')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === 'wishlist' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
+            >
+              🔖 ({wishlistItems.length})
             </button>
             <button
               onClick={() => setTab('collections')}
@@ -327,6 +399,30 @@ export default function RecipeHistory({
               <BarChart2 size={14} className="inline mr-1" />
               Stats
             </button>
+            <button
+              onClick={() => setTab('journal')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === 'journal' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
+            >
+              📓 Journal
+            </button>
+            <button
+              onClick={() => setTab('cuisine')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === 'cuisine' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
+            >
+              🌍 Cuisine
+            </button>
+            <button
+              onClick={() => setTab('log')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === 'log' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
+            >
+              🥗 Log
+            </button>
+            <button
+              onClick={() => setTab('trophy')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === 'trophy' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
+            >
+              🏆 Trophy
+            </button>
           </div>
         </div>
       </div>
@@ -334,7 +430,20 @@ export default function RecipeHistory({
       {/* Stats tab */}
       {tab === 'stats' && <CookingStats history={history} />}
 
-      {tab !== 'stats' && (
+      {tab === 'journal' && <CookingJournal />}
+      {tab === 'cuisine' && <CuisinePassport history={history} />}
+      {tab === 'log' && <DailyFoodLog nutritionGoals={nutritionGoals} lastRecipe={lastRecipe} />}
+      {tab === 'trophy' && (
+        <TrophyCase
+          points={gamification?.points || 0}
+          badges={gamification?.badges || []}
+          streak={gamification?.streak || 0}
+          bestStreak={bestStreak || 0}
+          stats={gamification?.stats || {}}
+        />
+      )}
+
+      {tab !== 'stats' && tab !== 'journal' && tab !== 'cuisine' && tab !== 'log' && tab !== 'trophy' && (
         <>
           {/* Monthly challenges */}
           {history.length > 0 && <MonthlyChallenges history={history} favourites={favourites} />}
@@ -386,6 +495,8 @@ export default function RecipeHistory({
                   ? `No recipes match "${search}"`
                   : tab === 'favourites'
                   ? 'No saved recipes yet. Hit the heart icon on a recipe!'
+                  : tab === 'wishlist'
+                  ? 'No recipes in your wishlist. Tap 🔖 on any recipe card to add it!'
                   : 'No recipes generated yet. Head to My Kitchen!'}
               </p>
             </div>
@@ -443,26 +554,86 @@ export default function RecipeHistory({
                 })
               )}
             </div>
-          ) : (
+          ) : (() => {
+            const effectiveViewMode = (remixMode || multiSelect) ? 'cards' : viewMode;
+
+            if (effectiveViewMode === 'gallery') {
+              return (
+                <div className="columns-2 sm:columns-3 gap-3 space-y-3">
+                  {filtered.map(entry => (
+                    <div
+                      key={entry.id}
+                      onClick={() => onSelect(entry)}
+                      className="break-inside-avoid relative rounded-2xl overflow-hidden cursor-pointer group border border-white/5 hover:border-orange-500/30 transition-all mb-3"
+                    >
+                      {entry.imageUrl ? (
+                        <img
+                          src={entry.imageUrl}
+                          alt={entry.recipe.name}
+                          className="w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="w-full h-32 flex items-center justify-center bg-slate-800">
+                          <ImageIcon size={24} className="text-slate-700" />
+                        </div>
+                      )}
+                      {/* Mobile: always-visible name strip */}
+                      <div className="sm:hidden bg-gradient-to-t from-slate-950 to-transparent p-2 absolute bottom-0 left-0 right-0">
+                        <p className="text-xs font-semibold text-white leading-tight line-clamp-2">{entry.recipe.name}</p>
+                      </div>
+                      {/* Desktop: hover reveal overlay */}
+                      <div className="hidden sm:flex absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex-col justify-end p-3 space-y-1">
+                        <p className="text-sm font-bold text-white leading-tight line-clamp-2">{entry.recipe.name}</p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {entry.recipe.difficulty && (
+                            <span className="text-[10px] bg-black/40 text-slate-300 px-1.5 py-0.5 rounded-full">{entry.recipe.difficulty}</span>
+                          )}
+                          {entry.rating === 'up' && <span className="text-[10px]">👍</span>}
+                          {entry.rating === 'down' && <span className="text-[10px]">👎</span>}
+                          {entry.isFavourite && <span className="text-[10px]">❤️</span>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            }
+
+            return (
             <div className="grid sm:grid-cols-2 gap-4">
               {filtered.map(entry => {
                 const isRemixSelected = remixSelection.includes(entry.id);
+                const isMultiSelected = selectedIds.includes(entry.id);
                 return (
                   <div
                     key={entry.id}
-                    className={`bg-slate-900 border rounded-2xl overflow-hidden transition-all group ${
+                    className={`relative bg-slate-900 border rounded-2xl overflow-hidden transition-all group ${
                       remixMode
                         ? isRemixSelected
                           ? 'border-purple-500/60 ring-2 ring-purple-500/30'
                           : 'border-white/5 hover:border-purple-500/30 cursor-pointer'
+                        : multiSelect
+                        ? isMultiSelected
+                          ? 'border-orange-500/60 ring-2 ring-orange-500/30'
+                          : 'border-white/5 hover:border-orange-500/30 cursor-pointer'
                         : 'border-white/5 hover:border-orange-500/20'
                     }`}
-                    onClick={remixMode ? () => toggleRemixSelection(entry.id) : undefined}
+                    onClick={remixMode ? () => toggleRemixSelection(entry.id) : multiSelect ? () => toggleSelect(entry.id) : undefined}
                   >
+                    {/* Multi-select checkbox */}
+                    {multiSelect && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleSelect(entry.id); }}
+                        className={`absolute top-2 left-2 z-10 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isMultiSelected ? 'bg-orange-500 border-orange-500 text-white' : 'border-slate-600 bg-slate-800'}`}
+                      >
+                        {isMultiSelected && '✓'}
+                      </button>
+                    )}
+
                     {/* Thumbnail */}
                     <div
                       className="h-40 relative cursor-pointer overflow-hidden bg-slate-800"
-                      onClick={remixMode ? undefined : () => onSelect(entry)}
+                      onClick={remixMode || multiSelect ? undefined : () => onSelect(entry)}
                     >
                       {entry.imageUrl ? (
                         <img
@@ -509,14 +680,30 @@ export default function RecipeHistory({
                         <div className="flex items-center gap-1">
                           {entry.rating === 'up' && <span className="text-green-400 text-xs">👍</span>}
                           {entry.rating === 'down' && <span className="text-red-400 text-xs">👎</span>}
-                          {!remixMode && (
+                          {!remixMode && !multiSelect && (
                             <>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleClone(entry.id); }}
+                                className="p-1.5 rounded-lg text-slate-600 hover:text-orange-400 transition-all"
+                                title="Clone recipe"
+                              >
+                                📋
+                              </button>
                               <CollectionDropdown
                                 entry={entry}
                                 collections={collections}
                                 onSetEntryCollection={onSetEntryCollection}
                                 onCreateCollection={onCreateCollection}
                               />
+                              {onToggleWantToCook && (
+                                <button
+                                  onClick={() => onToggleWantToCook(entry.id)}
+                                  className={`p-1.5 rounded-lg transition-all ${entry.wantToCook ? 'text-orange-400' : 'text-slate-600 hover:text-orange-400'}`}
+                                  title={entry.wantToCook ? 'Remove from wishlist' : 'Add to wishlist'}
+                                >
+                                  <Bookmark size={16} fill={entry.wantToCook ? 'currentColor' : 'none'} />
+                                </button>
+                              )}
                               <button
                                 onClick={() => onToggleFavourite(entry.id)}
                                 className={`p-1.5 rounded-lg transition-all ${entry.isFavourite ? 'text-pink-400' : 'text-slate-600 hover:text-pink-400'}`}
@@ -535,12 +722,12 @@ export default function RecipeHistory({
                       </div>
 
                       {/* Tags */}
-                      {!remixMode && onAddTag && (
+                      {!remixMode && !multiSelect && onAddTag && (
                         <TagEditor entry={entry} onAddTag={onAddTag} onRemoveTag={onRemoveTag} />
                       )}
 
                       {/* Notes */}
-                      {!remixMode && onSetNotes && (
+                      {!remixMode && !multiSelect && onSetNotes && (
                         <NoteEditor entry={entry} onSetNotes={onSetNotes} />
                       )}
 
@@ -565,6 +752,42 @@ export default function RecipeHistory({
                   </div>
                 );
               })}
+            </div>
+            );
+          })()}
+
+          {/* Multi-select sticky action bar */}
+          {multiSelect && selectedIds.length > 0 && (
+            <div className="sticky bottom-4 left-0 right-0 mx-auto w-fit flex gap-2 z-10 p-3 bg-slate-800 border border-white/10 rounded-2xl shadow-2xl">
+              <span className="text-sm text-slate-400 self-center">{selectedIds.length} selected</span>
+              {selectedIds.length >= 2 && (
+                <>
+                  <button
+                    onClick={() => {
+                      const selectedEntries = history.filter(e => selectedIds.includes(e.id));
+                      const allIngredients = selectedEntries.flatMap(e => e.recipe?.ingredients || []);
+                      setMergedShoppingList(buildSmartShoppingList(allIngredients));
+                    }}
+                    className="px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-xl hover:bg-orange-600 transition-all"
+                  >
+                    🛒 Merge Shopping Lists
+                  </button>
+                  {selectedIds.length === 2 && (
+                    <button
+                      onClick={() => setShowCompare(true)}
+                      className="px-4 py-2 bg-blue-500/20 border border-blue-500/30 text-blue-400 text-sm font-medium rounded-xl hover:bg-blue-500/30 transition-all"
+                    >
+                      📊 Compare
+                    </button>
+                  )}
+                </>
+              )}
+              <button
+                onClick={() => setSelectedIds([])}
+                className="px-3 py-2 bg-slate-700 text-slate-400 text-sm rounded-xl hover:text-white transition-all"
+              >
+                Clear
+              </button>
             </div>
           )}
 
@@ -594,6 +817,46 @@ export default function RecipeHistory({
           )}
         </>
       )}
+
+      {/* Merged shopping list modal */}
+      {mergedShoppingList && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-white/5">
+              <p className="font-bold text-white">🛒 Smart Shopping List</p>
+              <button onClick={() => setMergedShoppingList(null)} className="text-slate-400 hover:text-white transition-colors">✕</button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-4 space-y-4">
+              {Object.entries(mergedShoppingList).map(([aisle, ings]) => (
+                <div key={aisle}>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">{aisle}</p>
+                  {ings.map((ing, i) => (
+                    <p key={i} className="text-sm text-slate-300 py-1 border-b border-white/5">· {ing}</p>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <div className="p-4 border-t border-white/5">
+              <button
+                onClick={() => {
+                  const lines = Object.entries(mergedShoppingList).flatMap(([aisle, ings]) => [aisle + ':', ...ings.map(i => '  · ' + i), '']);
+                  navigator.clipboard?.writeText(lines.join('\n'));
+                }}
+                className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-xl transition-all"
+              >
+                📋 Copy All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCompare && selectedIds.length === 2 && (() => {
+        const recipeA = history.find(e => e.id === selectedIds[0]);
+        const recipeB = history.find(e => e.id === selectedIds[1]);
+        if (!recipeA || !recipeB) return null;
+        return <RecipeCompare recipeA={recipeA} recipeB={recipeB} imageA={recipeA.imageUrl} imageB={recipeB.imageUrl} onClose={() => setShowCompare(false)} />;
+      })()}
     </div>
   );
 }

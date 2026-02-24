@@ -17,8 +17,9 @@ import { useLocalStorage } from './hooks/useLocalStorage.js';
 import { scanImageForIngredients, generateRecipe, generateSuggestions, generateVariant, importRecipe, generatePairingSuggestions, generateAutoTags, generateRemix, generateHistoricalRecipe } from './lib/groq.js';
 import { buildImageUrl } from './lib/pollinations.js';
 import { getRandomSurpriseIngredients } from './lib/ingredients.js';
-import { buildRecipePrompt, buildSuggestionsPrompt, buildDishPrompt, buildSimilarPrompt, buildImportPrompt, buildRemixPrompt, buildHistoricalPrompt } from './lib/prompts.js';
+import { buildRecipePrompt, buildSuggestionsPrompt, buildDishPrompt, buildSimilarPrompt, buildImportPrompt, buildRemixPrompt, buildHistoricalPrompt, buildRestaurantPrompt } from './lib/prompts.js';
 import ABRecipeTest from './components/ABRecipeTest.jsx';
+import PostCookingSummary from './components/PostCookingSummary.jsx';
 
 export default function App() {
   // View state — start on 'result' immediately if URL carries a recipe
@@ -48,6 +49,8 @@ export default function App() {
 
   // Cooking mode
   const [showCookingMode, setShowCookingMode] = useState(false);
+  const [showPostCooking, setShowPostCooking] = useState(false);
+  const [cookingStartTime, setCookingStartTime] = useState(null);
 
   // Current recipe saved state
   const [currentSavedId, setCurrentSavedId] = useState(null);
@@ -74,7 +77,7 @@ export default function App() {
     saveRecipe, toggleFavourite, setRating, deleteEntry,
     addTag, removeTag, setNotes, isDuplicate,
     updateRecipeWithVersion, collections, createCollection, deleteCollection, setEntryCollection,
-    incrementCookCount,
+    incrementCookCount, toggleWantToCook, cloneRecipe,
   } = useRecipeHistory();
   const gamification = useGamification();
 
@@ -407,6 +410,20 @@ export default function App() {
 
   const handleCookDone = () => {
     if (currentSavedId) incrementCookCount(currentSavedId);
+    setShowCookingMode(false);
+    setShowPostCooking(true);
+  };
+
+  const handleSetCookingMode = (value) => {
+    if (value) setCookingStartTime(Date.now());
+    setShowCookingMode(value);
+  };
+
+  const handleLogMealFromCooking = (mealData) => {
+    try {
+      const existing = JSON.parse(localStorage.getItem('daily_food_log') || '[]');
+      localStorage.setItem('daily_food_log', JSON.stringify([mealData, ...existing].slice(0, 200)));
+    } catch { /* ignore */ }
   };
 
   const handleSkipSuggestions = () => {
@@ -578,6 +595,48 @@ export default function App() {
     }
   };
 
+  // --- Restaurant Dish Recreator ---
+  const handleRestaurantGenerate = async (restaurant, dish) => {
+    setError(null);
+    setView('result');
+    setRecipe(null);
+    setRecipeImage(null);
+    setCurrentSavedId(null);
+    setCurrentRating(null);
+    setDupWarning('');
+    setIsGenerating(true);
+    try {
+      const prompt = buildRestaurantPrompt({
+        restaurant, dish,
+        diet: prefs.diet,
+        allergies: prefs.allergies,
+        banned: prefs.banned,
+        customPrompt: prefs.customPrompt,
+      });
+      const result = await generateRecipe(prompt);
+      setRecipe(result);
+      setIsGenerating(false);
+      setIsGeneratingImage(true);
+      const imgUrl = buildImageUrl(result.name, result.description, prefs.imageStyle);
+      setRecipeImage(imgUrl);
+      generatePairingSuggestions(result.name, result.description).then(setPairings).catch(() => {});
+    } catch (err) {
+      setError(err.message || "Couldn't recreate the restaurant dish.");
+      setIsGenerating(false);
+      setView('generate');
+    }
+  };
+
+  // --- Clone current recipe ---
+  const handleCloneCurrentRecipe = () => {
+    if (!recipe) return;
+    const clonedRecipe = { ...recipe, name: recipe.name + ' (Copy)' };
+    const newId = saveRecipe(clonedRecipe, recipeImage, ingredients);
+    generateAutoTags(clonedRecipe).then(tags => {
+      tags.forEach(tag => addTag(newId, tag));
+    }).catch(() => {});
+  };
+
   // --- A/B Recipe Test ---
   const handleABGenerate = async () => {
     if (ingredients.length === 0) return;
@@ -694,6 +753,7 @@ export default function App() {
             recentIngredients={recentIngredients}
             onHistoricalGenerate={handleHistoricalGenerate}
             onABGenerate={handleABGenerate}
+            onRestaurantGenerate={handleRestaurantGenerate}
           />
         )}
 
@@ -725,7 +785,7 @@ export default function App() {
               totalLikes={totalLikes}
               totalDislikes={totalDislikes}
               showCookingMode={showCookingMode}
-              setShowCookingMode={setShowCookingMode}
+              setShowCookingMode={handleSetCookingMode}
               isRegeneratingImage={isRegeneratingImage}
               onSave={handleSave}
               onRegenerate={reset}
@@ -742,6 +802,7 @@ export default function App() {
               pairings={pairings}
               onCookDone={handleCookDone}
               persona={prefs.persona}
+              onClone={handleCloneCurrentRecipe}
             />
             {/* Cook Tonight notification button */}
             {recipe && !isGenerating && (
@@ -761,6 +822,7 @@ export default function App() {
             history={history}
             favourites={favourites}
             onToggleFavourite={toggleFavourite}
+            onToggleWantToCook={toggleWantToCook}
             onDelete={deleteEntry}
             onSelect={handleSelectHistoryEntry}
             onAddTag={addTag}
@@ -772,6 +834,11 @@ export default function App() {
             onDeleteCollection={deleteCollection}
             onSetEntryCollection={setEntryCollection}
             onRemix={handleRemix}
+            onClone={cloneRecipe}
+            gamification={gamification}
+            bestStreak={bestStreak}
+            nutritionGoals={prefs.nutritionGoals}
+            lastRecipe={history[0]?.recipe}
           />
         )}
 
@@ -796,6 +863,18 @@ export default function App() {
           <SyncPlanner />
         )}
       </main>
+
+      {/* Post-Cooking Summary Modal */}
+      {showPostCooking && recipe && (
+        <PostCookingSummary
+          recipe={recipe}
+          recipeImage={recipeImage}
+          cookingDurationMs={cookingStartTime ? Date.now() - cookingStartTime : null}
+          onRate={handleRate}
+          onLogMeal={handleLogMealFromCooking}
+          onClose={() => setShowPostCooking(false)}
+        />
+      )}
     </div>
   );
 }

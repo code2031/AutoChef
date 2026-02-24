@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, ShoppingCart, Trash2, ChevronDown, ChevronUp, Check, Plus } from 'lucide-react';
+import { X, ShoppingCart, Trash2, ChevronDown, ChevronUp, Check, Plus, Copy } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
+import { buildSmartShoppingList } from '../lib/shoppingList.js';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const MEALS = ['Breakfast', 'Lunch', 'Dinner'];
@@ -26,6 +27,7 @@ export default function MealPlanner({ history, onClose }) {
   // plan shape: { Monday: { Breakfast: entryId | null, ... }, ... }
   const [plan, setPlan] = useLocalStorage('meal_plan', {});
   const [showList, setShowList] = useState(false);
+  const [listCopied, setListCopied] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null); // tap-to-assign selection
   const [expandedDays, setExpandedDays] = useState(() => {
     const d = new Date();
@@ -100,24 +102,39 @@ export default function MealPlanner({ history, onClose }) {
       </div>
 
       {/* Shopping List */}
-      {showList && shoppingList.length > 0 && (
-        <div className="bg-slate-900/60 border border-white/5 rounded-2xl p-5 space-y-4 animate-in fade-in duration-200">
-          <h3 className="font-bold text-green-400 flex items-center gap-2"><ShoppingCart size={16} /> Combined Shopping List</h3>
-          {shoppingList.map(({ name, ingredients }) => (
-            <div key={name} className="space-y-1.5">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{name}</p>
-              <ul className="space-y-1">
-                {ingredients.map((ing, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                    <span className="text-slate-600 mt-0.5">•</span>
-                    {ing}
-                  </li>
-                ))}
-              </ul>
+      {showList && shoppingList.length > 0 && (() => {
+        const allIngredients = shoppingList.flatMap(r => r.ingredients);
+        const byAisle = buildSmartShoppingList(allIngredients);
+        const copyAll = () => {
+          const lines = Object.entries(byAisle).flatMap(([aisle, ings]) => [aisle + ':', ...ings.map(i => '  • ' + i), '']);
+          navigator.clipboard?.writeText(lines.join('\n'));
+          setListCopied(true);
+          setTimeout(() => setListCopied(false), 2000);
+        };
+        return (
+          <div className="bg-slate-900/60 border border-white/5 rounded-2xl p-5 space-y-4 animate-in fade-in duration-200">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-green-400 flex items-center gap-2"><ShoppingCart size={16} /> Smart Shopping List</h3>
+              <button onClick={copyAll} className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-all">
+                <Copy size={12} />{listCopied ? 'Copied!' : 'Copy All'}
+              </button>
             </div>
-          ))}
-        </div>
-      )}
+            {Object.entries(byAisle).map(([aisle, ings]) => (
+              <div key={aisle} className="space-y-1.5">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{aisle}</p>
+                <ul className="space-y-1">
+                  {ings.map((ing, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                      <span className="text-slate-600 mt-0.5">•</span>
+                      {ing}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
         {/* Saved recipes sidebar */}

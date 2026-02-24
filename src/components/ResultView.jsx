@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Flame, BookOpen, Timer, Sparkles, Image as ImageIcon, Loader2, ChefHat, Copy, Download, Check, Play, Pause, ShoppingCart, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Flame, BookOpen, Timer, Sparkles, Image as ImageIcon, Loader2, ChefHat, Copy, Download, Check, Play, Pause, ShoppingCart, X, ChevronDown, ChevronUp, Volume2, VolumeX } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import StatsBar from './StatsBar.jsx';
 import RecipeActions from './RecipeActions.jsx';
@@ -8,8 +8,10 @@ import FlavorRadar from './FlavorRadar.jsx';
 import KnifeCutsGuide from './KnifeCutsGuide.jsx';
 import PlatingGuide from './PlatingGuide.jsx';
 import RegionalVariants from './RegionalVariants.jsx';
-import { generateRecipeStory, generateCommonMistakes, generateIngredientPrepTip } from '../lib/groq.js';
+import { generateRecipeStory, generateCommonMistakes, generateIngredientPrepTip, generateIngredientSubs } from '../lib/groq.js';
 import { getSeasonalIngredients } from '../lib/seasonal.js';
+import { useLocalStorage } from '../hooks/useLocalStorage.js';
+import { categorizeByAisle } from '../lib/shoppingList.js';
 function detectTimerSeconds(step) {
   const patterns = [
     /for\s+(\d+)-(\d+)\s+min/i,
@@ -134,30 +136,11 @@ function renderStepWithTechniques(text, onShowKnifeCut) {
   return parts.length > 0 ? parts : text;
 }
 
-const CAT_KW = {
-  "Meat & Fish":["chicken","beef","pork","fish","salmon","tuna","shrimp","lamb","turkey","bacon","steak","duck"],
-  Produce:["onion","garlic","tomato","pepper","carrot","potato","spinach","broccoli","cucumber","avocado","lemon","lime","ginger"],
-  "Dairy & Eggs":["milk","cheese","butter","cream","yogurt","egg","parmesan","mozzarella"],
-  "Herbs & Spices":["basil","oregano","thyme","rosemary","parsley","cumin","paprika","turmeric","cinnamon"],
-  Pantry:["rice","pasta","flour","oil","olive oil","sugar","honey","soy sauce","stock","bread","salt","mustard"],
-};
-
-function categorize(items) {
-  const out = {};
-  const used = new Set();
-  Object.entries(CAT_KW).forEach(([cat,kw]) => {
-    const m = items.filter(i => !used.has(i) && kw.some(k => i.toLowerCase().includes(k)));
-    if (m.length > 0) { out[cat] = m; m.forEach(x => used.add(x)); }
-  });
-  const other = items.filter(i => !used.has(i));
-  if (other.length > 0) out["Other"] = other;
-  return out;
-}
 
 function ShoppingListModal({ recipe, onClose }) {
   const [checked, setChecked] = useState({});
   const [copied, setCopied] = useState(false);
-  const cats = categorize(recipe.ingredients || []);
+  const cats = categorizeByAisle(recipe.ingredients || []);
   const toggle = (ing) => setChecked(prev => ({ ...prev, [ing]: !prev[ing] }));
   const copyList = async () => {
     const lines = Object.entries(cats).flatMap(([cat,ings]) => [cat,...ings.map(i=>"  - "+i),""]);
@@ -224,10 +207,23 @@ function MiseTasks({ instructions }) {
   return <div>{tasks.map((t,i)=><span key={i}>{t}</span>)}</div>;
 }
 
-function IngPrepPopover({ data, onClose }) {
+function IngPrepPopover({ data, recipeName, onClose }) {
+  const [subsLoading, setSubsLoading] = useState(false);
+  const [subs, setSubs] = useState(null);
+
+  const loadSubs = async () => {
+    if (subs !== null || subsLoading || !data.ingName) return;
+    setSubsLoading(true);
+    try {
+      const result = await generateIngredientSubs(data.ingName, recipeName);
+      setSubs(result?.subs || []);
+    } catch { setSubs([]); }
+    setSubsLoading(false);
+  };
+
   if (!data) return null;
   return (
-    <div className="absolute left-0 top-full mt-1 z-30 w-60 bg-slate-800 border border-white/10 rounded-xl p-3 shadow-2xl">
+    <div className="absolute left-0 top-full mt-1 z-30 w-64 bg-slate-800 border border-white/10 rounded-xl p-3 shadow-2xl">
       <button onClick={onClose} className="absolute top-2 right-2 text-slate-600 hover:text-slate-400"><X size={12} /></button>
       {data.loading ? (
         <div className="flex items-center gap-2 py-2"><Loader2 size={14} className="animate-spin text-orange-400" /><span className="text-xs text-slate-400">Loading tip...</span></div>
@@ -239,6 +235,25 @@ function IngPrepPopover({ data, onClose }) {
           {data.shelf_life && <p className="text-xs text-slate-500">{data.shelf_life}</p>}
         </div>
       ) : <p className="text-xs text-slate-500">No tip available.</p>}
+      {!data.loading && data.ingName && (
+        <div className="mt-3 pt-2 border-t border-white/10">
+          {subs === null ? (
+            <button onClick={loadSubs} disabled={subsLoading} className="flex items-center gap-1 text-xs text-orange-400 hover:text-orange-300 transition-colors">
+              {subsLoading && <Loader2 size={10} className="animate-spin" />}
+              {subsLoading ? 'Loading…' : 'See substitutes →'}
+            </button>
+          ) : subs.length > 0 ? (
+            <div className="space-y-1.5">
+              <p className="text-xs font-bold text-slate-400">Substitutes</p>
+              {subs.map((s, i) => (
+                <p key={i} className="text-xs text-slate-400 leading-relaxed"><span className="text-orange-400 font-medium">{s.name}</span>: {s.notes}</p>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500">No substitutes found.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -273,6 +288,11 @@ export default function ResultView({
   const [_IsLoadingMistakes, setIsLoadingMistakes] = useState(false);
   const [showMistakes, setShowMistakes] = useState(false);
   const [activeIngTip, setActiveIngTip] = useState(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [pantryOpen, setPantryOpen] = useState(false);
+  const [pantryResult, setPantryResult] = useState(null);
+  const [showImperial, setShowImperial] = useState(false);
+  const [bannedList] = useLocalStorage('pref_banned', []);
 
   useEffect(() => {
     if (recipe && !isGenerating && !isGeneratingImage && !confettiFired.current) {
@@ -286,6 +306,7 @@ export default function ResultView({
 
   useEffect(() => {
     confettiFired.current = false;
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
     setTimeout(() => {
       setChecked({});
       setServingMultiplier(1);
@@ -294,6 +315,9 @@ export default function ResultView({
       setCommonMistakes(null);
       setShowMistakes(false);
       setActiveIngTip(null);
+      setIsSpeaking(false);
+      setPantryOpen(false);
+      setPantryResult(null);
     }, 0);
   }, [recipe?.name]);
 
@@ -316,11 +340,43 @@ export default function ResultView({
   const handleIngClick = async (ing, index) => {
     if (activeIngTip && activeIngTip.index === index) { setActiveIngTip(null); return; }
     const ingName = ing.split(",")[0].trim().replace(/^[\d./\s]+(cup|tsp|tbsp|oz|lb|g|ml)s?\s*/i,"");
-    setActiveIngTip({ index, loading: true });
+    setActiveIngTip({ index, ingName, loading: true });
     try {
       const result = await generateIngredientPrepTip(ingName);
-      setActiveIngTip({ index, loading: false, ...result });
-    } catch { setActiveIngTip({ index, loading: false, tip: null }); }
+      setActiveIngTip({ index, ingName, loading: false, ...result });
+    } catch { setActiveIngTip({ index, ingName, loading: false, tip: null }); }
+  };
+
+  const handleReadAloud = () => {
+    if (!window.speechSynthesis) return;
+    if (isSpeaking) { window.speechSynthesis.cancel(); setIsSpeaking(false); return; }
+    const lines = [
+      recipe.name + ".",
+      "Ingredients.",
+      ...(recipe.ingredients || []).map(i => i + "."),
+      "Instructions.",
+      ...(recipe.instructions || []).map((s, i) => `Step ${i + 1}. ${s}`),
+    ];
+    const utter = new SpeechSynthesisUtterance(lines.join(" "));
+    utter.rate = 0.9;
+    utter.onend = () => setIsSpeaking(false);
+    utter.onerror = () => setIsSpeaking(false);
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utter);
+  };
+
+  const handlePantryCheck = () => {
+    if (pantryOpen) { setPantryOpen(false); return; }
+    const rawItems = JSON.parse(localStorage.getItem('pantry_items') || '[]');
+    const pantryNames = rawItems.map(i => (typeof i === 'string' ? i : (i.name || '')).toLowerCase());
+    const have = [], need = [];
+    (recipe.ingredients || []).forEach(ing => {
+      const base = ing.toLowerCase().replace(/^[\d./\s]+(cup|tsp|tbsp|oz|lb|g|ml)s?\s*/i, '').split(',')[0].trim();
+      const match = pantryNames.some(p => p.includes(base.split(' ')[0]) || base.split(' ')[0].length > 2 && base.split(' ').some(w => w.length > 2 && p.includes(w)));
+      (match ? have : need).push(ing);
+    });
+    setPantryResult({ have, need });
+    setPantryOpen(true);
   };
 
   const toggleCheck = (i) => setChecked(prev => ({ ...prev, [i]: !prev[i] }));
@@ -344,6 +400,18 @@ export default function ResultView({
       return String(Math.round(scaled * 10) / 10);
     });
   };
+
+  const convertIngredient = (text, toImperial) => {
+    if (!toImperial) return text;
+    return text
+      .replace(/(\d+(?:\.\d+)?)\s*kg\b/gi, (_, n) => `${(parseFloat(n) * 2.205).toFixed(1)}lbs`)
+      .replace(/(\d+(?:\.\d+)?)\s*g\b/gi, (_, n) => parseFloat(n) >= 10 ? `${(parseFloat(n) / 28.35).toFixed(1)}oz` : `${n}g`)
+      .replace(/(\d+(?:\.\d+)?)\s*ml\b/gi, (_, n) => `${(parseFloat(n) / 29.57).toFixed(1)}fl oz`)
+      .replace(/(\d+(?:\.\d+)?)\s*l\b/gi, (_, n) => `${(parseFloat(n) * 33.81).toFixed(0)}fl oz`)
+      .replace(/(\d+(?:\.\d+)?)\s*cm\b/gi, (_, n) => `${(parseFloat(n) / 2.54).toFixed(1)}"`);
+  };
+
+  const isBanned = (ingText) => bannedList.some(b => ingText.toLowerCase().includes(b.toLowerCase()));
 
   const copyIngList = async () => {
     if (!recipe) return;
@@ -495,9 +563,17 @@ export default function ResultView({
           {recipeStory && !isLoadingStory && (
             <blockquote className="border-l-4 border-orange-500/40 pl-4 py-1 text-slate-400 italic text-sm leading-relaxed">{recipeStory}</blockquote>
           )}
-          <button onClick={()=>setShowMise(true)} className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-orange-500/20">
-            <ChefHat size={16} />Start Cooking Mode
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={()=>setShowMise(true)} className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-orange-500/20">
+              <ChefHat size={16} />Start Cooking Mode
+            </button>
+            {window.speechSynthesis && (
+              <button onClick={handleReadAloud} className={"flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all border "+(isSpeaking?"bg-blue-500/20 border-blue-500/40 text-blue-400 hover:bg-blue-500/30":"bg-slate-800 border-white/10 text-slate-400 hover:text-white")}>
+                {isSpeaking ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                {isSpeaking ? 'Stop Reading' : 'Read Aloud'}
+              </button>
+            )}
+          </div>
         </div>
 
         <div>
@@ -513,8 +589,37 @@ export default function ResultView({
               <div className="border-b border-white/5 pb-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <h4 className="flex items-center gap-2 font-bold text-lg"><BookOpen size={18} className="text-orange-500" />Ingredients</h4>
-                  <button onClick={copyIngList} className="p-1.5 rounded-lg text-slate-500 hover:text-white transition-all">{copiedIngredients?<Check size={14} className="text-green-400" />:<Copy size={14} />}</button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setShowImperial(v => !v)}
+                      className="text-xs px-2.5 py-1 bg-slate-800 border border-white/10 text-slate-400 rounded-lg hover:border-white/20 hover:text-white transition-all"
+                      title="Toggle measurement units"
+                    >
+                      {showImperial ? '🔄 Metric' : '🔄 Imperial'}
+                    </button>
+                    <button onClick={handlePantryCheck} className={"px-2.5 py-1 rounded-lg text-xs font-medium transition-all "+(pantryOpen?"bg-green-500/20 text-green-400":"text-slate-500 hover:text-white bg-slate-800")}>🧺 Pantry</button>
+                    <button onClick={copyIngList} className="p-1.5 rounded-lg text-slate-500 hover:text-white transition-all">{copiedIngredients?<Check size={14} className="text-green-400" />:<Copy size={14} />}</button>
+                  </div>
                 </div>
+                {pantryOpen && pantryResult && (
+                  <div className="rounded-xl border border-white/5 overflow-hidden text-xs">
+                    {pantryResult.have.length > 0 && (
+                      <div className="bg-green-500/10 px-3 py-2 space-y-1">
+                        <p className="font-bold text-green-400">✅ You have ({pantryResult.have.length})</p>
+                        {pantryResult.have.map((i, idx) => <p key={idx} className="text-slate-400 pl-2">{i}</p>)}
+                      </div>
+                    )}
+                    {pantryResult.need.length > 0 && (
+                      <div className="bg-orange-500/5 px-3 py-2 space-y-1">
+                        <p className="font-bold text-orange-400">🛒 Need to buy ({pantryResult.need.length})</p>
+                        {pantryResult.need.map((i, idx) => <p key={idx} className="text-slate-400 pl-2">{i}</p>)}
+                      </div>
+                    )}
+                    {pantryResult.have.length === 0 && pantryResult.need.length === 0 && (
+                      <p className="px-3 py-2 text-slate-500">No pantry items to compare against.</p>
+                    )}
+                  </div>
+                )}
                 <div className="flex items-center gap-1 flex-wrap">
                   {multiplierOptions.map(m => (
                     <button key={m} onClick={()=>{setServingMultiplier(m);setCustomMultiplier("");}} className={(effectiveMultiplier===m&&customMultiplier===""?"bg-orange-500 text-white":"bg-slate-800 text-slate-400 hover:text-white border border-white/10")+" px-3 py-1 rounded-lg text-xs font-bold transition-all"}>{m===0.5?"½x":m+"x"}</button>
@@ -525,15 +630,20 @@ export default function ResultView({
               </div>
               <ul className="space-y-3">
                 {(recipe.ingredients || []).map((item, i) => {
-                  const displayItem = scaleIngredient(item, effectiveMultiplier);
+                  const displayItem = convertIngredient(scaleIngredient(item, effectiveMultiplier), showImperial);
                   return (
                     <li key={i} className="relative">
                       <div className={(checked[i]?"line-through text-slate-600":"text-slate-300")+" flex gap-2 text-sm cursor-pointer"} onClick={()=>toggleCheck(i)}>
                         <span className={(checked[i]?"bg-slate-600":"bg-orange-500")+" w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"} />
                         <span className="flex-1" onClick={e=>{e.stopPropagation();handleIngClick(item,i);}}>{displayItem}</span>
                         {GET_SEASONAL_BADGE(item) && <span className="text-green-400 text-[10px] font-bold shrink-0 self-center" title="In season now">🌱</span>}
+                        {isBanned(item) && (
+                          <span className="ml-1 text-xs px-1.5 py-0.5 bg-red-500/15 border border-red-500/20 text-red-400 rounded-full" title={`You've banned an ingredient in this dish. Check smartSub: ${recipe.smartSub || 'see substitutions'}`}>
+                            ⚠️ banned
+                          </span>
+                        )}
                       </div>
-                      {activeIngTip && activeIngTip.index===i && <IngPrepPopover data={activeIngTip} onClose={()=>setActiveIngTip(null)} />}
+                      {activeIngTip && activeIngTip.index===i && <IngPrepPopover data={activeIngTip} recipeName={recipe.name} onClose={()=>setActiveIngTip(null)} />}
                     </li>
                   );
                 })}

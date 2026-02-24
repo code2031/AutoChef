@@ -215,3 +215,61 @@ export async function generateHistoricalRecipe(promptText) {
   });
   return JSON.parse(data.choices[0].message.content);
 }
+
+export async function generateFlavorPairings(recipe) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `For the recipe "${recipe.name}" (main ingredients: ${(recipe.ingredients || []).slice(0, 8).join(', ')}), suggest 5 specific ingredients that would be excellent flavor pairings — things that would complement and elevate this dish.\n\nReturn JSON: {"pairings": [{"ingredient": "ingredient name", "flavor": "flavor quality it adds e.g. umami, citrus, smokiness, creaminess", "whyItWorks": "one sentence explanation"}]}` }],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
+  const parsed = JSON.parse(data.choices[0].message.content);
+  return parsed.pairings || [];
+}
+
+export async function generateSmartRecommendation(historyNames, pantryItems, timeOfDay) {
+  const historyText = historyNames.length > 0 ? `Recently cooked: ${historyNames.slice(0, 5).join(', ')}.` : 'No recent cooking history.';
+  const pantryText = pantryItems.length > 0 ? `Available pantry/fridge items: ${pantryItems.slice(0, 10).join(', ')}.` : '';
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Recommend exactly one dish to cook right now based on context. ${historyText} ${pantryText} Time of day: ${timeOfDay}. Pick something not recently cooked, practical with available ingredients, appropriate for the time of day. Return JSON: {"dishName": "Dish Name", "reason": "one short sentence why this is perfect right now"}` }],
+    temperature: 0.8,
+    response_format: { type: 'json_object' },
+  });
+  return JSON.parse(data.choices[0].message.content);
+}
+
+export async function generateCuisineDeepDive(cuisine) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Give a concise deep dive into ${cuisine} cuisine for a curious home cook. Return JSON: {"description": "2-sentence overview of this cuisine", "keyIngredients": ["up to 8 essential ingredients"], "techniques": ["up to 5 key cooking techniques"], "tipForHome": "one practical tip for recreating this cuisine authentically at home", "funFact": "an interesting historical or cultural fact about this cuisine"}` }],
+    temperature: 0.6,
+    response_format: { type: 'json_object' },
+  });
+  return JSON.parse(data.choices[0].message.content);
+}
+
+export async function generateStorageTips(recipe) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `For the recipe "${recipe.name}", provide practical leftover storage tips for the main components of this dish. Return JSON: {"items": [{"component": "component name", "container": "best container type", "temperature": "fridge/freezer/room temp", "duration": "how long it keeps"}]}. Include 2-4 items covering the main components of the dish.` }],
+    temperature: 0.4,
+    response_format: { type: 'json_object' },
+  });
+  const parsed = JSON.parse(data.choices[0].message.content);
+  return parsed.items || [];
+}
+
+export async function generateWeeklyDigest(recipes) {
+  const names = (recipes || []).map(r => r.recipe?.name || '').filter(Boolean);
+  if (names.length === 0) {
+    return { summary: 'No recipes cooked this week yet. Get cooking!', highlight: '', encouragement: 'Every great chef starts somewhere — try something new this week!' };
+  }
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `A home cook made these dishes this week: ${names.join(', ')}. Write a brief weekly cooking digest celebrating their week, noting any interesting variety, themes, or impressive choices. Keep it warm, personal, and fun. Return JSON: {"summary": "2-3 sentence digest text", "highlight": "the most interesting dish name or theme from this week", "encouragement": "short motivational line for cooking next week"}` }],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
+  return JSON.parse(data.choices[0].message.content);
+}
