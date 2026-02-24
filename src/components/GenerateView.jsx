@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import DailyChallengeCard from './DailyChallengeCard.jsx';
 import { Zap, ShoppingBag, Shuffle, X, Ban, UtensilsCrossed, ListOrdered, Dices, FileText, Clock } from 'lucide-react';
 import IngredientInput from './IngredientInput.jsx';
 import SelectorGroup from './SelectorGroup.jsx';
@@ -338,6 +339,7 @@ export default function GenerateView({
         </div>
       ) : (
       <>
+      <DailyChallengeCard onUseIngredient={(ing) => addIngredient(ing)} />
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
           <h2 className="text-2xl sm:text-3xl font-bold">What&apos;s in your pantry?</h2>

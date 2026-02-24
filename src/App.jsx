@@ -15,6 +15,7 @@ import { useRecipeHistory } from './hooks/useRecipeHistory.js';
 import { useGamification } from './hooks/useGamification.js';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
 import { scanImageForIngredients, generateRecipe, generateSuggestions, generateVariant, importRecipe, generatePairingSuggestions, generateAutoTags, generateRemix, generateHistoricalRecipe } from './lib/groq.js';
+import { getDailyChallengeIngredient, getChallengeState, markChallengeComplete, isChallengeCompletedToday } from './lib/challenges.js';
 import { buildImageUrl } from './lib/pollinations.js';
 import { getRandomSurpriseIngredients } from './lib/ingredients.js';
 import { buildRecipePrompt, buildSuggestionsPrompt, buildDishPrompt, buildSimilarPrompt, buildImportPrompt, buildRemixPrompt, buildHistoricalPrompt, buildRestaurantPrompt } from './lib/prompts.js';
@@ -277,6 +278,18 @@ export default function App() {
 
       gamification.recordRecipe(prefs.cuisine, prefs.diet, result.difficulty);
       triggerBadgeCheck();
+
+      // Daily challenge check
+      const challengeIng = getDailyChallengeIngredient();
+      const challengeState = getChallengeState();
+      if (!isChallengeCompletedToday(challengeState)) {
+        const ingList = (result.ingredients || []).join(' ').toLowerCase();
+        if (ingList.includes(challengeIng.toLowerCase())) {
+          const newState = markChallengeComplete(challengeState);
+          gamification.recordChallengeComplete(newState.streak);
+          triggerBadgeCheck();
+        }
+      }
 
       setIsGeneratingImage(true);
       const imgUrl = buildImageUrl(result.name, result.description, prefs.imageStyle);
@@ -627,6 +640,35 @@ export default function App() {
     }
   };
 
+  // --- Leftover Transformer ---
+  const handleLeftoverGenerate = async (dishName, _originalRecipe) => {
+    setError(null);
+    setView('result');
+    setRecipe(null);
+    setRecipeImage(null);
+    setCurrentSavedId(null);
+    setCurrentRating(null);
+    setDupWarning('');
+    setPairings([]);
+    setIsGenerating(true);
+    try {
+      const prompt = `Create a full recipe for "${dishName}" that cleverly repurposes leftovers from ${_originalRecipe?.name || 'a previous meal'}. Use creative transformations of the leftover ingredients to make an entirely new dish. ${_originalRecipe?.ingredients ? `Original ingredients available: ${_originalRecipe.ingredients.slice(0, 6).join(', ')}.` : ''} Make it practical and delicious.`;
+      const result = await generateRecipe(prompt);
+      setRecipe(result);
+      setIsGenerating(false);
+      setIsGeneratingImage(true);
+      const imgUrl = buildImageUrl(result.name, result.description, prefs.imageStyle);
+      setRecipeImage(imgUrl);
+      generatePairingSuggestions(result.name, result.description).then(setPairings).catch(() => {});
+      gamification.recordRecipe(prefs.cuisine, prefs.diet, result.difficulty);
+      triggerBadgeCheck();
+    } catch (err) {
+      setError(err.message || "Couldn't generate leftover recipe.");
+      setIsGenerating(false);
+      setView('result');
+    }
+  };
+
   // --- Clone current recipe ---
   const handleCloneCurrentRecipe = () => {
     if (!recipe) return;
@@ -809,6 +851,7 @@ export default function App() {
               onCookDone={handleCookDone}
               persona={prefs.persona}
               onClone={handleCloneCurrentRecipe}
+              onLeftoverGenerate={handleLeftoverGenerate}
             />
             {/* Cook Tonight notification button */}
             {recipe && !isGenerating && (
@@ -862,7 +905,7 @@ export default function App() {
         )}
 
         {view === 'planner' && (
-          <MealPlanner history={history} />
+          <MealPlanner history={history} nutritionGoals={prefs.nutritionGoals} />
         )}
 
         {view === 'sync' && (

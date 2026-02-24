@@ -4,6 +4,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage.js';
 import { buildSmartShoppingList } from '../lib/shoppingList.js';
 import { generateMealPrepGuide } from '../lib/groq.js';
 import ShoppingIntegrations from './ShoppingIntegrations.jsx';
+import MealPlanNutrition from './MealPlanNutrition.jsx';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const MEALS = ['Breakfast', 'Lunch', 'Dinner'];
@@ -25,7 +26,7 @@ function buildShoppingList(plan, history) {
   return items;
 }
 
-export default function MealPlanner({ history, onClose }) {
+export default function MealPlanner({ history, onClose, nutritionGoals }) {
   // plan shape: { Monday: { Breakfast: entryId | null, ... }, ... }
   const [plan, setPlan] = useLocalStorage('meal_plan', {});
   const [showList, setShowList] = useState(false);
@@ -187,6 +188,9 @@ export default function MealPlanner({ history, onClose }) {
           </div>
         );
       })()}
+
+      {/* Nutrition Overview */}
+      <MealPlanNutrition plan={plan} history={history} nutritionGoals={nutritionGoals} />
 
       {/* Prep Guide */}
       {showPrepGuide && prepGuide && (

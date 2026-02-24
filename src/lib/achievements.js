@@ -119,6 +119,22 @@ export const BADGES = [
     hint: 'Hit the I\'m Feeling Lucky button.',
     check: (stats) => stats.surpriseUses >= 1,
   },
+  {
+    id: 'challenge_first',
+    name: 'Challenge Accepted',
+    icon: '🎯',
+    description: 'Completed your first daily cooking challenge.',
+    hint: 'Complete the Daily Challenge ingredient in a recipe.',
+    check: (stats) => (stats.challengesCompleted || 0) >= 1,
+  },
+  {
+    id: 'challenge_streak_5',
+    name: 'Unstoppable',
+    icon: '🏅',
+    description: 'Completed daily challenges 5 days in a row.',
+    hint: 'Complete the daily challenge 5 days in a row.',
+    check: (stats) => (stats.challengeStreak || 0) >= 5,
+  },
 ];
 
 export function checkNewBadges(stats, alreadyUnlocked) {

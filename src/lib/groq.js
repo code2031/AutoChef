@@ -284,3 +284,40 @@ export async function generateMealPrepGuide(meals) {
   });
   return JSON.parse(data.choices[0].message.content);
 }
+
+export async function generateLeftoverIdeas(recipe) {
+  const ingList = (recipe.ingredients || []).slice(0, 8).join(', ');
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Given leftovers from "${recipe.name}" (main ingredients: ${ingList}), suggest 3 creative next-day dishes that repurpose these leftovers. Be inventive — transform the original into something new and exciting.\n\nReturn JSON: {"ideas": [{"name": "Dish Name", "description": "1-2 sentence description", "keyTransformation": "how leftovers are repurposed e.g. shredded and used as filling"}]}` }],
+    temperature: 0.8,
+    response_format: { type: 'json_object' },
+  });
+  const parsed = JSON.parse(data.choices[0].message.content);
+  return parsed.ideas || [];
+}
+
+export async function generateCookTimeline(recipe) {
+  const steps = (recipe.instructions || []).map((s, i) => `Step ${i + 1}: ${s}`).join('\n');
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Analyze these cooking steps for "${recipe.name}" and create a Gantt-style timeline identifying which steps can happen in parallel (e.g. "while X simmers, chop Y").\n\nSteps:\n${steps}\n\nTotal cook time: ${recipe.cookTime || recipe.time || '30 min'}\n\nReturn JSON: {"steps": [{"stepNumber": 1, "label": "short label (max 20 chars)", "startMinute": 0, "durationMinutes": 5, "isParallel": false}]}. Use isParallel: true for steps that can happen simultaneously with the previous main step. Ensure startMinutes are realistic and non-overlapping for the same lane (main or parallel). All steps combined should cover the full cook time.` }],
+    temperature: 0.3,
+    response_format: { type: 'json_object' },
+  });
+  const parsed = JSON.parse(data.choices[0].message.content);
+  return parsed.steps || [];
+}
+
+export async function generateSubstitutionMatrix(recipe, dietaryFilter) {
+  const ingList = (recipe.ingredients || []).slice(0, 12);
+  const filterClause = dietaryFilter ? ` All substitutions must be ${dietaryFilter}.` : '';
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `For the recipe "${recipe.name}", provide 2 substitution options for each of these ingredients:${filterClause}\n\n${ingList.map((ing, i) => `${i + 1}. ${ing}`).join('\n')}\n\nReturn JSON: {"matrix": [{"original": "ingredient name (as listed)", "subs": [{"name": "substitute", "notes": "brief adjustment note"}]}]}. Return exactly one entry per ingredient listed above.` }],
+    temperature: 0.5,
+    response_format: { type: 'json_object' },
+  });
+  const parsed = JSON.parse(data.choices[0].message.content);
+  return parsed.matrix || [];
+}

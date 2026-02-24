@@ -65,6 +65,15 @@ export function useGamification() {
     updateStat('surpriseUses', n => n + 1);
   };
 
+  const recordChallengeComplete = (challengeStreak) => {
+    addPoints(25);
+    setStats(prev => ({
+      ...prev,
+      challengesCompleted: (prev.challengesCompleted || 0) + 1,
+      challengeStreak: challengeStreak || (prev.challengeStreak || 0) + 1,
+    }));
+  };
+
   const recordNewCuisine = () => {
     addPoints(15);
   };
@@ -90,6 +99,7 @@ export function useGamification() {
     recordSave,
     recordSurprise,
     recordNewCuisine,
+    recordChallengeComplete,
     checkAndUnlockBadges,
   };
 }

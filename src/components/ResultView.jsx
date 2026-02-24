@@ -8,6 +8,9 @@ import FlavorRadar from './FlavorRadar.jsx';
 import KnifeCutsGuide from './KnifeCutsGuide.jsx';
 import PlatingGuide from './PlatingGuide.jsx';
 import RegionalVariants from './RegionalVariants.jsx';
+import LeftoverTransformer from './LeftoverTransformer.jsx';
+import CookTimeline from './CookTimeline.jsx';
+import SubstitutionMatrix from './SubstitutionMatrix.jsx';
 import { generateRecipeStory, generateCommonMistakes, generateIngredientPrepTip, generateIngredientSubs } from '../lib/groq.js';
 import { getSeasonalIngredients } from '../lib/seasonal.js';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
@@ -275,6 +278,7 @@ export default function ResultView({
   rating, totalLikes, totalDislikes, showCookingMode, setShowCookingMode, isRegeneratingImage,
   onSave, onRegenerate, onRegenerateImage, onRate, onReset, onVariantReady, onSimilar,
   onSaveCookingNotes, allergies, tempUnit, nutritionGoals, pairings, onCookDone, persona,
+  onLeftoverGenerate,
 }) {
   const confettiFired = useRef(false);
   const [checked, setChecked] = useState({});
@@ -297,6 +301,7 @@ export default function ResultView({
   const [pantryResult, setPantryResult] = useState(null);
   const [showImperial, setShowImperial] = useState(false);
   const [bannedList] = useLocalStorage('pref_banned', []);
+  const [showSubMatrix, setShowSubMatrix] = useState(false);
 
   useEffect(() => {
     if (recipe && !isGenerating && !isGeneratingImage && !confettiFired.current) {
@@ -322,6 +327,7 @@ export default function ResultView({
       setIsSpeaking(false);
       setPantryOpen(false);
       setPantryResult(null);
+      setShowSubMatrix(false);
     }, 0);
   }, [recipe?.name]);
 
@@ -484,6 +490,7 @@ export default function ResultView({
       {showKnifeCut && <KnifeCutsGuide cut={showKnifeCut} onClose={()=>setShowKnifeCut(null)} />}
       {showPlating && recipe && <PlatingGuide recipe={recipe} onClose={()=>setShowPlating(false)} />}
       {showRegional && recipe && <RegionalVariants recipe={recipe} onClose={()=>setShowRegional(false)} />}
+      {showSubMatrix && recipe && <SubstitutionMatrix recipe={recipe} onClose={()=>setShowSubMatrix(false)} />}
 
       {showCookingMode && (
         <CookingMode
@@ -602,6 +609,7 @@ export default function ResultView({
                       {showImperial ? '🔄 Metric' : '🔄 Imperial'}
                     </button>
                     <button onClick={handlePantryCheck} className={"px-2.5 py-1 rounded-lg text-xs font-medium transition-all "+(pantryOpen?"bg-green-500/20 text-green-400":"text-slate-500 hover:text-white bg-slate-800")}>🧺 Pantry</button>
+                    <button onClick={() => setShowSubMatrix(v => !v)} className={"px-2.5 py-1 rounded-lg text-xs font-medium transition-all "+(showSubMatrix?"bg-blue-500/20 text-blue-400":"text-slate-500 hover:text-white bg-slate-800")} title="Ingredient Substitution Matrix">🔄 Subs Map</button>
                     <button onClick={copyIngList} className="p-1.5 rounded-lg text-slate-500 hover:text-white transition-all">{copiedIngredients?<Check size={14} className="text-green-400" />:<Copy size={14} />}</button>
                   </div>
                 </div>
@@ -703,6 +711,8 @@ export default function ResultView({
               </div>
             )}
 
+            <CookTimeline key={recipe.name} recipe={recipe} />
+
             <div className="p-5 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex gap-4">
               <Sparkles className="text-blue-400 flex-shrink-0 mt-0.5" size={18} />
               <div>
@@ -726,6 +736,10 @@ export default function ResultView({
               ))}
             </div>
           </div>
+        )}
+
+        {isSaved && onLeftoverGenerate && (
+          <LeftoverTransformer key={recipe.name} recipe={recipe} onGenerateLeftover={onLeftoverGenerate} />
         )}
 
         <button onClick={onReset} className="text-slate-500 text-sm hover:text-white transition-colors">&larr; Cook something else</button>
