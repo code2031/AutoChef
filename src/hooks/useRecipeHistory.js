@@ -13,6 +13,7 @@ export function useRecipeHistory() {
       imageUrl,
       ingredients,
       isFavourite: false,
+      wantToCook: false,
       rating: null,
       tags: [],
       notes: '',
@@ -68,10 +69,32 @@ export function useRecipeHistory() {
     );
   };
 
+  const toggleWantToCook = (id) => {
+    setHistory(prev =>
+      prev.map(entry => entry.id === id ? { ...entry, wantToCook: !entry.wantToCook } : entry)
+    );
+  };
+
   const incrementCookCount = (id) => {
     setHistory(prev =>
       prev.map(entry => entry.id === id ? { ...entry, cookCount: (entry.cookCount || 0) + 1 } : entry)
     );
+  };
+
+  const cloneRecipe = (id) => {
+    const original = history.find(e => e.id === id);
+    if (!original) return null;
+    const cloned = {
+      ...original,
+      id: Date.now(),
+      savedAt: new Date().toISOString(),
+      recipe: { ...original.recipe, name: (original.recipe?.name || 'Recipe') + ' (Copy)' },
+      cookCount: 0,
+      versions: [],
+      wantToCook: false,
+    };
+    setHistory(prev => [cloned, ...prev].slice(0, 50));
+    return cloned.id;
   };
 
   const isDuplicate = (recipeName) => {
@@ -124,6 +147,8 @@ export function useRecipeHistory() {
     setNotes,
     isDuplicate,
     incrementCookCount,
+    cloneRecipe,
+    toggleWantToCook,
     updateRecipeWithVersion,
     collections,
     createCollection,

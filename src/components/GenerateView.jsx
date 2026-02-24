@@ -4,8 +4,11 @@ import IngredientInput from './IngredientInput.jsx';
 import SelectorGroup from './SelectorGroup.jsx';
 import PantryDrawer from './PantryDrawer.jsx';
 import HistoricalRecipe from './HistoricalRecipe.jsx';
+import PantryMatcher from './PantryMatcher.jsx';
 import { getSeasonalIngredients } from '../lib/seasonal.js';
 import { getRandomSurpriseIngredients, INGREDIENT_SUGGESTIONS } from '../lib/ingredients.js';
+import { useLocalStorage } from '../hooks/useLocalStorage.js';
+import { generateSmartRecommendation } from '../lib/groq.js';
 
 const CUISINE_COLORS = {
   Italian: '#ef4444', Asian: '#f59e0b', Mexican: '#22c55e',
@@ -26,7 +29,7 @@ const MOOD_OPTIONS = [
 
 // Ingredient of the week: derived from week number
 const INGREDIENT_OF_WEEK = ['truffle', 'saffron', 'miso', 'tahini', 'sumac', 'harissa', 'yuzu', 'gochujang',
-  'preserved lemon', 'tamarind', 'shiso', 'pomegranate', 'za\'atar', 'berbere', 'ras el hanout', 'smoked paprika',
+  'preserved lemon', 'tamarind', 'shiso', 'pomegranate', "za'atar", 'berbere', 'ras el hanout', 'smoked paprika',
   'mirin', 'fish sauce', 'black garlic', 'elderflower', 'rose water', 'cardamom', 'star anise', 'lemongrass',
   'galangal', 'makrut lime', 'wakame', 'bonito', 'dashi', 'white miso', 'mirin', 'ponzu', 'chili crisp'];
 
@@ -38,16 +41,25 @@ function getIngredientOfWeek() {
 export default function GenerateView({
   ingredients, setIngredients,
   prefs, onGenerate, onDishGenerate, onLucky, onImport, isGenerating, isScanning, onScan, error,
-  recentIngredients, onHistoricalGenerate, onABGenerate,
+  recentIngredients, onHistoricalGenerate, onABGenerate, onRestaurantGenerate,
+  history, onSelectHistoryEntry, onGenerateFromPantry,
 }) {
-  const [mode, setMode] = useState('ingredients'); // 'ingredients' | 'dish' | 'import' | 'historical'
+  const [mode, setMode] = useState('ingredients'); // 'ingredients' | 'dish' | 'import' | 'historical' | 'recreate'
   const [dishInput, setDishInput] = useState('');
   const [importText, setImportText] = useState('');
   const [showPantry, setShowPantry] = useState(false);
+  const [showPantryMatcher, setShowPantryMatcher] = useState(false);
   const [showBanned, setShowBanned] = useState(false);
   const [bannedInput, setBannedInput] = useState('');
+  const [smartRec, setSmartRec] = useState(null);
+  const [isRecommending, setIsRecommending] = useState(false);
+  const [restaurantInput, setRestaurantInput] = useState('');
+  const [restaurantDish, setRestaurantDish] = useState('');
   const fileInputRef = useRef(null);
   const seasonal = getSeasonalIngredients();
+
+  const [rawPantry] = useLocalStorage('pantry_items', []);
+  const pantryNames = rawPantry.map(p => typeof p === 'string' ? p : (p.name || '')).filter(Boolean);
 
   const {
     diet, setDiet, vibe, setVibe, cuisine, setCuisine,
@@ -84,6 +96,23 @@ export default function GenerateView({
     if (clean && !banned.includes(clean)) {
       toggleBanned(clean);
       setBannedInput('');
+    }
+  };
+
+  const handleSmartRecommend = async () => {
+    setIsRecommending(true);
+    setSmartRec(null);
+    try {
+      const hours = new Date().getHours();
+      const timeOfDay = hours < 11 ? 'morning (breakfast time)' : hours < 15 ? 'lunchtime' : hours < 18 ? 'afternoon' : 'evening (dinner time)';
+      const rec = await generateSmartRecommendation(
+        recentIngredients || [],
+        pantryNames,
+        timeOfDay
+      );
+      setSmartRec(rec);
+    } catch { /* ignore */ } finally {
+      setIsRecommending(false);
     }
   };
 
@@ -170,10 +199,13 @@ export default function GenerateView({
     if (clean && !isGenerating) onDishGenerate(clean);
   };
 
+  // Keep INGREDIENT_SUGGESTIONS in scope to satisfy the import
+  const _INGREDIENT_SUGGESTIONS = INGREDIENT_SUGGESTIONS;
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500" style={accentStyle}>
       {/* Mode tabs */}
-      <div className="flex gap-1 bg-slate-900 border border-white/5 rounded-2xl p-1 w-fit">
+      <div className="flex flex-wrap gap-1 bg-slate-900 border border-white/5 rounded-2xl p-1 w-fit">
         <button
           onClick={() => setMode('ingredients')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${mode === 'ingredients' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
@@ -201,6 +233,12 @@ export default function GenerateView({
         >
           <Clock size={15} />
           Historical
+        </button>
+        <button
+          onClick={() => setMode('recreate')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${mode === 'recreate' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}
+        >
+          🍽️ Recreate
         </button>
       </div>
 
@@ -264,6 +302,40 @@ export default function GenerateView({
         </div>
       ) : mode === 'historical' ? (
         <HistoricalRecipe onGenerate={onHistoricalGenerate} isGenerating={isGenerating} />
+      ) : mode === 'recreate' ? (
+        <div className="space-y-5">
+          <div className="space-y-1">
+            <h2 className="text-2xl sm:text-3xl font-bold">Recreate a Restaurant Dish</h2>
+            <p className="text-slate-400 text-sm">Enter a restaurant name and dish — get a home-cook recreation.</p>
+          </div>
+          <div className="space-y-3">
+            <input
+              value={restaurantInput}
+              onChange={e => setRestaurantInput(e.target.value)}
+              placeholder="Restaurant name (e.g. Nobu, McDonald's, Nando's...)"
+              className="w-full bg-slate-900 border border-white/10 rounded-2xl px-5 py-4 text-base outline-none focus:border-purple-500/60 text-white placeholder:text-slate-600 transition-all"
+            />
+            <input
+              value={restaurantDish}
+              onChange={e => setRestaurantDish(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && restaurantInput.trim() && restaurantDish.trim() && !isGenerating && onRestaurantGenerate) onRestaurantGenerate(restaurantInput.trim(), restaurantDish.trim()); }}
+              placeholder="Dish name (e.g. Black Cod Miso, Big Mac, Peri-Peri Chicken...)"
+              className="w-full bg-slate-900 border border-white/10 rounded-2xl px-5 py-4 text-base outline-none focus:border-purple-500/60 text-white placeholder:text-slate-600 transition-all"
+            />
+            <button
+              onClick={() => { if (restaurantInput.trim() && restaurantDish.trim() && !isGenerating && onRestaurantGenerate) onRestaurantGenerate(restaurantInput.trim(), restaurantDish.trim()); }}
+              disabled={!restaurantInput.trim() || !restaurantDish.trim() || isGenerating || !onRestaurantGenerate}
+              className={`w-full py-5 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${restaurantInput.trim() && restaurantDish.trim() && !isGenerating ? 'bg-purple-600 hover:bg-purple-700 shadow-xl shadow-purple-500/20 text-white' : 'bg-slate-800 text-slate-600 cursor-not-allowed'}`}
+            >
+              {isGenerating ? 'Recreating...' : '🏪 Recreate This Dish'}
+            </button>
+          </div>
+          {error && (
+            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center">
+              {error}
+            </div>
+          )}
+        </div>
       ) : (
       <>
       <div className="flex items-start justify-between gap-4">
@@ -287,6 +359,16 @@ export default function GenerateView({
             <ShoppingBag size={16} />
             <span className="hidden sm:inline">Pantry</span>
           </button>
+          {(history || []).length > 0 && (
+            <button
+              onClick={() => setShowPantryMatcher(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 border border-white/5 text-slate-400 text-sm hover:border-white/20 hover:text-white transition-all shrink-0"
+              title="What can I make from my pantry?"
+            >
+              🧺
+              <span className="hidden sm:inline">What Can I Make?</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -372,6 +454,35 @@ export default function GenerateView({
           ))}
         </div>
       )}
+
+      {/* Smart Recommender */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <button
+          onClick={handleSmartRecommend}
+          disabled={isRecommending}
+          className="flex items-center gap-2 px-4 py-2 bg-violet-500/10 border border-violet-500/20 text-violet-400 rounded-xl text-sm hover:bg-violet-500/20 transition-all"
+        >
+          {isRecommending ? (
+            <span className="w-3 h-3 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin inline-block" />
+          ) : <span>🤔</span>}
+          {isRecommending ? 'Thinking...' : 'What should I cook?'}
+        </button>
+        {smartRec && smartRec.dishName && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-violet-500/10 border border-violet-500/20 rounded-xl">
+            <span className="text-sm text-violet-300 font-medium">💡 {smartRec.dishName}</span>
+            <span className="text-xs text-slate-500">— {smartRec.reason}</span>
+            <button
+              onClick={() => { setDishInput(smartRec.dishName); setMode('dish'); setSmartRec(null); }}
+              className="text-xs px-2 py-1 bg-violet-500/20 text-violet-300 rounded-lg hover:bg-violet-500/30 transition-all ml-1"
+            >
+              → Make it
+            </button>
+            <button onClick={() => setSmartRec(null)} className="text-slate-600 hover:text-slate-400 transition-colors">
+              <X size={12} />
+            </button>
+          </div>
+        )}
+      </div>
 
       <IngredientInput
         ingredients={ingredients}
@@ -550,6 +661,14 @@ export default function GenerateView({
             items.forEach(item => addIngredient(item));
           }}
           onClose={() => setShowPantry(false)}
+        />
+      )}
+      {showPantryMatcher && (
+        <PantryMatcher
+          history={history || []}
+          onSelect={onSelectHistoryEntry || (() => {})}
+          onGenerateFromPantry={onGenerateFromPantry || (() => {})}
+          onClose={() => setShowPantryMatcher(false)}
         />
       )}
       </>

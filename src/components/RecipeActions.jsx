@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, Share2, Printer, QrCode, RotateCcw, ThumbsUp, ThumbsDown, Image as ImageIcon, Loader2, Download, Code, MessageSquare, Languages, Leaf, DollarSign, ChevronDown, ShoppingCart, Shuffle, BookOpen, Flame, CreditCard, Copy, Check, X, Users, ChefHat, Globe } from 'lucide-react';
-import { generateVariant, generateSecretIngredient, generateChefLetter, generateRecipeHaiku, generateBatchPrep } from '../lib/groq.js';
+import { generateVariant, generateSecretIngredient, generateChefLetter, generateRecipeHaiku, generateBatchPrep, generateFlavorPairings } from '../lib/groq.js';
 import { buildVariantPrompt } from '../lib/prompts.js';
 async function buildLongUrl(recipe, imageUrl) {
   const payload = JSON.stringify({ r: recipe, i: imageUrl || "" });
@@ -30,7 +30,7 @@ async function shortenUrl(longUrl) {
 export default function RecipeActions({
   recipe, recipeImage, isSaved, isAutoTagging, rating, totalLikes, totalDislikes,
   onSave, onRegenerate, onRegenerateImage, onRate, onDownload, isRegeneratingImage,
-  onVariantReady, onSimilar, onShoppingList, persona, onShowPlating, onShowRegional,
+  onVariantReady, onSimilar, onShoppingList, persona, onShowPlating, onShowRegional, onClone,
 }) {
   const [showQR, setShowQR] = useState(false);
   const [shareMsg, setShareMsg] = useState("");
@@ -45,6 +45,9 @@ export default function RecipeActions({
   const [chefLetter, setChefLetter] = useState({ loading: false, data: null });
   const [haiku, setHaiku] = useState({ loading: false, data: null, copied: false });
   const [batchResult, setBatchResult] = useState({ loading: false, data: null, servings: 20, inputShown: false });
+  const [flavorPairs, setFlavorPairs] = useState(null);
+  const [isLoadingPairs, setIsLoadingPairs] = useState(false);
+  const [cardTheme, setCardTheme] = useState('orange');
 
   useEffect(() => {
     buildLongUrl(recipe, recipeImage).then(async (longUrl) => {
@@ -100,6 +103,14 @@ export default function RecipeActions({
   };
 
   const handleExportCard = async () => {
+    const THEMES = {
+      orange: { main: '#f97316', dark: '#ea580c', bg: '#1c1008' },
+      blue: { main: '#3b82f6', dark: '#2563eb', bg: '#0c1628' },
+      green: { main: '#22c55e', dark: '#16a34a', bg: '#0c1e10' },
+      purple: { main: '#8b5cf6', dark: '#7c3aed', bg: '#150e25' },
+      red: { main: '#ef4444', dark: '#dc2626', bg: '#1e0c0c' },
+    };
+    const theme = THEMES[cardTheme] || THEMES.orange;
     const W = 800;
     const FRONT_H = 500;
     const BACK_H = 660;
@@ -128,8 +139,8 @@ export default function RecipeActions({
     // ── FRONT ────────────────────────────────────────────────
     ctx.fillStyle = "#020617";
     ctx.fillRect(0, 0, W, FRONT_H);
-    // Orange left accent bar
-    ctx.fillStyle = "#f97316";
+    // Accent bar (themed)
+    ctx.fillStyle = theme.main;
     ctx.fillRect(0, 0, 8, FRONT_H);
 
     // Dish photo (right half)
@@ -172,13 +183,13 @@ export default function RecipeActions({
       ctx.beginPath();
       ctx.roundRect(30, chipY - 15, 240, 26, 8);
       ctx.fill();
-      ctx.fillStyle = "#f97316";
+      ctx.fillStyle = theme.main;
       ctx.fillText(label + "  " + String(value).slice(0, 28), 44, chipY + 5);
       chipY += 36;
     });
 
     // Branding
-    ctx.fillStyle = "#f97316";
+    ctx.fillStyle = theme.main;
     ctx.font = "bold 11px sans-serif";
     ctx.fillText("AutoChef AI", 30, FRONT_H - 22);
     ctx.fillStyle = "#334155";
@@ -186,14 +197,14 @@ export default function RecipeActions({
     ctx.fillText("autochef.app", 110, FRONT_H - 22);
 
     // ── DIVIDER ──────────────────────────────────────────────
-    ctx.fillStyle = "#f97316";
+    ctx.fillStyle = theme.main;
     ctx.fillRect(0, FRONT_H, W, 4);
 
     // ── BACK ─────────────────────────────────────────────────
     const BY = FRONT_H + 4;
     ctx.fillStyle = "#0f172a";
     ctx.fillRect(0, BY, W, BACK_H);
-    ctx.fillStyle = "#f97316";
+    ctx.fillStyle = theme.main;
     ctx.fillRect(0, BY, 8, BACK_H);
 
     // Vertical column divider
@@ -205,7 +216,7 @@ export default function RecipeActions({
     const COL_R = W / 2 + 24;
     const COL_W = W / 2 - 56;
 
-    ctx.fillStyle = "#f97316";
+    ctx.fillStyle = theme.main;
     ctx.font = "bold 15px sans-serif";
     ctx.fillText("INGREDIENTS", COL_L, BY + 48);
 
@@ -216,7 +227,7 @@ export default function RecipeActions({
     for (let i = 0; i < maxIngs; i++) {
       if (ingY > BY + BACK_H - 28) break;
       // Bullet
-      ctx.fillStyle = "#f97316";
+      ctx.fillStyle = theme.main;
       ctx.beginPath();
       ctx.arc(COL_L + 4, ingY - 3, 3, 0, Math.PI * 2);
       ctx.fill();
@@ -231,7 +242,7 @@ export default function RecipeActions({
     }
 
     // ── RIGHT: STEPS ─────────────────────────────────────────
-    ctx.fillStyle = "#f97316";
+    ctx.fillStyle = theme.main;
     ctx.font = "bold 15px sans-serif";
     ctx.fillText("STEPS", COL_R, BY + 48);
 
@@ -243,7 +254,7 @@ export default function RecipeActions({
       if (stepY > BY + BACK_H - 28) break;
 
       // Step circle
-      ctx.fillStyle = "#f97316";
+      ctx.fillStyle = theme.main;
       ctx.beginPath();
       ctx.arc(COL_R + 10, stepY - 3, 9, 0, Math.PI * 2);
       ctx.fill();
@@ -314,6 +325,16 @@ export default function RecipeActions({
     setTimeout(() => setHaiku(prev => ({ ...prev, copied: false })), 2000);
   };
 
+  const handleFlavorPairs = async () => {
+    setIsLoadingPairs(true);
+    try {
+      const pairs = await generateFlavorPairings(recipe);
+      setFlavorPairs(pairs);
+    } catch { /* ignore */ } finally {
+      setIsLoadingPairs(false);
+    }
+  };
+
   const qrImageUrl = qrShortUrl
     ? "https://api.qrserver.com/v1/create-qr-code/?size=200x200&ecc=L&data="+encodeURIComponent(qrShortUrl)
     : "";
@@ -353,6 +374,65 @@ export default function RecipeActions({
           <button onClick={()=>{const ns={...batchResult,inputShown:!batchResult.inputShown};setBatchResult(ns);}} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-green-400 text-sm font-medium transition-all"><Users size={16} />Batch Prep</button>
           {onShowPlating && <button onClick={onShowPlating} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-orange-400 text-sm font-medium transition-all"><ChefHat size={16} />Plating Guide</button>}
           {onShowRegional && <button onClick={onShowRegional} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-teal-400 text-sm font-medium transition-all"><Globe size={16} />Regional Variants</button>}
+
+          {/* Flavor Pairings */}
+          <button
+            onClick={handleFlavorPairs}
+            disabled={isLoadingPairs}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl hover:bg-indigo-500/15 transition-all text-sm font-medium"
+          >
+            {isLoadingPairs ? <div className="w-4 h-4 border-2 border-indigo-400/30 border-t-indigo-400 rounded-full animate-spin" /> : '🍷'}
+            {isLoadingPairs ? 'Finding pairings...' : 'Flavor Pairing Explorer'}
+          </button>
+
+          {/* Clone Recipe */}
+          {onClone && (
+            <button
+              onClick={() => { onClone(); }}
+              className="w-full flex items-center gap-3 px-4 py-3 bg-slate-800 border border-white/10 text-slate-300 rounded-xl hover:border-white/20 hover:text-white transition-all text-sm font-medium"
+            >
+              📋 Clone Recipe
+            </button>
+          )}
+          {/* Download as HTML */}
+          <button
+            onClick={() => {
+              if (!recipe) return;
+              const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${recipe.name}</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:0 20px;background:#fafaf8;color:#1a1a1a}h1{color:#c2410c;border-bottom:3px solid #f97316;padding-bottom:10px}h2{color:#9a3412;margin-top:30px}li{margin:8px 0;line-height:1.6}p{line-height:1.7}.meta{display:flex;gap:20px;background:#fff7ed;padding:15px;border-radius:8px;border-left:4px solid #f97316;margin:20px 0;flex-wrap:wrap}.meta span{font-size:14px}strong{color:#c2410c}.tip{background:#fffbeb;border:1px solid #fcd34d;padding:15px;border-radius:8px;margin-top:20px}</style></head><body><h1>${recipe.name}</h1><p>${recipe.description || ''}</p><div class="meta"><span>⏱ ${recipe.time || ''}</span><span>👨‍🍳 ${recipe.difficulty || ''}</span><span>🔥 ${recipe.calories || ''} cal/serving</span><span>🍽 ${recipe.servings || ''} servings</span></div><h2>Ingredients</h2><ul>${(recipe.ingredients || []).map(i => `<li>${i}</li>`).join('')}</ul><h2>Instructions</h2><ol>${(recipe.instructions || []).map(i => `<li>${i}</li>`).join('')}</ol>${recipe.chefTip ? `<div class="tip"><strong>Chef's Tip:</strong> ${recipe.chefTip}</div>` : ''}</body></html>`;
+              const blob = new Blob([html], { type: 'text/html' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `${(recipe.name || 'recipe').replace(/[^a-z0-9]/gi, '-').toLowerCase()}.html`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-slate-800 border border-white/10 text-slate-300 rounded-xl hover:border-white/20 hover:text-white transition-all text-sm font-medium"
+          >
+            ⬇️ Save as HTML (Offline)
+          </button>
+
+          {/* Card Theme Picker */}
+          <div className="space-y-2">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Export Card Theme</p>
+            <div className="flex gap-2 flex-wrap">
+              {[
+                { id: 'orange', label: '🟠 Orange', main: '#f97316', bg: '#1c1008' },
+                { id: 'blue', label: '🔵 Blue', main: '#3b82f6', bg: '#0c1628' },
+                { id: 'green', label: '🟢 Green', main: '#22c55e', bg: '#0c1e10' },
+                { id: 'purple', label: '🟣 Purple', main: '#8b5cf6', bg: '#150e25' },
+                { id: 'red', label: '🔴 Red', main: '#ef4444', bg: '#1e0c0c' },
+              ].map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setCardTheme(t.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs border transition-all ${cardTheme === t.id ? 'border-white/40 text-white bg-white/10' : 'border-white/10 text-slate-400 hover:border-white/20'}`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -418,6 +498,21 @@ export default function RecipeActions({
             </div>
           </div>
           <p className="text-slate-200 font-medium leading-relaxed whitespace-pre-line text-center py-2">{haiku.data}</p>
+        </div>
+      )}
+
+      {flavorPairs && flavorPairs.length > 0 && (
+        <div className="space-y-2 p-4 bg-indigo-500/5 border border-indigo-500/15 rounded-xl">
+          <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Perfect Flavor Pairings</p>
+          {flavorPairs.map((p, i) => (
+            <div key={i} className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-white capitalize">{p.ingredient}</span>
+                <span className="text-xs px-2 py-0.5 bg-indigo-500/20 text-indigo-300 rounded-full">{p.flavor}</span>
+              </div>
+              <p className="text-xs text-slate-400">{p.whyItWorks}</p>
+            </div>
+          ))}
         </div>
       )}
 

@@ -292,3 +292,32 @@ Return ONLY a JSON object (no markdown) with this exact structure:
   "smartSub": "One smart substitution"
 }`;
 }
+
+export function buildRestaurantPrompt({ restaurant, dish, diet, allergies, banned, customPrompt }) {
+  const allergyText = allergies && allergies.length > 0 ? `Strictly avoid these allergens: ${allergies.join(', ')}.` : '';
+  const bannedText = banned && banned.length > 0 ? `Do not use these ingredients: ${banned.join(', ')}.` : '';
+  const customText = customPrompt ? customPrompt.trim() : '';
+  return `You are AutoChef. Recreate the home-cook version of "${dish}" as served at ${restaurant} (or in the style of that restaurant). Research the likely flavor profile, key techniques, and signature elements of that dish, and create an authentic recreation a home cook can make.
+Dietary preference: ${diet || 'none'}.
+${allergyText}
+${bannedText}
+${customText}
+
+Return a JSON object with this exact structure (no markdown):
+{
+  "name": "${dish} (${restaurant}-style)",
+  "prepTime": "Prep time",
+  "cookTime": "Cook time",
+  "time": "Total time",
+  "difficulty": "Easy/Medium/Hard",
+  "calories": "Estimated per serving",
+  "servings": 2,
+  "description": "Brief appetizing description noting it's a home recreation of the restaurant classic",
+  "ingredients": ["item 1 with quantity"],
+  "instructions": ["step 1", "step 2"],
+  "nutrition": { "protein": "Xg", "carbs": "Xg", "fat": "Xg", "fiber": "Xg" },
+  "winePairing": "A drink that complements the dish",
+  "chefTip": "The key secret to nailing this restaurant-style at home",
+  "smartSub": "One smart ingredient substitution"
+}`;
+}

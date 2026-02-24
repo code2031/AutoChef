@@ -9,7 +9,8 @@ const FLAVOR_KEYWORDS = {
   Fresh: ['basil', 'parsley', 'cilantro', 'mint', 'dill', 'chive', 'cucumber', 'zucchini', 'lettuce', 'spinach', 'arugula', 'celery', 'fennel', 'herb', 'spring onion', 'microgreen', 'watercress'],
 };
 
-function scoreRecipe(recipe) {
+// eslint-disable-next-line react-refresh/only-export-components
+export function scoreRecipe(recipe) {
   const allText = [
     ...(recipe.ingredients || []),
     recipe.name || '',

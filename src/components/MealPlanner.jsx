@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { X, ShoppingCart, Trash2, ChevronDown, ChevronUp, Check, Plus, Copy } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, ShoppingCart, Trash2, ChevronDown, ChevronUp, Check, Plus, Copy, Loader2 } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 import { buildSmartShoppingList } from '../lib/shoppingList.js';
+import { generateMealPrepGuide } from '../lib/groq.js';
+import ShoppingIntegrations from './ShoppingIntegrations.jsx';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const MEALS = ['Breakfast', 'Lunch', 'Dinner'];
@@ -29,6 +31,9 @@ export default function MealPlanner({ history, onClose }) {
   const [showList, setShowList] = useState(false);
   const [listCopied, setListCopied] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null); // tap-to-assign selection
+  const [prepGuide, setPrepGuide] = useState(null);
+  const [isLoadingPrepGuide, setIsLoadingPrepGuide] = useState(false);
+  const [showPrepGuide, setShowPrepGuide] = useState(false);
   const [expandedDays, setExpandedDays] = useState(() => {
     const d = new Date();
     const idx = (d.getDay() + 6) % 7; // Mon=0 … Sun=6
@@ -65,6 +70,42 @@ export default function MealPlanner({ history, onClose }) {
 
   const getEntry = (entryId) => history.find(h => h.id === entryId) || null;
 
+  const totalAssigned = Object.values(plan).flatMap(d => Object.values(d)).filter(Boolean).length;
+
+  // Reset prep guide when plan changes
+  useEffect(() => {
+    setTimeout(() => setPrepGuide(null), 0);
+  }, [plan]);
+
+  const handleGeneratePrepGuide = async () => {
+    const meals = [];
+    DAYS.forEach(day => {
+      MEALS.forEach(meal => {
+        const entryId = plan[day]?.[meal];
+        if (entryId) {
+          const entry = getEntry(entryId);
+          if (entry?.recipe) {
+            meals.push({
+              day,
+              mealType: meal,
+              recipeName: entry.recipe.name,
+              ingredients: entry.recipe.ingredients || [],
+            });
+          }
+        }
+      });
+    });
+    if (meals.length === 0) return;
+    setIsLoadingPrepGuide(true);
+    try {
+      const guide = await generateMealPrepGuide(meals);
+      setTimeout(() => setPrepGuide(guide), 0);
+      setShowPrepGuide(true);
+    } catch { /* ignore */ } finally {
+      setIsLoadingPrepGuide(false);
+    }
+  };
+
   const shoppingList = buildShoppingList(plan, history);
 
   return (
@@ -83,7 +124,17 @@ export default function MealPlanner({ history, onClose }) {
               : 'Tap a recipe, then tap a meal slot to assign it'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {totalAssigned >= 3 && (
+            <button
+              onClick={handleGeneratePrepGuide}
+              disabled={isLoadingPrepGuide}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all disabled:opacity-50 ${showPrepGuide && prepGuide ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-slate-800 border border-white/10 text-slate-400 hover:text-white'}`}
+            >
+              {isLoadingPrepGuide ? <Loader2 size={15} className="animate-spin" /> : '🗓️'}
+              {isLoadingPrepGuide ? 'Generating...' : 'Prep Guide'}
+            </button>
+          )}
           {shoppingList.length > 0 && (
             <button
               onClick={() => setShowList(v => !v)}
@@ -132,9 +183,52 @@ export default function MealPlanner({ history, onClose }) {
                 </ul>
               </div>
             ))}
+            <ShoppingIntegrations items={allIngredients} />
           </div>
         );
       })()}
+
+      {/* Prep Guide */}
+      {showPrepGuide && prepGuide && (
+        <div className="bg-slate-900/60 border border-purple-500/20 rounded-2xl p-5 space-y-4 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-purple-400 flex items-center gap-2">🗓️ Meal Prep Guide</h3>
+            <button onClick={() => setShowPrepGuide(false)} className="text-slate-400 hover:text-white text-xs transition-colors">✕</button>
+          </div>
+          {prepGuide.prepDays && prepGuide.prepDays.length > 0 && (
+            <div className="space-y-3">
+              {prepGuide.prepDays.map((dayPlan, i) => (
+                <div key={i} className="space-y-1.5">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{dayPlan.day}</p>
+                  <ul className="space-y-1">
+                    {(dayPlan.tasks || []).map((task, j) => (
+                      <li key={j} className="flex items-start gap-2 text-sm text-slate-300">
+                        <span className="text-slate-500 mt-0.5 shrink-0">☐</span>
+                        {task}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+          {prepGuide.makeAheadItems && prepGuide.makeAheadItems.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Make Ahead</p>
+              <div className="flex flex-wrap gap-2">
+                {prepGuide.makeAheadItems.map((item, i) => (
+                  <span key={i} className="px-2.5 py-1 bg-purple-500/10 border border-purple-500/15 text-purple-300 rounded-full text-xs">{item}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          {prepGuide.shoppingTip && (
+            <div className="p-3 bg-slate-800/40 rounded-xl">
+              <p className="text-xs text-slate-400"><span className="text-amber-400 font-medium">💡 Shopping tip:</span> {prepGuide.shoppingTip}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
         {/* Saved recipes sidebar */}

@@ -107,22 +107,23 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Recipe Collections** — Organise saved recipes into named cookbooks / folders
 - **Recipe Remix** — Select 2 recipes from history; AI fuses them into a creative fusion dish
 - **Cook Count** — "Done!" in Cooking Mode increments a per-recipe counter shown on history cards; Stats highlights your most-cooked dish
-- **Cooking Stats Dashboard** — Stats tab in History: **Signature Dish** banner (most-cooked recipe with image, shown when cooked ≥2×), summary cards, top ingredients chart, cuisine breakdown, weekly activity, difficulty distribution; **Export CSV** downloads all data as a spreadsheet
+- **Cooking Stats Dashboard** — Stats tab in History: **Signature Dish** banner (most-cooked recipe with image, shown when cooked ≥2×), summary cards, top ingredients chart, cuisine breakdown, weekly activity, difficulty distribution, **Flavor DNA** tab (aggregate radar chart of all cooked recipes, dominant flavors, blind spots, and a diversity score); **Export CSV** downloads all data as a spreadsheet
 - **Difficulty Progression Chart** — SVG polyline showing your last 20 recipes plotted by difficulty (Easy→Hard) over time, colour-coded per level
 - **Weekly Digest** — AI-generated weekly recap of your cooking activity: highlights, encouragement, and a personal summary
 - **Recipe Clone** — Clone any saved recipe (adds a "(Copy)" suffix) to create a variant without overwriting the original
 - **Side-by-Side Recipe Comparison** — Select 2 history entries and compare them across all stats (time, nutrition, difficulty, ingredients) in a full modal table
 - **Cuisine Passport** — Visual stamp collection showing which of 8 global cuisines you've cooked; stamps unlock as you save recipes from each cuisine
 - **Cooking Journal** — Daily free-text diary attached to History; record observations, experiments, and notes over time
-- **Daily Food Log** — Log every meal with name and macros; see today's totals, goal progress bars (green/amber/red vs your daily targets), macro balance score, a collapsible 7-day average, and a hydration reminder calibrated to your calorie intake; quick-log chip pre-fills from your last generated recipe
+- **Daily Food Log** — Log every meal with name and macros; see today's totals, goal progress bars (green/amber/red vs your daily targets), macro balance score, a collapsible 7-day average, a **14-day calorie trend bar chart** (color-coded vs your goal with a dashed goal line), and a hydration reminder calibrated to your calorie intake; quick-log chip pre-fills from your last generated recipe
 - **Seasonal Recipe Calendar** — Browse in-season produce month by month; tap any ingredient to add it directly to your recipe inputs
 - **Random Recipe** — 🎲 Random button in History header instantly loads a random saved recipe
 - **Want-to-Cook Wishlist** — 🔖 Bookmark icon on every history card adds the recipe to a dedicated Wishlist tab for recipes you plan to cook next
 - **Pantry Analytics** — Toggle in the Pantry drawer: freshness distribution, expiring-soon count, and category breakdown
 - **Expiry Recipe Rush** — 🚨 button in Pantry drawer adds all items expiring within 3 days to the ingredient input so you can use them before they go off
 - **Weekly Grocery Budget** — Set a weekly budget in Settings; displayed in the Cooking Stats dashboard
-- **Multi-Recipe Shopping Merge** — Multi-select recipes from History and merge their ingredient lists into a single deduplicated, aisle-grouped smart shopping list
-- **Meal Planner** — Tap a saved recipe to select it, then tap any meal slot to assign it (Mon–Sun weekly grid, Breakfast / Lunch / Dinner); fully works on mobile and desktop; generates a combined smart shopping list for the whole week, deduplicated and grouped by supermarket aisle
+- **Multi-Recipe Shopping Merge** — Multi-select recipes from History and merge their ingredient lists into a single deduplicated, aisle-grouped smart shopping list; send directly to **Home Assistant** or **Google Tasks** with one tap
+- **Pantry Recipe Matcher** — "🧺 What Can I Make?" in the generate view cross-references your pantry against all saved recipes and shows match percentages; tap "Cook This →" to load the recipe, or "Generate New" to create a fresh recipe from pantry items
+- **Meal Planner** — Tap a saved recipe to select it, then tap any meal slot to assign it (Mon–Sun weekly grid, Breakfast / Lunch / Dinner); fully works on mobile and desktop; generates a combined smart shopping list for the whole week, deduplicated and grouped by supermarket aisle; **AI Prep Guide** (shown when ≥3 meals assigned) generates a day-by-day prep schedule and make-ahead task checklist
 - **Monthly Challenges** — Track four monthly goals: cook 10 recipes, try 5 cuisines, save 5 favourites, use 20 unique ingredients
 - **Search & Sort** — Search history by name, tags, or notes; sort by date, name, or rating
 - **Tags & Notes** — Add custom tags and personal notes to any saved recipe
@@ -136,7 +137,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 
 ### Sharing & Output
 - **Share & QR** — Every recipe gets its own shareable URL (compressed, shortened via is.gd); QR code links directly to the exact recipe including its image — no re-render needed on the recipient's end
-- **Shopping List** — One-click grocery list deduplicated and grouped by supermarket aisle (Produce, Meat & Fish, Dairy & Eggs, Bakery, Canned & Dry Goods, Frozen, Herbs & Spices, Oils & Condiments); checkboxes and copy to clipboard
+- **Shopping List** — One-click grocery list deduplicated and grouped by supermarket aisle (Produce, Meat & Fish, Dairy & Eggs, Bakery, Canned & Dry Goods, Frozen, Herbs & Spices, Oils & Condiments); checkboxes, copy to clipboard, and send to **Home Assistant** or **Google Tasks** (configure in Settings → Integrations)
 - **Print** — Print-optimised stylesheet renders the recipe with the AI-generated image, clean layout, and no UI chrome
 - **Download as Text** — Save any recipe as a plain `.txt` file
 - **Copy Ingredients** — One-click copy of the full ingredient list
@@ -183,6 +184,10 @@ VITE_GROQ_API_KEY=your_groq_api_key
 ```
 
 Get a free Groq API key at [console.groq.com](https://console.groq.com). Pollinations.ai (image generation) requires no API key — it works out of the box.
+
+**Optional integrations** (configure in Settings → Integrations after launch):
+- **Home Assistant**: enter your HA URL and a long-lived access token to send shopping lists to HA
+- **Google Tasks**: set `VITE_GOOGLE_CLIENT_ID` in `.env.local` (requires a Google Cloud project with Tasks API enabled), or enter the client ID in Settings → Integrations
 
 ### 3. Run the dev server
 

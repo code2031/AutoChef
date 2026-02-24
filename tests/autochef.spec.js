@@ -536,8 +536,8 @@ test.describe('PantryDrawer', () => {
     const input = page.locator('input[placeholder*="pantry item" i]');
     await input.fill('testitem123');
     await input.press('Enter');
-    await expect(page.locator('text=testitem123')).toBeVisible();
-    await page.locator('text=testitem123').hover();
+    await expect(page.locator('text=testitem123').first()).toBeVisible();
+    await page.locator('text=testitem123').first().hover();
     await page.locator('button[class*="hover:text-red"]').first().click();
     await expect(page.locator('text=testitem123')).not.toBeVisible();
   });

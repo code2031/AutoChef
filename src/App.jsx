@@ -754,6 +754,12 @@ export default function App() {
             onHistoricalGenerate={handleHistoricalGenerate}
             onABGenerate={handleABGenerate}
             onRestaurantGenerate={handleRestaurantGenerate}
+            history={history}
+            onSelectHistoryEntry={handleSelectHistoryEntry}
+            onGenerateFromPantry={(pantryItems) => {
+              setIngredients(pantryItems);
+              handlePickSuggestion(null, pantryItems);
+            }}
           />
         )}
 

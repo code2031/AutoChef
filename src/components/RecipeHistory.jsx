@@ -9,6 +9,7 @@ import DailyFoodLog from './DailyFoodLog.jsx';
 import RecipeCompare from './RecipeCompare.jsx';
 import TrophyCase from './TrophyCase.jsx';
 import { buildSmartShoppingList } from '../lib/shoppingList.js';
+import ShoppingIntegrations from './ShoppingIntegrations.jsx';
 
 function TagEditor({ entry, onAddTag, onRemoveTag }) {
   const [inputVal, setInputVal] = useState('');
@@ -836,7 +837,7 @@ export default function RecipeHistory({
                 </div>
               ))}
             </div>
-            <div className="p-4 border-t border-white/5">
+            <div className="p-4 border-t border-white/5 space-y-3">
               <button
                 onClick={() => {
                   const lines = Object.entries(mergedShoppingList).flatMap(([aisle, ings]) => [aisle + ':', ...ings.map(i => '  · ' + i), '']);
@@ -846,6 +847,7 @@ export default function RecipeHistory({
               >
                 📋 Copy All
               </button>
+              <ShoppingIntegrations items={Object.values(mergedShoppingList).flat()} />
             </div>
           </div>
         </div>

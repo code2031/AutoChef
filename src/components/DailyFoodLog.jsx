@@ -45,6 +45,83 @@ function MacroProgressBar({ label, value, goal, color, unit = 'g' }) {
   );
 }
 
+function NutritionTrendChart({ log, calorieGoal }) {
+  const [open, setOpen] = useState(false);
+  const today = new Date();
+  const days = Array.from({ length: 14 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() - (13 - i));
+    return d.toISOString().slice(0, 10);
+  });
+  const dayTotals = days.map(date => {
+    const entries = log.filter(e => e.date === date);
+    return { date, calories: entries.reduce((s, e) => s + (parseInt(e.calories) || 0), 0) };
+  });
+  const daysWithData = dayTotals.filter(d => d.calories > 0);
+  if (daysWithData.length < 2) return null;
+  const maxCal = Math.max(...dayTotals.map(d => d.calories), calorieGoal || 0, 1);
+  const W = 320, H = 100, PAD_X = 8, PAD_Y = 12;
+  const barW = Math.floor((W - PAD_X * 2) / 14) - 2;
+  const chartH = H - PAD_Y * 2;
+  const todayStr = today.toISOString().slice(0, 10);
+  const dayLabels = ["M","T","W","T","F","S","S"];
+  const getBarColor = (cal) => {
+    if (!calorieGoal || calorieGoal <= 0) return "#f97316";
+    const pct = cal / calorieGoal;
+    if (pct < 0.9) return "#22c55e";
+    if (pct <= 1.1) return "#f59e0b";
+    return "#ef4444";
+  };
+  const avgCal = Math.round(daysWithData.reduce((s, d) => s + d.calories, 0) / daysWithData.length);
+  const daysOverGoal = calorieGoal > 0 ? daysWithData.filter(d => d.calories > calorieGoal).length : 0;
+  const goalY = calorieGoal > 0 ? PAD_Y + chartH - (calorieGoal / maxCal) * chartH : null;
+  return (
+    <div className="border border-white/5 rounded-2xl overflow-hidden">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between p-3 hover:bg-white/2 transition-all text-left"
+      >
+        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">14-Day Calorie Trend</p>
+        {open ? <ChevronUp size={14} className="text-slate-600" /> : <ChevronDown size={14} className="text-slate-600" />}
+      </button>
+      {open && (
+        <div className="px-3 pb-3 space-y-2 animate-in fade-in duration-200">
+          <svg viewBox="0 0 320 100" className="w-full" aria-label="14-day calorie trend chart">
+            {dayTotals.map((d, i) => {
+              const x = PAD_X + i * ((W - PAD_X * 2) / 14);
+              const barH = d.calories > 0 ? Math.max(3, (d.calories / maxCal) * chartH) : 0;
+              const y = PAD_Y + chartH - barH;
+              const isToday = d.date === todayStr;
+              const color = getBarColor(d.calories);
+              return (
+                <g key={d.date}>
+                  {d.calories > 0 && (
+                    <rect x={x + 1} y={y} width={barW} height={barH} fill={color} fillOpacity={isToday ? 1 : 0.6} stroke={isToday ? "#fff" : "none"} strokeWidth={isToday ? 1 : 0} rx="2" />
+                  )}
+                </g>
+              );
+            })}
+            {goalY !== null && (
+              <line x1={PAD_X} y1={goalY} x2={W - PAD_X} y2={goalY} stroke="rgba(255,255,255,0.3)" strokeWidth="1" strokeDasharray="4 3" />
+            )}
+            {dayTotals.filter((_, i) => i % 2 === 0).map((d, idx) => {
+              const i = idx * 2;
+              const x = PAD_X + i * ((W - PAD_X * 2) / 14) + barW / 2;
+              const dow = new Date(d.date).getDay();
+              return <text key={d.date} x={x} y={H - 1} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.25)" fontFamily="system-ui,sans-serif">{dayLabels[dow]}</text>;
+            })}
+          </svg>
+          <p className="text-[11px] text-slate-500 text-center">
+            {"Avg " + avgCal.toLocaleString() + " kcal/day"}
+            {calorieGoal > 0 ? " · " + daysOverGoal + " day" + (daysOverGoal !== 1 ? "s" : "") + " over goal" : " · No goal set"}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 function WeeklyMiniSummary({ log }) {
   const [open, setOpen] = useState(false);
   const today = new Date();
@@ -278,6 +355,7 @@ export default function DailyFoodLog({ nutritionGoals, lastRecipe }) {
 
       {/* Weekly mini-summary */}
       <WeeklyMiniSummary log={log} />
+      <NutritionTrendChart log={log} calorieGoal={parseInt(nutritionGoals?.calories) || 0} />
 
       <div className="p-4 bg-blue-500/5 border border-blue-500/15 rounded-2xl space-y-2">
         <div className="flex items-center gap-2">

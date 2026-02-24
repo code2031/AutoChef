@@ -28,6 +28,7 @@ export function usePreferences() {
   const [gutHealth, setGutHealth] = useLocalStorage('pref_gut_health', false);
   const [rootToStem, setRootToStem] = useLocalStorage('pref_root_to_stem', false);
   const [customPrompt, setCustomPrompt] = useLocalStorage('pref_custom_prompt', '');
+  const [weeklyBudget, setWeeklyBudget] = useLocalStorage('pref_weekly_budget', '');
 
   const toggleAllergy = (allergy) => {
     setAllergies(prev =>
@@ -71,5 +72,6 @@ export function usePreferences() {
     gutHealth, setGutHealth,
     rootToStem, setRootToStem,
     customPrompt, setCustomPrompt,
+    weeklyBudget, setWeeklyBudget,
   };
 }

@@ -139,6 +139,15 @@ export default function PantryDrawer({ onAddAll, onClose }) {
     navigator.clipboard.writeText(text);
   };
 
+  // Compute expiring items for the Expiry Rush button
+  const expiringItems = pantry.filter(p => {
+    if (!p.expiresAt) return false;
+    const exp = new Date(p.expiresAt);
+    exp.setHours(0, 0, 0, 0);
+    const diff = Math.round((exp - today) / 86400000);
+    return diff <= 3;
+  });
+
   return (
     <div className="fixed inset-0 z-[150] flex justify-end">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
@@ -146,10 +155,22 @@ export default function PantryDrawer({ onAddAll, onClose }) {
       <div className="relative w-full max-w-[92vw] sm:max-w-sm bg-slate-900 border-l border-white/10 flex flex-col animate-in slide-in-from-right duration-300">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-white/5">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <ShoppingBag size={20} className="text-orange-500" />
             <h2 className="font-bold text-lg">My Pantry</h2>
             <span className="text-xs text-slate-500">{pantry.length} items</span>
+            {expiringItems.length > 0 && (
+              <button
+                onClick={() => {
+                  onAddAll(expiringItems.map(p => p.name));
+                  onClose();
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs font-medium hover:bg-red-500/20 transition-all"
+                title={`Use ${expiringItems.length} expiring item(s) before they go bad`}
+              >
+                🚨 Expiry Rush ({expiringItems.length})
+              </button>
+            )}
           </div>
           <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all">
             <X size={20} />

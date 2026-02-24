@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { History, Sun, Moon, Type, Contrast, Keyboard, X, Thermometer, Target, Timer, CalendarDays, UtensilsCrossed } from 'lucide-react';
+import { History, Sun, Moon, Type, Contrast, Keyboard, X, Thermometer, Target, Timer, CalendarDays, UtensilsCrossed, Link } from 'lucide-react';
 import logoUrl from '../assets/AutoChef_Logo.png';
 import KitchenTimer from './KitchenTimer.jsx';
+import { useLocalStorage } from '../hooks/useLocalStorage.js';
 
 function KeyboardShortcutsModal({ onClose }) {
   const shortcuts = [
@@ -39,6 +40,10 @@ export default function Navbar({
   const [showSettings, setShowSettings] = useState(false);
   const [showGoals, setShowGoals] = useState(false);
   const [showTimer, setShowTimer] = useState(false);
+  const [showIntegrations, setShowIntegrations] = useState(false);
+  const [haUrl, setHaUrl] = useLocalStorage('pref_ha_url', '');
+  const [haToken, setHaToken] = useLocalStorage('pref_ha_token', '');
+  const [googleClientId, setGoogleClientId] = useLocalStorage('pref_google_client_id', '');
 
   const updateGoal = (key, value) => {
     setNutritionGoals(prev => ({ ...prev, [key]: value }));
@@ -220,6 +225,55 @@ export default function Navbar({
                         rows={3}
                         className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300 outline-none focus:border-orange-500/50 placeholder:text-slate-600 resize-none transition-all"
                       />
+                    </div>
+                  )}
+
+                  <div className="border-t border-white/5 my-1" />
+
+                  {/* Integrations */}
+                  <button
+                    onClick={() => setShowIntegrations(v => !v)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${showIntegrations ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                  >
+                    <Link size={16} />
+                    Integrations
+                  </button>
+
+                  {showIntegrations && (
+                    <div className="px-3 pb-2 space-y-3">
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-bold text-slate-400">🏠 Home Assistant</p>
+                        <input
+                          value={haUrl}
+                          onChange={e => setHaUrl(e.target.value)}
+                          placeholder="http://homeassistant.local:8123"
+                          className="w-full bg-slate-800 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-orange-500/50 placeholder:text-slate-600"
+                        />
+                        <input
+                          value={haToken}
+                          onChange={e => setHaToken(e.target.value)}
+                          type="password"
+                          placeholder="Long-lived access token"
+                          className="w-full bg-slate-800 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-orange-500/50 placeholder:text-slate-600"
+                        />
+                        <p className="text-[10px] text-slate-600">Get token from HA → Profile → Long-Lived Access Tokens</p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-bold text-slate-400">📋 Google Tasks</p>
+                        {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
+                          <p className="text-[10px] text-green-500">✓ Client ID configured via environment variable</p>
+                        ) : (
+                          <>
+                            <input
+                              value={googleClientId}
+                              onChange={e => setGoogleClientId(e.target.value)}
+                              placeholder="Google OAuth Client ID"
+                              className="w-full bg-slate-800 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-orange-500/50 placeholder:text-slate-600"
+                            />
+                            <p className="text-[10px] text-slate-600">Create at console.cloud.google.com → APIs &amp; Services → Credentials</p>
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
 

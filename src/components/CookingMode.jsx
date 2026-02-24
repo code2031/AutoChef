@@ -45,11 +45,16 @@ function speakText(text) {
   window.speechSynthesis.speak(utt);
 }
 
-export default function CookingMode({ recipe, onExit, onCookDone }) {
+export default function CookingMode({ recipe, onExit, onCookDone, timeLimitSeconds }) {
   const [step, setStep] = useState(0);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [stepNotes, setStepNotes] = useState({});
   const [showNoteFor, setShowNoteFor] = useState(null);
+  const [numFriends, setNumFriends] = useState(1);
+  const [myPerson, setMyPerson] = useState(0);
+  const [showFriendSplit, setShowFriendSplit] = useState(false);
+  const [handsFreeMic, setHandsFreeMic] = useState(false);
+  const [totalTimeLeft, setTotalTimeLeft] = useState(timeLimitSeconds || null);
   // timers: { [stepIdx]: { seconds, timeLeft, running } }
   const [timers, setTimers] = useState(() => {
     const initial = {};
@@ -61,7 +66,12 @@ export default function CookingMode({ recipe, onExit, onCookDone }) {
   });
   const tickRef = useRef(null);
   const touchStartX = useRef(null);
+  const recognitionRef = useRef(null);
+  const stepRef = useRef(step);
   const steps = recipe.instructions || [];
+
+  // Keep stepRef in sync with step state
+  useEffect(() => { stepRef.current = step; }, [step]);
 
   // Single interval that ticks all running timers
   useEffect(() => {
@@ -84,6 +94,24 @@ export default function CookingMode({ recipe, onExit, onCookDone }) {
       });
     }, 1000);
     return () => clearInterval(tickRef.current);
+  }, []);
+
+  // Beat-the-Clock interval
+  useEffect(() => {
+    if (!timeLimitSeconds) return;
+    const interval = setInterval(() => {
+      setTotalTimeLeft(prev => {
+        if (!prev || prev <= 0) return 0;
+        if (prev === 1) { setTimeout(() => { playBeep(); playBeep(); playBeep(); }, 0); }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [timeLimitSeconds]);
+
+  // Cleanup speech recognition on unmount
+  useEffect(() => {
+    return () => { recognitionRef.current?.stop(); };
   }, []);
 
   useEffect(() => {
@@ -133,6 +161,45 @@ export default function CookingMode({ recipe, onExit, onCookDone }) {
     else window.speechSynthesis?.cancel();
   };
 
+  const toggleHandsFree = () => {
+    if (handsFreeMic) {
+      recognitionRef.current?.stop();
+      setHandsFreeMic(false);
+    } else {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) { alert('Voice commands not supported in this browser.'); return; }
+      const rec = new SpeechRecognition();
+      rec.continuous = true;
+      rec.interimResults = false;
+      rec.lang = 'en-US';
+      rec.onresult = (event) => {
+        const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+        if (transcript.includes('next')) {
+          setStep(s => Math.min(s + 1, steps.length - 1));
+        } else if (transcript.includes('previous') || transcript.includes('back') || transcript.includes('go back')) {
+          setStep(s => Math.max(0, s - 1));
+        } else if (transcript.includes('start timer') || transcript.includes('begin timer')) {
+          setTimers(prev => {
+            const s = stepRef.current;
+            if (prev[s]) return { ...prev, [s]: { ...prev[s], running: true } };
+            return prev;
+          });
+        } else if (transcript.includes('stop timer') || transcript.includes('pause timer')) {
+          setTimers(prev => {
+            const s = stepRef.current;
+            if (prev[s]) return { ...prev, [s]: { ...prev[s], running: false } };
+            return prev;
+          });
+        }
+      };
+      rec.onerror = () => { setHandsFreeMic(false); };
+      rec.onend = () => { if (handsFreeMic) rec.start(); };
+      recognitionRef.current = rec;
+      rec.start();
+      setHandsFreeMic(true);
+    }
+  };
+
   // Other running timers (not current step)
   const otherRunning = Object.entries(timers).filter(([k, t]) => parseInt(k) !== step && t.running);
 
@@ -151,6 +218,13 @@ export default function CookingMode({ recipe, onExit, onCookDone }) {
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={toggleHandsFree}
+            className={`p-2 rounded-xl transition-all ${handsFreeMic ? 'bg-green-500/20 text-green-400' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+            title={handsFreeMic ? 'Stop voice commands (say "next", "back", "start timer")' : 'Enable hands-free voice commands'}
+          >
+            🎙️
+          </button>
+          <button
             onClick={handleVoiceToggle}
             className={`p-2 rounded-xl transition-all ${voiceEnabled ? 'bg-blue-500/20 text-blue-400' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
             title={voiceEnabled ? 'Disable voice readout' : 'Enable voice readout'}
@@ -162,6 +236,21 @@ export default function CookingMode({ recipe, onExit, onCookDone }) {
           </button>
         </div>
       </div>
+
+      {/* Beat-the-Clock timer */}
+      {timeLimitSeconds && totalTimeLeft !== null && (
+        <div className={`mx-4 sm:mx-6 mt-3 flex items-center gap-3 px-4 py-2 rounded-xl border ${totalTimeLeft <= 60 ? 'bg-red-500/10 border-red-500/30 text-red-400' : totalTimeLeft <= 300 ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-orange-500/10 border-orange-500/20 text-orange-400'}`}>
+          <span className="text-sm font-bold">⏱ Beat the Clock:</span>
+          <span className="font-mono font-bold text-lg">{Math.floor(totalTimeLeft / 60)}:{(totalTimeLeft % 60).toString().padStart(2, '0')}</span>
+          <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden ml-2">
+            <div
+              className={`h-full rounded-full transition-all ${totalTimeLeft <= 60 ? 'bg-red-500' : 'bg-orange-500'}`}
+              style={{ width: `${(totalTimeLeft / timeLimitSeconds) * 100}%` }}
+            />
+          </div>
+          {totalTimeLeft === 0 && <span className="text-sm font-bold">⏰ Time&apos;s Up!</span>}
+        </div>
+      )}
 
       {/* Other running timers banner */}
       {otherRunning.length > 0 && (
@@ -175,6 +264,49 @@ export default function CookingMode({ recipe, onExit, onCookDone }) {
           ))}
         </div>
       )}
+
+      {/* Cook With a Friend */}
+      <div className="px-4 sm:px-6 pt-2">
+        <button
+          onClick={() => setShowFriendSplit(v => !v)}
+          className="text-xs text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-1"
+        >
+          👥 {showFriendSplit ? 'Hide friend split' : 'Split steps with friends'}
+        </button>
+        {showFriendSplit && (
+          <div className="mt-2 flex flex-wrap items-center gap-3 p-3 bg-slate-800/60 rounded-xl border border-white/5">
+            <span className="text-xs text-slate-400">Split with</span>
+            {[2, 3, 4].map(n => (
+              <button
+                key={n}
+                onClick={() => { setNumFriends(n); setMyPerson(0); }}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${numFriends === n ? 'bg-orange-500 text-white' : 'bg-slate-700 text-slate-400 hover:text-white'}`}
+              >
+                {n} people
+              </button>
+            ))}
+            {numFriends > 1 && (
+              <>
+                <span className="text-xs text-slate-400">You are</span>
+                {Array.from({ length: numFriends }, (_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setMyPerson(i)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${myPerson === i ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-400 hover:text-white'}`}
+                  >
+                    Person {i + 1}
+                  </button>
+                ))}
+              </>
+            )}
+            {numFriends > 1 && (
+              <span className="text-xs text-orange-400">
+                Your steps: {steps.reduce((acc, _, i) => i % numFriends === myPerson ? [...acc, i + 1] : acc, []).join(', ')}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="px-4 sm:px-6 py-4">
         <div className="flex items-center gap-2 text-sm text-slate-400">
@@ -193,9 +325,16 @@ export default function CookingMode({ recipe, onExit, onCookDone }) {
       </div>
 
       <div className="flex-1 flex items-center px-4 sm:px-6">
-        <p className="text-xl sm:text-2xl md:text-3xl leading-relaxed font-medium text-white">
-          {steps[step]}
-        </p>
+        <div>
+          {numFriends > 1 && (
+            <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${step % numFriends === myPerson ? 'text-orange-400' : 'text-slate-500'}`}>
+              {step % numFriends === myPerson ? '✅ Your Step' : `👤 Person ${(step % numFriends) + 1}'s Step`}
+            </p>
+          )}
+          <p className="text-xl sm:text-2xl md:text-3xl leading-relaxed font-medium text-white">
+            {steps[step]}
+          </p>
+        </div>
       </div>
 
       {/* Step note */}

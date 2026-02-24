@@ -12,6 +12,7 @@ import { generateRecipeStory, generateCommonMistakes, generateIngredientPrepTip,
 import { getSeasonalIngredients } from '../lib/seasonal.js';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 import { categorizeByAisle } from '../lib/shoppingList.js';
+import ShoppingIntegrations from './ShoppingIntegrations.jsx';
 function detectTimerSeconds(step) {
   const patterns = [
     /for\s+(\d+)-(\d+)\s+min/i,
@@ -179,7 +180,10 @@ function ShoppingListModal({ recipe, onClose }) {
             </div>
           ))}
         </div>
-        {checkedCount > 0 && <div className="px-5 pb-4 text-xs text-slate-500 text-center border-t border-white/5 pt-3">{checkedCount} / {total} items checked</div>}
+        {checkedCount > 0 && <div className="px-5 pb-2 text-xs text-slate-500 text-center border-t border-white/5 pt-3">{checkedCount} / {total} items checked</div>}
+        <div className="px-5 pb-4">
+          <ShoppingIntegrations items={recipe.ingredients || []} />
+        </div>
       </div>
     </div>
   );

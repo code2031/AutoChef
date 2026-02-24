@@ -77,6 +77,61 @@ body {
   background-color: rgba(248, 250, 252, 0.85) !important;
 }
 
+/* Opacity variants — dark in dark mode but must be light in light mode */
+.light-theme .bg-slate-950\/95 {
+  background-color: rgba(248, 250, 252, 0.95) !important;
+}
+
+.light-theme .bg-slate-900\/95 {
+  background-color: rgba(241, 245, 249, 0.95) !important;
+}
+
+.light-theme .bg-slate-900\/90 {
+  background-color: rgba(241, 245, 249, 0.92) !important;
+}
+
+.light-theme .bg-slate-900\/60 {
+  background-color: rgba(241, 245, 249, 0.9) !important;
+}
+
+.light-theme .bg-slate-900\/50 {
+  background-color: rgba(241, 245, 249, 0.85) !important;
+}
+
+.light-theme .bg-slate-900\/40 {
+  background-color: rgba(241, 245, 249, 0.75) !important;
+}
+
+.light-theme .bg-slate-900\/30 {
+  background-color: rgba(241, 245, 249, 0.65) !important;
+}
+
+.light-theme .bg-slate-800\/60 {
+  background-color: rgba(226, 232, 240, 0.85) !important;
+}
+
+.light-theme .bg-slate-800\/50 {
+  background-color: rgba(226, 232, 240, 0.75) !important;
+}
+
+.light-theme .bg-slate-800\/20 {
+  background-color: rgba(226, 232, 240, 0.35) !important;
+}
+
+/* Light text on dark bg — invert in light mode */
+.light-theme .text-slate-200 {
+  color: #1e293b !important;
+}
+
+/* Borders with white opacity — convert to dark opacity */
+.light-theme .border-white\/20 {
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+.light-theme .border-white\/30 {
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
 /* High contrast mode */
 .high-contrast {
   --hc-border: #ffffff;

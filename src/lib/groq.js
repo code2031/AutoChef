@@ -273,3 +273,14 @@ export async function generateWeeklyDigest(recipes) {
   });
   return JSON.parse(data.choices[0].message.content);
 }
+
+export async function generateMealPrepGuide(meals) {
+  const mealList = meals.map(m => `${m.day} ${m.mealType}: ${m.recipeName} (${(m.ingredients || []).slice(0, 5).join(', ')}${(m.ingredients || []).length > 5 ? '...' : ''})`).join('\n');
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `You are a meal prep expert. Given this week's meal plan:\n${mealList}\n\nCreate a practical meal prep guide. Return JSON: {"prepDays": [{"day": "Sunday", "tasks": ["task1", "task2"]}, ...], "makeAheadItems": ["item1", "item2"], "shoppingTip": "one practical shopping tip"}. Include 1-3 prep days with 3-6 tasks each. Focus on what can be done ahead of time to make weekday cooking faster.` }],
+    temperature: 0.4,
+    response_format: { type: 'json_object' },
+  });
+  return JSON.parse(data.choices[0].message.content);
+}

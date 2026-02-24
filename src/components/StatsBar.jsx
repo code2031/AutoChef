@@ -43,6 +43,24 @@ function getHydrationScore(items) {
   return c>=2?c:null;
 }
 
+function getComplexityScore(ings, instructions, equipment) {
+  const score = Math.min(100, ings.length * 2 + (instructions||[]).length * 2 + equipment.length * 4);
+  if (score <= 20) return { label: 'Simple', color: '#22c55e' };
+  if (score <= 45) return { label: 'Moderate', color: '#f59e0b' };
+  if (score <= 70) return { label: 'Complex', color: '#f97316' };
+  return { label: 'Expert', color: '#ef4444' };
+}
+
+function getCalorieBurn(calories) {
+  const cal = parseInt(calories);
+  if (!cal || cal <= 0) return null;
+  return {
+    walk: Math.round(cal / 4.3),
+    run: Math.round(cal / 9.8),
+    cycle: Math.round(cal / 7.4),
+  };
+}
+
 function detectEquipment(instructions) {
   const t=(instructions||[]).join(" ").toLowerCase();
   const found=[];
@@ -86,6 +104,7 @@ function MacroBar({ label, value, color, goal }) {
 
 export default function StatsBar({ recipe, diet, nutritionGoals }) {
   const [showEquipment, setShowEquipment] = useState(false);
+  const [showBurn, setShowBurn] = useState(false);
   const ings = recipe.ingredients || [];
   const costInfo = ings.length>0 ? estimateCost(ings) : null;
   const carbonInfo = ings.length>0 ? getCarbonScore(ings) : null;
@@ -93,6 +112,8 @@ export default function StatsBar({ recipe, diet, nutritionGoals }) {
   const giScore = ings.length>0 ? getGIScore(ings) : null;
   const hydration = ings.length>0 ? getHydrationScore(ings) : null;
   const equipment = detectEquipment(recipe.instructions);
+  const complexity = getComplexityScore(ings, recipe.instructions, equipment);
+  const burn = getCalorieBurn(recipe.calories);
   const stats = [
     recipe.prepTime && { icon: <Clock size={16} className="text-blue-400" />, label: "Prep", value: recipe.prepTime },
     recipe.cookTime && { icon: <Clock size={16} className="text-orange-500" />, label: "Cook", value: recipe.cookTime },
@@ -107,6 +128,7 @@ export default function StatsBar({ recipe, diet, nutritionGoals }) {
     antiInflam && { icon: <span>🌿</span>, label: "Inflam.", value: antiInflam.label, tooltip: antiInflam.tooltip, valueColor: antiInflam.color },
     giScore && { icon: <span>📊</span>, label: "GI", value: giScore.label, tooltip: giScore.tooltip, valueColor: giScore.color },
     hydration && { icon: <span>💧</span>, label: "Hydrating", value: hydration+" items", tooltip: "High-water items", valueColor: "#38bdf8" },
+    { icon: <span>🎯</span>, label: "Complexity", value: complexity.label, valueColor: complexity.color, tooltip: `${ings.length} ingredients · ${(recipe.instructions||[]).length} steps · ${equipment.length} tools` },
   ].filter(Boolean);
   const goals = nutritionGoals || {};
   const hasGoals = goals.calories || goals.protein || goals.carbs || goals.fat;
@@ -150,6 +172,25 @@ export default function StatsBar({ recipe, diet, nutritionGoals }) {
                   <span>{EQUIP_ICONS[eq]||"🍴"}</span>
                   {eq}
                 </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      {burn && (
+        <div className="bg-slate-900/40 border border-white/5 rounded-2xl overflow-hidden">
+          <button onClick={()=>setShowBurn(v=>!v)} className="w-full flex items-center justify-between px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-slate-300 transition-colors">
+            <span>🏃 Calorie Burn (avg 70 kg)</span>
+            {showBurn ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+          {showBurn && (
+            <div className="px-4 pb-4 grid grid-cols-3 gap-2">
+              {[{icon:"🚶",label:"Walk",min:burn.walk},{icon:"🚴",label:"Cycle",min:burn.cycle},{icon:"🏃",label:"Run",min:burn.run}].map(a=>(
+                <div key={a.label} className="text-center p-2 bg-slate-800 rounded-xl">
+                  <p className="text-base">{a.icon}</p>
+                  <p className="text-base font-bold text-orange-400">{a.min}</p>
+                  <p className="text-[10px] text-slate-500">min · {a.label}</p>
+                </div>
               ))}
             </div>
           )}

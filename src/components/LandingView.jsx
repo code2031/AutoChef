@@ -22,7 +22,7 @@ export default function LandingView({ setView }) {
           <span className="text-orange-500">Effortless Living.</span>
         </h1>
         <p className="text-slate-400 text-lg md:text-xl max-w-xl mx-auto leading-relaxed">
-          Snap a photo of your fridge. Our AI identifies ingredients and invents a gourmet recipe, complete with a food photo.
+          Snap a photo of your fridge. Our AI identifies ingredients and creates a gourmet recipe, complete with a food photo.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <button
