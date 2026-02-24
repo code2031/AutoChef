@@ -1,7 +1,7 @@
-const CACHE_NAME = 'autochef-v3';
+const CACHE_NAME = 'autochef-v4';
 const PRECACHE = [
-  '/',
-  '/index.html',
+  '/AutoChef/',
+  '/AutoChef/index.html',
 ];
 
 self.addEventListener('install', (e) => {
@@ -32,7 +32,7 @@ self.addEventListener('fetch', (e) => {
           caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
           return response;
         })
-        .catch(() => caches.match(e.request).then(cached => cached || caches.match('/')))
+        .catch(() => caches.match(e.request).then(cached => cached || caches.match('/AutoChef/')))
     );
     return;
   }
@@ -48,7 +48,7 @@ self.addEventListener('fetch', (e) => {
         }
         return response;
       }).catch(() => {
-        if (e.request.mode === 'navigate') return caches.match('/');
+        if (e.request.mode === 'navigate') return caches.match('/AutoChef/');
       });
     })
   );

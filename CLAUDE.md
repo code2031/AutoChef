@@ -332,6 +332,6 @@ When a recipe is saved (`handleSave` in `App.jsx`):
 
 GitHub Actions (`.github/workflows/deploy.yml`) deploys to GitHub Pages on every push to `main`. Uses `npm install --legacy-peer-deps` (required because `canvas-confetti` peer deps conflict with React 19).
 
-- Vite `base` is `/` — custom domain `autochef.online` serves from root (if switching back to a subdirectory GitHub Pages URL, change this to the repo name e.g. `/AutoChef/` and update `public/sw.js` and `src/main.jsx` SW paths accordingly)
-- `public/CNAME` contains `autochef.online` — GitHub Pages reads this on each deploy to configure the custom domain
+- Vite `base` is `/AutoChef/` — served at `https://code2031.github.io/AutoChef/`. To switch to a custom domain: change `base` back to `'/'`, update `public/sw.js` paths back to `'/'`, update `src/main.jsx` SW registration to `'/sw.js'`, and write the domain to `public/CNAME`.
+- `public/CNAME` is empty — no custom domain active. GitHub Pages serves from the default subdirectory URL.
 - `VITE_GROQ_API_KEY` must exist as a repository secret. `VITE_GOOGLE_CLIENT_ID` is optional (enables Google Tasks integration). Pollinations.ai requires no key.
