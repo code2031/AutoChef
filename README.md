@@ -178,7 +178,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 
 ### Sharing & Output
 - **Share & QR** — Every recipe gets its own shareable URL (compressed, shortened via is.gd); QR code links directly to the exact recipe including its image — no re-render needed on the recipient's end
-- **Shopping List** — One-click grocery list deduplicated and grouped by supermarket aisle (Produce, Meat & Fish, Dairy & Eggs, Bakery, Canned & Dry Goods, Frozen, Herbs & Spices, Oils & Condiments); checkboxes, copy to clipboard, and send to **Home Assistant** or **Google Tasks** (configure in Settings → Integrations)
+- **Shopping List** — One-click grocery list deduplicated and grouped by supermarket aisle (Produce, Meat & Fish, Dairy & Eggs, Bakery, Canned & Dry Goods, Frozen, Herbs & Spices, Oils & Condiments); checkboxes, copy to clipboard, and send to **Home Assistant** or **Google Tasks** — both services can be configured directly from the shopping list panel (inline setup form) without going to Settings
 - **Print** — Print-optimised stylesheet renders the recipe with the AI-generated image, clean layout, and no UI chrome
 - **Download as Text** — Save any recipe as a plain `.txt` file
 - **Copy Ingredients** — One-click copy of the full ingredient list
@@ -206,7 +206,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **React 19** + **Vite 7**
 - **Tailwind CSS v4** (via `@tailwindcss/vite` plugin)
 - **Groq API** — LLM text generation and vision (`llama-3.3-70b-versatile`, `llama-4-scout-17b-16e-instruct`)
-- **Pollinations.ai** — Image generation (free, no account required)
+- **Pollinations.ai** — AI image generation (`flux` model; free publishable API key required from [enter.pollinations.ai](https://enter.pollinations.ai))
 - **canvas-confetti** — Celebration animation on first recipe
 - **is.gd** — Free URL shortening for scannable QR codes (no API key required)
 
@@ -226,13 +226,21 @@ Create a `.env.local` file in the project root:
 
 ```
 VITE_GROQ_API_KEY=your_groq_api_key
+VITE_POLLINATIONS_API_KEY=your_pollinations_key
 ```
 
-Get a free Groq API key at [console.groq.com](https://console.groq.com). Pollinations.ai (image generation) requires no API key — it works out of the box.
+- Get a free Groq API key at [console.groq.com](https://console.groq.com)
+- Get a free Pollinations publishable key (pk_…) at [enter.pollinations.ai](https://enter.pollinations.ai) — required since Pollinations moved to authenticated-only access in early 2026
 
-**Optional integrations** (configure in Settings → Integrations after launch):
-- **Home Assistant**: enter your HA URL and a long-lived access token to send shopping lists to HA
-- **Google Tasks**: set `VITE_GOOGLE_CLIENT_ID` in `.env.local` (requires a Google Cloud project with Tasks API enabled), or enter the client ID in Settings → Integrations
+**Optional integrations** — configure directly in the shopping list or via Settings → Integrations after launch:
+- **Home Assistant**: enter your HA URL and a long-lived access token. If you see a CORS error, add the AutoChef origin to your HA `configuration.yaml`:
+  ```yaml
+  http:
+    cors_allowed_origins:
+      - https://code2031.github.io
+      - http://localhost:5173
+  ```
+- **Google Tasks**: set `VITE_GOOGLE_CLIENT_ID` in `.env.local` (requires a Google Cloud project with Tasks API enabled), or enter the client ID in the shopping list setup panel
 
 ### 3. Run the dev server
 
@@ -244,6 +252,6 @@ npm run dev
 
 Deployed to **[code2031.github.io/AutoChef/](https://code2031.github.io/AutoChef/)** — automatically via GitHub Actions on every push to `main`.
 
-Add `VITE_GROQ_API_KEY` as a repository secret — it is wired into the build step in `.github/workflows/deploy.yml`. Pollinations.ai needs no key.
+Add `VITE_GROQ_API_KEY` and `VITE_POLLINATIONS_API_KEY` as repository secrets — both are wired into the build step in `.github/workflows/deploy.yml`.
 
 Vite `base` is `/AutoChef/` and `public/CNAME` is empty (no custom domain active). To switch to a custom domain: set `base: '/'` in `vite.config.js`, update `public/sw.js` and `src/main.jsx` paths to root-relative, and write the domain to `public/CNAME`.

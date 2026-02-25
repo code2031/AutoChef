@@ -29,7 +29,13 @@ Tests use `mockGroq(page)` to intercept `**/openai/v1/chat/completions` and retu
 - Playwright `.or()` locator chains resolve to all matching elements and trigger strict-mode violations if >1 matches. Always append `.first()` to any `.or()` chain before `toBeVisible()`. Also use `.first()` when a pantry item text may appear in multiple zone tabs.
 - The Navbar has `backdrop-filter` which creates a CSS stacking context — children of the nav are in the nav's stacking context. The `fixed inset-0 z-40` overlay rendered inside the nav (for Timer/Settings dropdowns) is above other nav children (z-auto) within that stacking context, so clicking nav buttons while a dropdown is open may be blocked. Close the dropdown via its overlay div click instead.
 
-Local dev requires a `.env.local` file with `VITE_GROQ_API_KEY`. Pollinations.ai needs no API key. Google Tasks integration optionally uses `VITE_GOOGLE_CLIENT_ID`.
+Local dev requires a `.env.local` file:
+```
+VITE_GROQ_API_KEY=your_groq_key
+VITE_POLLINATIONS_API_KEY=your_pollinations_key   # required — free publishable key from enter.pollinations.ai
+VITE_GOOGLE_CLIENT_ID=optional                    # enables Google Tasks integration
+```
+`VITE_POLLINATIONS_API_KEY` must also be set as a GitHub repository secret (already wired into `.github/workflows/deploy.yml`). Pollinations moved to authenticated-only access for new prompts in early 2026.
 
 ## Architecture
 
@@ -67,7 +73,7 @@ All API keys are read from `import.meta.env` — set in `.env.local` locally, an
 | Groq remix | `lib/groq.js` → `generateRemix()` | `llama-3.3-70b-versatile`, temp 0.8, returns full recipe JSON |
 | Groq receipt | `lib/groq.js` → `parseGroceryReceipt()` | `llama-3.3-70b-versatile`, low temp (0.2), returns `string[]` |
 | Groq on-demand | `lib/groq.js` → various | `llama-3.3-70b-versatile`, temp 0.7–0.8 (see below) |
-| Pollinations image | `lib/pollinations.js` → `buildImageUrl(name, desc, imageStyle?)` | `flux` model, URL-based GET, **no API key required**, random seed per call |
+| Pollinations image | `lib/pollinations.js` → `buildImageUrl(name, desc, imageStyle?)` | `flux` model, URL-based GET, `VITE_POLLINATIONS_API_KEY` appended as `&key=`, random seed per call |
 | Home Assistant | `lib/homeAssistant.js` → `addToHAShoppingList(items, haUrl, haToken)` | HA REST API `POST /api/shopping_list/items` |
 | Google Tasks | `lib/googleTasks.js` → `loadGIS()`, `getGoogleAccessToken(clientId)`, `addToGoogleTasks(items, accessToken)` | GIS OAuth + Tasks REST API |
 
@@ -249,7 +255,7 @@ All `localStorage` keys:
 
 **`RecipeActions.jsx`** — More panel includes: variant buttons (healthier/cheaper/easier/harder/translate), Similar Recipe, Export Card (canvas), QR code, Embed code, and on-demand AI buttons: 🎲 Secret Ingredient, ✉️ Chef's Letter, 🎋 Recipe Haiku, 👥 Batch Prep, 🍽️ Plating Guide, 🌍 Regional Variants, **🍷 Flavor Pairing Explorer** (calls `generateFlavorPairings(recipe)`), **📋 Clone** (calls `onClone()`), **⬇️ Save as HTML** (generates self-contained `.html` offline file with inline styles), **🍷 Drink Pairings** (calls `generateDrinkPairings(recipe)` → renders `<DrinkPairings>` card with wine/beer/cocktail/non-alcoholic suggestions), **🔧 What Went Wrong?** (textarea input for describing the problem → calls `generateRecipeDebug(recipe, description)` → shows diagnosis/cause/fix/tip result card). Each AI button shows a result card below. Accepts `persona` prop (passed through to `generateChefLetter`), `onShowPlating` and `onShowRegional` callbacks, and `onClone` callback. **Export Card** (`handleExportCard`) produces an 800×1160px PNG; **Card Theme** picker (orange/blue/green/purple/red) is shown above the Export Card button — `cardTheme` state controls the header colour in the PNG. `roundRect` and a local `wrapText` helper are used (no external deps).
 
-**`FlavorRadar.jsx`** — pure SVG spider/radar chart, 6 flavor axes (Sweet, Savory, Spicy, Umami, Tangy, Fresh). Scores computed from keyword matching. `scoreRecipe(recipe)` is **exported** so `CookingStats.jsx` can import it for aggregate analysis. No external charting library.
+**`FlavorRadar.jsx`** — pure SVG spider/radar chart, 6 flavor axes (Sweet, Savory, Spicy, Umami, Tangy, Fresh). Scores computed from keyword matching. `scoreRecipe(recipe)` is **exported** so `CookingStats.jsx` can import it for aggregate analysis. No external charting library. SVG label/grid/spoke colours are computed at render time by reading `document.getElementById('app-root')?.classList.contains('light-theme')` — do not use hardcoded `rgba(255,255,255,…)` fills in SVG text as they are invisible in light mode.
 
 **`KitchenTimer.jsx`** — floating multi-timer widget rendered as a dropdown from the Navbar Timer button. Accepts duration input in multiple formats: bare number (treated as minutes), `5m`, `1:30`, `1h30m`, `90s`. Multiple named timers run simultaneously via a single `setInterval`. Plays a Web Audio API beep when each timer finishes. **Long Cook mode** (toggle in header) uses `useLongCookTimers` hook which persists `[{ id, label, startedAt, durationMs }]` to `long_cook_timers` in localStorage; accepts `24h`, `2d`, `3d12h` formats; shows elapsed + remaining time computed from `Date.now() - startedAt`.
 
@@ -269,7 +275,7 @@ All `localStorage` keys:
 
 **`PantryMatcher.jsx`** — modal (`z-[200]`). Props: `{ history, onSelect, onGenerateFromPantry, onClose }`. Reads `pantry_items` from localStorage, normalizes names to lowercase. `matchScore(recipe, pantryNames)` does substring matching against each ingredient string — returns `{ pct, matched[], missing[] }`. Shows top 10 history entries sorted by match %, with badge colors: green ≥70%, amber ≥40%, red <40%. Each card has a collapsible missing-ingredients list and "Cook This →" button. Footer: "Generate New Recipe from Pantry" calls `onGenerateFromPantry(pantryNames)`.
 
-**`ShoppingIntegrations.jsx`** — shared button component. Props: `{ items }` (flat `string[]`). Reads `pref_ha_url` + `pref_ha_token` from localStorage and `VITE_GOOGLE_CLIENT_ID` env var (or `pref_google_client_id` from localStorage) to decide which buttons to show. "🏠 Home Assistant" calls `addToHAShoppingList()`; "📋 Google Tasks" calls `getGoogleAccessToken()` then `addToGoogleTasks()`; Google access token stored in component state (expires ~1h). Returns `null` if neither integration is configured. Used inside shopping list modals in `ResultView`, `MealPlanner`, and `RecipeHistory`.
+**`ShoppingIntegrations.jsx`** — shared button component. Props: `{ items }` (flat `string[]`). Always renders (even when unconfigured): when HA or Google is not set up, shows a "Connect" button that expands an inline setup form (URL + token for HA; Client ID for Google); saving writes to localStorage and reloads. When configured, sends to the respective service. `addToHAShoppingList` returns `{ success, failed, corsBlocked }` — if `corsBlocked` is true, a CORS help panel shows the exact `configuration.yaml` snippet needed. Google access token stored in component state (expires ~1h). Used inside shopping list modals in `ResultView`, `MealPlanner`, and `RecipeHistory`. **HA CORS requirement**: the HA server must have `http.cors_allowed_origins` including the AutoChef origin (`https://code2031.github.io`, `http://localhost:5173`) in `configuration.yaml`.
 
 **`ABRecipeTest.jsx`** — shown at `view === 'abtest'`. Props: `{ recipeA, imageA, recipeB, imageB, isLoading, onPickA, onPickB, onClose }`. Two recipe cards side-by-side (stacked on mobile) with loading skeleton. "Choose this one →" calls `handlePickAB` in `App.jsx`.
 
@@ -391,6 +397,17 @@ Theme and display classes are applied on the root `<div id="app-root">` in `App.
 **Light mode CSS gotcha**: Tailwind v4 does not expose CSS custom properties for opacity modifiers, so `.light-theme .bg-slate-900` is overridden but `.light-theme .bg-slate-900\/60` is not automatically covered. `index.css` must explicitly list every opacity variant used (e.g. `bg-slate-900/60`, `/50`, `/40`, `bg-slate-800/50`, `/60`, etc.). When adding new dark-background elements using opacity variants, add a matching `.light-theme .bg-*\/XX` rule in `index.css`. Modal backdrops (`bg-black/50`–`/70`) are intentionally left dark — only panel/card backgrounds need light overrides.
 
 **Navbar logo**: `absolute`-positioned, scales `h-20 sm:h-28 md:h-40`. `<main>` clears it with `pt-24 sm:pt-32 md:pt-44`. The `@media print` block in `index.css` zeroes `main`'s padding and hides `.no-print` elements.
+
+### Prompt injection hardening
+
+All user-supplied text embedded in LLM prompts passes through `sanitizeInput()` (defined identically in both `lib/groq.js` and `lib/prompts.js` — keep them in sync):
+- **Unicode NFKC normalisation** — collapses lookalike characters (Greek ο, etc.)
+- **Zero-width char stripping** — removes `\u200B–\u200D`, `\uFEFF`, `\u00AD`
+- **Pattern replacement** — removes classic jailbreak phrases (ignore/disregard/forget instructions), roleplay-switch phrases (pretend you are, act as, your new role, DAN, no restrictions, identity has been reset), and strips unescaped `"` and `` ` `` to prevent JSON string breakout
+- **Hard length caps** — dish names 100 chars, ingredients 60 chars, custom prompts 300 chars, import text 4000 chars
+- **System role** — `groqFetch()` always prepends an `AUTOCHEF_SYSTEM` system message instructing the model to ignore override attempts; this is the last line of defence for attacks that bypass the regex layer
+
+Import prompts wrap user text in `<recipe_content>…</recipe_content>` XML tags to reduce context-injection risk.
 
 ### ESLint gotchas
 
