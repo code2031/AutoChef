@@ -1,5 +1,21 @@
 import { getSeasonalHint } from './seasonal.js';
 
+// Truncate and strip common prompt-injection patterns from user-supplied strings.
+function sanitizeInput(str, maxLen = 500) {
+  if (!str) return '';
+  return String(str)
+    .slice(0, maxLen)
+    .replace(/ignore\s+(all\s+)?(previous|above|prior)\s+instructions?/gi, '')
+    .replace(/disregard\s+(all\s+)?(previous|above)/gi, '')
+    .replace(/forget\s+(your\s+)?(instructions?|rules?)/gi, '')
+    .replace(/you\s+are\s+now\b/gi, '')
+    .replace(/new\s+instructions?\s*:/gi, '')
+    .replace(/\bsystem\s*:/gi, '')
+    .replace(/\bassistant\s*:/gi, '')
+    .replace(/\bhuman\s*:/gi, '')
+    .trim();
+}
+
 export function buildRecipePrompt({
   ingredients, diet, vibe, cuisine, allergies, spice, servings,
   language, mood, leftover, kidFriendly, banned, maxCalories,
@@ -37,11 +53,11 @@ The recipe name should reflect that it is a creative leftover dish.`
   const maxTimeText = maxTime ? `Total cooking time must be under ${maxTime} minutes. Choose quick techniques (sauté, stir-fry, one-pan) accordingly.` : '';
   const gutHealthText = gutHealth ? 'Prioritise gut-health: include fermented foods (yogurt, kimchi, kefir, miso), prebiotic-rich ingredients (garlic, onion, oats, bananas), and fibre-dense vegetables.' : '';
   const rootToStemText = rootToStem ? 'Zero-waste root-to-stem cooking: use every part of each vegetable — stems, leaves, peels, tops. Minimise food waste. Suggest what to do with scraps.' : '';
-  const customText = customPrompt ? customPrompt.trim() : '';
+  const customText = sanitizeInput(customPrompt, 300);
 
   return `You are AutoChef, a world-class AI culinary assistant.
 ${personaText}
-Generate a recipe using ONLY or mostly these ingredients: ${ingredients.join(', ')}.
+Generate a recipe using ONLY or mostly these ingredients: ${ingredients.map(i => sanitizeInput(i, 60)).join(', ')}.
 Dietary preference: ${diet}.
 Cooking vibe: ${vibe}.
 ${cuisineText}
@@ -79,7 +95,8 @@ Return a JSON object with this exact structure (no markdown):
 }`;
 }
 
-export function buildDishPrompt({ dishName, diet, vibe, cuisine, allergies, spice, servings, kidFriendly, banned, maxCalories, persona, maxTime, gutHealth, rootToStem, customPrompt }) {
+export function buildDishPrompt({ dishName: rawDishName, diet, vibe, cuisine, allergies, spice, servings, kidFriendly, banned, maxCalories, persona, maxTime, gutHealth, rootToStem, customPrompt }) {
+  const dishName = sanitizeInput(rawDishName, 100);
   const allergyText = allergies && allergies.length > 0
     ? `Strictly avoid these allergens: ${allergies.join(', ')}.`
     : '';
@@ -100,7 +117,7 @@ export function buildDishPrompt({ dishName, diet, vibe, cuisine, allergies, spic
   const maxTimeText = maxTime ? `Total cooking time must be under ${maxTime} minutes. Choose quick techniques (sauté, stir-fry, one-pan) accordingly.` : '';
   const gutHealthText = gutHealth ? 'Prioritise gut-health: include fermented foods (yogurt, kimchi, kefir, miso), prebiotic-rich ingredients (garlic, onion, oats, bananas), and fibre-dense vegetables.' : '';
   const rootToStemText = rootToStem ? 'Zero-waste root-to-stem cooking: use every part of each vegetable — stems, leaves, peels, tops. Minimise food waste. Suggest what to do with scraps.' : '';
-  const customText = customPrompt ? customPrompt.trim() : '';
+  const customText = sanitizeInput(customPrompt, 300);
 
   return `You are AutoChef, a world-class AI culinary assistant.
 ${personaText}
@@ -239,10 +256,11 @@ Return a JSON object with this exact structure (no markdown):
 }`;
 }
 
-export function buildHistoricalPrompt({ dishName, era, diet, allergies, banned, customPrompt }) {
+export function buildHistoricalPrompt({ dishName: rawDishName, era, diet, allergies, banned, customPrompt }) {
+  const dishName = sanitizeInput(rawDishName, 100);
   const allergyText = allergies && allergies.length > 0 ? `Strictly avoid these allergens: ${allergies.join(', ')}.` : '';
   const bannedText = banned && banned.length > 0 ? `Do not use these ingredients: ${banned.join(', ')}.` : '';
-  const customText = customPrompt ? customPrompt.trim() : '';
+  const customText = sanitizeInput(customPrompt, 300);
   return `You are AutoChef. Imagine how "${dishName}" would have been cooked in ${era}. Use ingredients, techniques, and cooking methods that were available in that era. The recipe should feel authentic to the historical period.
 Dietary preference: ${diet || 'none'}.
 ${allergyText}
@@ -269,10 +287,13 @@ Return a JSON object with this exact structure (no markdown):
 }
 
 export function buildImportPrompt(text) {
+  const safeText = sanitizeInput(text, 4000);
   return `Parse the following recipe content (may be copied text, a URL description, or any format) into a structured JSON recipe. Use reasonable estimates for any missing fields.
 
 Content to parse:
-${text}
+<recipe_content>
+${safeText}
+</recipe_content>
 
 Return ONLY a JSON object (no markdown) with this exact structure:
 {
@@ -293,10 +314,12 @@ Return ONLY a JSON object (no markdown) with this exact structure:
 }`;
 }
 
-export function buildRestaurantPrompt({ restaurant, dish, diet, allergies, banned, customPrompt }) {
+export function buildRestaurantPrompt({ restaurant: rawRestaurant, dish: rawDish, diet, allergies, banned, customPrompt }) {
+  const restaurant = sanitizeInput(rawRestaurant, 100);
+  const dish = sanitizeInput(rawDish, 100);
   const allergyText = allergies && allergies.length > 0 ? `Strictly avoid these allergens: ${allergies.join(', ')}.` : '';
   const bannedText = banned && banned.length > 0 ? `Do not use these ingredients: ${banned.join(', ')}.` : '';
-  const customText = customPrompt ? customPrompt.trim() : '';
+  const customText = sanitizeInput(customPrompt, 300);
   return `You are AutoChef. Recreate the home-cook version of "${dish}" as served at ${restaurant} (or in the style of that restaurant). Research the likely flavor profile, key techniques, and signature elements of that dish, and create an authentic recreation a home cook can make.
 Dietary preference: ${diet || 'none'}.
 ${allergyText}
