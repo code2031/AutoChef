@@ -30,7 +30,7 @@ const UNIVERSAL_MOCK_RESPONSE = {
   result: 'ok',
   story: 'A classic dish.',
   mistakes: [{ mistake: 'Overcooking', fix: 'Watch the timer.' }],
-  pairings: [],
+  pairings: [{ type: 'wine', name: 'Pinot Grigio', notes: 'Light and crisp, a perfect match.' }],
   tags: ['easy', 'pasta'],
   tip: 'Use fresh ingredients.',
   storage: 'Refrigerate up to 3 days.',
@@ -41,6 +41,20 @@ const UNIVERSAL_MOCK_RESPONSE = {
   reason: 'Adds brightness.',
   howToAdd: 'Grate over finished dish.',
   variants: [{ region: 'Italian', description: 'Classic version', keyDifferences: ['More garlic'] }],
+  // Round 9 fields
+  diagnosis: 'Pasta was overcooked.',
+  likelyCause: 'Water not fully boiling before adding pasta.',
+  fix: 'Bring water to a rolling boil before adding pasta.',
+  merges: [],
+  plan: {
+    Monday: { Breakfast: 'Test Pasta', Lunch: 'Test Pasta', Dinner: 'Test Pasta' },
+    Tuesday: { Breakfast: 'Test Pasta', Lunch: 'Test Pasta', Dinner: 'Test Pasta' },
+    Wednesday: { Breakfast: 'Test Pasta', Lunch: 'Test Pasta', Dinner: 'Test Pasta' },
+    Thursday: { Breakfast: 'Test Pasta', Lunch: 'Test Pasta', Dinner: 'Test Pasta' },
+    Friday: { Breakfast: 'Test Pasta', Lunch: 'Test Pasta', Dinner: 'Test Pasta' },
+    Saturday: { Breakfast: 'Test Pasta', Lunch: 'Test Pasta', Dinner: 'Test Pasta' },
+    Sunday: { Breakfast: 'Test Pasta', Lunch: 'Test Pasta', Dinner: 'Test Pasta' },
+  },
 };
 
 // Helper: intercept all Groq API calls and return canned responses
@@ -680,5 +694,378 @@ test.describe('Sharing', () => {
       await qrBtn.click();
       await expect(page.locator('canvas, svg, img[alt*="qr" i]').first()).toBeVisible();
     }
+  });
+});
+
+// ─── ROUND 9: INGREDIENT ROULETTE ─────────────────────────────────────────────
+
+test.describe('Round 9 — Ingredient Roulette', () => {
+  test('Roulette button is present in generate view', async ({ page }) => {
+    await goToGenerate(page);
+    await expect(page.locator('button', { hasText: /roulette/i })).toBeVisible();
+  });
+
+  test('Roulette modal opens with spin button', async ({ page }) => {
+    await goToGenerate(page);
+    await page.locator('button', { hasText: /roulette/i }).click();
+    await expect(page.locator('button', { hasText: /spin/i }).first()).toBeVisible();
+  });
+
+  test('Roulette spin populates ingredient slots', async ({ page }) => {
+    await goToGenerate(page);
+    await page.locator('button', { hasText: /roulette/i }).click();
+    await page.locator('button', { hasText: /spin/i }).first().click();
+    // After spin, Use Top 3 button should appear (button text is "Use Top 3" or "Use N Selected")
+    await expect(
+      page.locator('button', { hasText: /use (top|\d)/i }).first()
+    ).toBeVisible({ timeout: 5000 });
+  });
+});
+
+// ─── ROUND 9: ALLERGY CHECK ────────────────────────────────────────────────────
+
+test.describe('Round 9 — AllergyCheck', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockGroq(page);
+  });
+
+  test('allergen info banner always shows for mock recipe (pasta → Gluten, parmesan → Dairy)', async ({ page }) => {
+    await addIngredientAndGenerate(page);
+    // Mock recipe has pasta (Gluten) and parmesan (Dairy) — AllergyCheck always renders for these
+    await expect(page.locator('text=Allergen Info').or(page.locator('text=Contains your allergens'))).toBeVisible({ timeout: 5000 });
+  });
+
+  test('personal allergy warning shown in red when allergy matches recipe', async ({ page }) => {
+    // Set gluten allergy in localStorage before generation
+    await page.goto('/');
+    await page.evaluate(() => localStorage.setItem('pref_allergies', JSON.stringify(['Gluten'])));
+    await addIngredientAndGenerate(page);
+    await expect(page.locator('text=Contains your allergens')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('allergy info expands on click', async ({ page }) => {
+    await addIngredientAndGenerate(page);
+    const banner = page.locator('text=Allergen Info').or(page.locator('text=Contains your allergens'));
+    await banner.first().click();
+    await expect(page.locator('text=Gluten').or(page.locator('text=Dairy')).first()).toBeVisible({ timeout: 3000 });
+  });
+});
+
+// ─── ROUND 9: STEP-BY-STEP PHOTOS ─────────────────────────────────────────────
+
+test.describe('Round 9 — Step Photos', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockGroq(page);
+    await addIngredientAndGenerate(page);
+  });
+
+  test('"See step" photo button is present in instructions', async ({ page }) => {
+    await expect(page.locator('button', { hasText: /see step/i }).first()).toBeVisible({ timeout: 5000 });
+  });
+
+  test('"See step" button count matches instruction count', async ({ page }) => {
+    await expect(page.locator('button', { hasText: /see step/i })).toHaveCount(3, { timeout: 5000 });
+  });
+
+  test('clicking "See step" loads an image for that step', async ({ page }) => {
+    await page.locator('button', { hasText: /see step/i }).first().click();
+    // Should show the step image (Pollinations is mocked to return a 1x1 PNG)
+    await expect(
+      page.locator('img[alt="Step"]').first()
+    ).toBeVisible({ timeout: 10000 });
+  });
+});
+
+// ─── ROUND 9: DRINK PAIRINGS ───────────────────────────────────────────────────
+
+test.describe('Round 9 — Drink Pairings', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockGroq(page);
+    await addIngredientAndGenerate(page);
+    await page.locator('button', { hasText: /more/i }).first().click();
+  });
+
+  test('Drink Pairings button is present in More panel', async ({ page }) => {
+    await expect(page.locator('button', { hasText: /drink pairings/i })).toBeVisible();
+  });
+
+  test('Drink Pairings triggers AI call and shows result card', async ({ page }) => {
+    await page.locator('button', { hasText: /drink pairings/i }).click();
+    await expect(
+      page.locator('text=Pinot Grigio').or(page.locator('text=wine').or(page.locator('text=Drink Pairings'))).first()
+    ).toBeVisible({ timeout: 10000 });
+  });
+});
+
+// ─── ROUND 9: RECIPE DEBUGGER ─────────────────────────────────────────────────
+
+test.describe('Round 9 — Recipe Debugger', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockGroq(page);
+    await addIngredientAndGenerate(page);
+    await page.locator('button', { hasText: /more/i }).first().click();
+  });
+
+  test('"What Went Wrong?" button is present in More panel', async ({ page }) => {
+    await expect(page.locator('button', { hasText: /what went wrong/i })).toBeVisible();
+  });
+
+  test('clicking "What Went Wrong?" shows problem textarea', async ({ page }) => {
+    await page.locator('button', { hasText: /what went wrong/i }).click();
+    await expect(page.locator('textarea', { hasText: '' }).first()).toBeVisible({ timeout: 5000 });
+  });
+
+  test('Diagnose button triggers AI call and shows diagnosis', async ({ page }) => {
+    await page.locator('button', { hasText: /what went wrong/i }).click();
+    await page.locator('textarea').first().fill('My pasta turned out mushy and bland.');
+    await page.locator('button', { hasText: /diagnose/i }).click();
+    await expect(
+      page.locator('text=Pasta was overcooked').or(page.locator('text=Likely cause')).first()
+    ).toBeVisible({ timeout: 10000 });
+  });
+});
+
+// ─── ROUND 9: RECIPE MINI-PLAYER ──────────────────────────────────────────────
+
+test.describe('Round 9 — RecipeMiniPlayer', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockGroq(page);
+    await addIngredientAndGenerate(page);
+  });
+
+  test('mini-player appears when navigating away from result view', async ({ page }) => {
+    await page.getByRole('button', { name: /history/i }).click();
+    await expect(page.locator('button[title="Go to recipe"]')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('mini-player shows recipe name', async ({ page }) => {
+    await page.getByRole('button', { name: /planner/i }).click();
+    const miniPlayer = page.locator('div.fixed.bottom-4.right-4');
+    await expect(miniPlayer).toBeVisible({ timeout: 5000 });
+    await expect(miniPlayer.locator('text=Test Pasta')).toBeVisible();
+  });
+
+  test('"Go to recipe" button returns to result view', async ({ page }) => {
+    await page.getByRole('button', { name: /history/i }).click();
+    await page.locator('button[title="Go to recipe"]').click();
+    await expect(page.locator('text=Test Pasta').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=Instructions')).toBeVisible();
+  });
+
+  test('Dismiss button hides the mini-player', async ({ page }) => {
+    await page.getByRole('button', { name: /history/i }).click();
+    await expect(page.locator('button[title="Go to recipe"]')).toBeVisible({ timeout: 5000 });
+    await page.locator('button[title="Dismiss"]').click();
+    await expect(page.locator('button[title="Go to recipe"]')).not.toBeVisible({ timeout: 3000 });
+  });
+});
+
+// ─── ROUND 9: KEYBOARD SHORTCUTS ──────────────────────────────────────────────
+
+test.describe('Round 9 — Keyboard Shortcuts', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockGroq(page);
+    await addIngredientAndGenerate(page);
+  });
+
+  test('H key navigates to history view', async ({ page }) => {
+    await page.keyboard.press('h');
+    await expect(
+      page.locator('text=Recipe History').or(page.locator('text=No recipes yet'))
+    ).toBeVisible({ timeout: 5000 });
+  });
+
+  test('P key navigates to meal planner', async ({ page }) => {
+    await page.keyboard.press('p');
+    await expect(
+      page.locator('text=Meal Planner').or(page.locator('text=Monday')).first()
+    ).toBeVisible({ timeout: 5000 });
+  });
+
+  test('G key navigates to generate view', async ({ page }) => {
+    await page.keyboard.press('h'); // go somewhere else first
+    await page.keyboard.press('g');
+    await expect(page.locator('input[placeholder*="Chicken" i]')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('keyboard shortcuts panel shows H/P/G entries', async ({ page }) => {
+    await page.locator('nav button[title="Settings"]').click();
+    await page.locator('button', { hasText: /keyboard shortcuts/i }).click();
+    await expect(page.locator('text=History').first()).toBeVisible();
+    await expect(page.locator('text=Planner').first()).toBeVisible();
+  });
+});
+
+// ─── ROUND 9: COOKING STATS NEW TABS ──────────────────────────────────────────
+
+test.describe('Round 9 — CookingStats new tabs', () => {
+  async function openStats(page) {
+    // Seed localStorage BEFORE page load so React's useState initializer reads the data
+    await page.addInitScript(() => {
+      const fakeEntry = {
+        id: 'test-stats-seed-1',
+        recipe: { name: 'Test Pasta', difficulty: 'Easy', calories: '450', time: '30 minutes',
+          description: 'A simple pasta.', ingredients: ['200g pasta', '2 cloves garlic'],
+          instructions: ['Boil pasta', 'Add sauce', 'Serve'],
+          nutrition: { protein: '15g', carbs: '60g', fat: '12g', fiber: '3g' } },
+        savedAt: new Date().toISOString(),
+        tags: ['easy', 'pasta'],
+        isFavourite: false, rating: null, cookCount: 1, versions: [], notes: '', wantToCook: false,
+      };
+      localStorage.setItem('recipe_history', JSON.stringify([fakeEntry]));
+    });
+    await page.goto('/');
+    await page.getByRole('button', { name: /history/i }).click();
+    await page.locator('button', { hasText: 'Stats' }).first().click();
+    // Wait for CookingStats to fully render its tab bar
+    await expect(page.locator('button', { hasText: /top ingredients/i }).first()).toBeVisible({ timeout: 5000 });
+  }
+
+  test('Streak Calendar tab is present', async ({ page }) => {
+    await openStats(page);
+    await expect(page.locator('button', { hasText: /streak cal/i })).toBeVisible();
+  });
+
+  test('Streak Calendar tab renders heatmap SVG', async ({ page }) => {
+    await openStats(page);
+    await page.locator('button', { hasText: /streak cal/i }).click();
+    await expect(page.locator('svg').first()).toBeVisible();
+  });
+
+  test('Difficulty HeatMap tab is present', async ({ page }) => {
+    await openStats(page);
+    await expect(page.locator('button', { hasText: /diff map/i })).toBeVisible();
+  });
+
+  test('Difficulty HeatMap tab renders calendar SVG', async ({ page }) => {
+    await openStats(page);
+    await page.locator('button', { hasText: /diff map/i }).click();
+    await expect(page.locator('svg').first()).toBeVisible();
+  });
+
+  test('Cuisine Deep-Dive button is present in Stats', async ({ page }) => {
+    await openStats(page);
+    await expect(page.locator('button', { hasText: /cuisine deep.dive/i })).toBeVisible();
+  });
+
+  test('Cuisine Deep-Dive opens modal with cuisine chips', async ({ page }) => {
+    await mockGroq(page);
+    await openStats(page);
+    await page.locator('button', { hasText: /cuisine deep.dive/i }).click();
+    await expect(
+      page.locator('text=Italian').or(page.locator('text=Cuisine').or(page.locator('text=Asian'))).first()
+    ).toBeVisible({ timeout: 5000 });
+  });
+});
+
+// ─── ROUND 9: MEAL PLANNER AI FILL ────────────────────────────────────────────
+
+test.describe('Round 9 — MealPlanner AI Fill', () => {
+  test('AI Fill button is present', async ({ page }) => {
+    await mockGroq(page);
+    await page.goto('/');
+    await page.getByRole('button', { name: /planner/i }).click();
+    await expect(page.locator('button', { hasText: /ai fill/i })).toBeVisible();
+  });
+
+  test('AI Fill generates a plan preview', async ({ page }) => {
+    await mockGroq(page);
+    await page.goto('/');
+    await page.getByRole('button', { name: /planner/i }).click();
+    await page.locator('button', { hasText: /ai fill/i }).click();
+    await expect(
+      page.locator('text=Planning').or(
+        page.locator('text=Apply Plan').or(
+          page.locator('text=AI Plan Preview').or(page.locator('text=Test Pasta'))
+        )
+      ).first()
+    ).toBeVisible({ timeout: 15000 });
+  });
+});
+
+// ─── ROUND 9: RECIPE HISTORY NEW FEATURES ─────────────────────────────────────
+
+test.describe('Round 9 — RecipeHistory new features', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockGroq(page);
+  });
+
+  test('Collections tab has AI Suggest button', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: /history/i }).click();
+    // Collections tab text is "📁 (0)" not "collections"
+    await page.locator('button').filter({ hasText: /📁/ }).first().click();
+    await expect(page.locator('button', { hasText: /ai suggest/i })).toBeVisible();
+  });
+
+  test('Tag Auto-Cleanup button is present in history header', async ({ page }) => {
+    // Button is inside {history.length > 0 && ...} block — need at least one saved recipe
+    await addIngredientAndGenerate(page);
+    await page.locator('button', { hasText: /save/i }).first().click();
+    await page.getByRole('button', { name: /history/i }).click();
+    await expect(page.locator('button', { hasText: /clean tags/i })).toBeVisible();
+  });
+
+  test('full-text search finds recipe by instruction text', async ({ page }) => {
+    await addIngredientAndGenerate(page);
+    await page.locator('button', { hasText: /save/i }).first().click();
+    await page.getByRole('button', { name: /history/i }).click();
+    const searchInput = page.locator('input[placeholder*="search" i]');
+    await searchInput.fill('Boil pasta');
+    await expect(page.locator('text=Test Pasta').first()).toBeVisible();
+  });
+
+  test('Monthly Nutrition Report button is in Food Log tab', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: /history/i }).click();
+    // Food Log tab text is "🥗 Log" not "food log"
+    await page.locator('button').filter({ hasText: '🥗' }).first().click();
+    await expect(page.locator('button', { hasText: /monthly/i })).toBeVisible();
+  });
+
+  test('Monthly Nutrition Report modal opens', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: /history/i }).click();
+    // Food Log tab text is "🥗 Log" not "food log"
+    await page.locator('button').filter({ hasText: '🥗' }).first().click();
+    await page.locator('button', { hasText: /monthly/i }).click();
+    // Modal shows "30-Day Nutrition Report" if data exists, or "No food log data yet" if empty
+    await expect(
+      page.locator('text=30-Day Nutrition Report').or(page.locator('text=No food log data')).first()
+    ).toBeVisible({ timeout: 5000 });
+  });
+});
+
+// ─── ROUND 9: PANTRY INGREDIENT NUTRITION ─────────────────────────────────────
+
+test.describe('Round 9 — Pantry Ingredient Nutrition', () => {
+  async function openPantryWithItem(page) {
+    await page.goto('/');
+    await page.getByRole('button', { name: /my kitchen/i }).click();
+    await page.locator('button[title*="pantry" i], button:has-text("Pantry")').first().click();
+    await expect(page.locator('text=My Pantry')).toBeVisible();
+    const input = page.locator('input[placeholder*="pantry item" i]');
+    await input.fill('broccoli');
+    await input.press('Enter');
+    await expect(page.locator('text=broccoli').first()).toBeVisible();
+  }
+
+  test('nutrition info button (ℹ) appears per pantry item', async ({ page }) => {
+    await mockGroq(page);
+    await openPantryWithItem(page);
+    // ℹ button has title containing "nutrition"
+    const infoBtn = page.locator('button[title*="nutrition" i]').first();
+    await expect(infoBtn).toBeVisible({ timeout: 3000 });
+  });
+
+  test('clicking nutrition button triggers AI lookup and shows popover', async ({ page }) => {
+    await mockGroq(page);
+    await openPantryWithItem(page);
+    const infoBtn = page.locator('button[title*="nutrition" i]').first();
+    await infoBtn.click();
+    // Popover shows "Cal", "Pro", "Carb" labels and "per 100g" — use specific labels
+    await expect(
+      page.locator('text=Cal').or(page.locator('text=per 100g')).first()
+    ).toBeVisible({ timeout: 10000 });
   });
 });

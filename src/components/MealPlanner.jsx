@@ -128,7 +128,8 @@ export default function MealPlanner({ history, onClose, nutritionGoals }) {
       })();
       const nutritionGoalsRaw = (() => { try { return JSON.parse(localStorage.getItem('pref_nutrition_goals') || 'null'); } catch { return null; } })();
       const result = await generateSmartMealPlan(pantryItems, nutritionGoalsRaw, {});
-      if (result?.plan) setAIPlanPreview(result.plan);
+      // generateSmartMealPlan returns the plan object directly (not {plan: ...})
+      if (result && Object.keys(result).length > 0) setAIPlanPreview(result);
     } catch { /* empty */ }
     setIsAIFilling(false);
   };
