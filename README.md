@@ -226,8 +226,8 @@ npm run dev
 
 ## Deployment
 
-Live at **[autochef.online](https://autochef.online)** — deploys automatically to GitHub Pages on every push to `main` via GitHub Actions.
+Deployed to **[code2031.github.io/AutoChef/](https://code2031.github.io/AutoChef/)** — automatically via GitHub Actions on every push to `main`.
 
 Add `VITE_GROQ_API_KEY` as a repository secret — it is wired into the build step in `.github/workflows/deploy.yml`. Pollinations.ai needs no key.
 
-`public/CNAME` contains `autochef.online` and is copied into the deploy artifact so GitHub Pages applies the custom domain on every deploy. Vite `base` is `/` (root) to match the custom domain; the service worker and manifest paths are all root-relative.
+Vite `base` is `/AutoChef/` and `public/CNAME` is empty (no custom domain active). To switch to a custom domain: set `base: '/'` in `vite.config.js`, update `public/sw.js` and `src/main.jsx` paths to root-relative, and write the domain to `public/CNAME`.

@@ -324,17 +324,7 @@ All `localStorage` keys:
 
 **`QuickShareBar.jsx`** — compact row of share actions. Props: `{ recipe }`. Includes Web Share API / clipboard, WhatsApp, mailto, print, copy recipe name. Reading time computed inline (`words / 200`).
 
-**`SubstitutionMatrix.jsx`** — full-screen modal (`z-[250]`). Generates 2 subs per ingredient across the whole recipe; dietary filter tabs re-fetch with constraint; "Copy All" clipboard button. Triggered by "🔄 Subs Map" button in ResultView ingredient header.
-
-**`LeftoverTransformer.jsx`** — collapsible section in ResultView (visible when recipe is saved). "♻️ Leftover Ideas" → Groq call → 3 cards with dish name, description, key transformation, "Cook This →" button.
-
-**`CookTimeline.jsx`** — SVG Gantt-style cook timeline. Triggered by "View Cooking Timeline" button in ResultView. Two lanes (Main/Parallel), step bars with duration labels, gridlines every 5–10 min. Pure SVG, horizontal scroll on mobile.
-
-**`MealPlanNutrition.jsx`** — purely computed from recipe data in history. Weekly calorie bar chart (SVG), per-day macro stacked bars, weekly average goal comparison. Toggle button in MealPlanner alongside Shopping List and Prep Guide buttons.
-
-**`LeftoverTransformer.jsx`** — see Leftover Transformer above.
-
-**`useRecipeHistory`** additional methods added: `togglePin(id)` (toggles `isPinned` flag, pinned entries sort to top), `bulkDelete(ids)` (deletes array of ids), `importHistory(entries)` (merges entries deduplicating by id). Passed to `RecipeHistory` as `onTogglePin`, and to `Navbar` as `onImportHistory`.
+**`useRecipeHistory`** additional methods: `togglePin(id)` (toggles `isPinned` flag, pinned entries sort to top), `bulkDelete(ids)` (deletes array of ids), `importHistory(entries)` (merges entries deduplicating by id). Passed to `RecipeHistory` as `onTogglePin`, and to `Navbar` as `onImportHistory`.
 
 **`RecipeHistory.jsx`** — additional features: sort by cook count (`'cooks'`) and difficulty (`'difficulty'`), difficulty filter dropdown, rating filter (`all/up/down/unrated`), cuisine quick-filter chips (Italian/Asian/Mexican/Indian/French/Japanese), "has notes" filter toggle, ingredient search (searches inside `recipe.ingredients`), result count display when filters active, clear-filters button, pin-to-top with 📌 icon, cook-again button (🍳), bulk delete in multi-select action bar, colored difficulty chips (green/slate/red).
 
