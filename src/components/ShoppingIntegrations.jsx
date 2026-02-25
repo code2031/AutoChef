@@ -18,6 +18,7 @@ export default function ShoppingIntegrations({ items }) {
   const [haUrlInput, setHaUrlInput] = useState('');
   const [haTokenInput, setHaTokenInput] = useState('');
   const [gtClientIdInput, setGtClientIdInput] = useState('');
+  const [showCorsHelp, setShowCorsHelp] = useState(false);
 
   const haUrl = (() => { try { return JSON.parse(localStorage.getItem('pref_ha_url') || '""'); } catch { return ''; } })();
   const haToken = (() => { try { return JSON.parse(localStorage.getItem('pref_ha_token') || '""'); } catch { return ''; } })();
@@ -45,20 +46,26 @@ export default function ShoppingIntegrations({ items }) {
   const handleHA = async () => {
     setHaStatus('loading');
     setHaMsg('');
+    setShowCorsHelp(false);
     try {
-      const { success, failed } = await addToHAShoppingList(items, haUrl, haToken);
+      const { success, failed, corsBlocked } = await addToHAShoppingList(items, haUrl, haToken);
       if (failed === 0) {
         setHaStatus('success');
-        setHaMsg(`${success} item${success !== 1 ? 's' : ''} added`);
+        setHaMsg(`${success} item${success !== 1 ? 's' : ''} added to HA`);
+      } else if (corsBlocked) {
+        setHaStatus('error');
+        setHaMsg('CORS blocked — HA needs to allow this origin');
+        setShowCorsHelp(true);
+        return; // don't auto-dismiss so user can read the help
       } else {
         setHaStatus('error');
-        setHaMsg(`${success} added, ${failed} failed (check CORS / token)`);
+        setHaMsg(`${success} added, ${failed} failed — check token`);
       }
     } catch {
       setHaStatus('error');
-      setHaMsg('Connection failed — check HA URL and token');
+      setHaMsg('Network error — check HA URL');
     }
-    setTimeout(() => setHaStatus(null), 4000);
+    setTimeout(() => setHaStatus(null), 5000);
   };
 
   const handleGoogleTasks = async () => {
@@ -110,6 +117,13 @@ export default function ShoppingIntegrations({ items }) {
               Home Assistant
             </button>
             {haMsg && <p className={`text-[10px] ${haStatus === 'error' ? 'text-red-400' : 'text-green-400'}`}>{haMsg}</p>}
+            {showCorsHelp && (
+              <div className="mt-2 p-3 bg-amber-500/10 border border-amber-500/25 rounded-xl text-[11px] space-y-1.5">
+                <p className="text-amber-400 font-semibold">Fix: add CORS to HA configuration.yaml</p>
+                <pre className="bg-black/30 rounded p-2 text-amber-300 leading-relaxed text-[10px] overflow-x-auto">{`http:\n  cors_allowed_origins:\n    - https://code2031.github.io\n    - http://localhost:5173`}</pre>
+                <p className="text-slate-500">Then restart Home Assistant and try again.</p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-2">

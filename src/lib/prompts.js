@@ -1,10 +1,16 @@
 import { getSeasonalHint } from './seasonal.js';
 
-// Truncate and strip common prompt-injection patterns from user-supplied strings.
+// Truncate, Unicode-normalise, and strip prompt-injection patterns from
+// user-supplied strings before embedding them inside LLM prompts.
 function sanitizeInput(str, maxLen = 500) {
   if (!str) return '';
   return String(str)
+    // Unicode-normalise to catch lookalike-character bypasses (e.g. Greek ο)
+    .normalize('NFKC')
+    // Strip zero-width / invisible characters
+    .replace(/[\u200B-\u200D\uFEFF\u00AD]/g, '')
     .slice(0, maxLen)
+    // Classic jailbreak phrases
     .replace(/ignore\s+(all\s+)?(previous|above|prior)\s+instructions?/gi, '')
     .replace(/disregard\s+(all\s+)?(previous|above)/gi, '')
     .replace(/forget\s+(your\s+)?(instructions?|rules?)/gi, '')
@@ -13,6 +19,17 @@ function sanitizeInput(str, maxLen = 500) {
     .replace(/\bsystem\s*:/gi, '')
     .replace(/\bassistant\s*:/gi, '')
     .replace(/\bhuman\s*:/gi, '')
+    // Roleplay / persona-switch patterns
+    .replace(/pretend\s+(you\s+are|to\s+be)\b/gi, '')
+    .replace(/act\s+as\b/gi, '')
+    .replace(/your\s+new\s+role\b/gi, '')
+    .replace(/\bDAN\b/g, '')
+    .replace(/no\s+restrictions?\b/gi, '')
+    .replace(/\bdiscard\s+all\s+context\b/gi, '')
+    .replace(/identity\s+has\s+been\s+reset/gi, '')
+    // JSON breakout: strip unescaped quotes and backticks that could close
+    // surrounding JSON strings in the prompt template
+    .replace(/[`"]/g, "'")
     .trim();
 }
 
