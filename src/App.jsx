@@ -21,6 +21,7 @@ import { getRandomSurpriseIngredients } from './lib/ingredients.js';
 import { buildRecipePrompt, buildSuggestionsPrompt, buildDishPrompt, buildSimilarPrompt, buildImportPrompt, buildRemixPrompt, buildHistoricalPrompt, buildRestaurantPrompt } from './lib/prompts.js';
 import ABRecipeTest from './components/ABRecipeTest.jsx';
 import PostCookingSummary from './components/PostCookingSummary.jsx';
+import RecipeMiniPlayer from './components/RecipeMiniPlayer.jsx';
 
 export default function App() {
   // View state — start on 'result' immediately if URL carries a recipe
@@ -57,6 +58,7 @@ export default function App() {
   const [currentSavedId, setCurrentSavedId] = useState(null);
   const [currentRating, setCurrentRating] = useState(null);
   const [isAutoTagging, setIsAutoTagging] = useState(false);
+  const [miniPlayerDismissed, setMiniPlayerDismissed] = useState(false);
 
   // Pairing suggestions
   const [pairings, setPairings] = useState([]);
@@ -156,13 +158,28 @@ export default function App() {
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e) => {
+      const tagName = document.activeElement?.tagName?.toUpperCase();
+      const isInput = tagName === 'INPUT' || tagName === 'TEXTAREA';
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && view === 'generate' && ingredients.length > 0) {
         handleGenerate();
+        return;
+      }
+      if (isInput) return;
+      if (e.key === 'h' || e.key === 'H') setView('history');
+      if (e.key === 'p' || e.key === 'P') setView('planner');
+      if (e.key === 'g' || e.key === 'G') setView('generate');
+      if ((e.key === 's' || e.key === 'S') && view === 'result' && recipe && !currentSavedId) {
+        handleSave();
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [view, ingredients]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [view, ingredients, recipe]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset mini-player dismissed state whenever a new recipe loads
+  useEffect(() => {
+    if (recipe) setMiniPlayerDismissed(false);
+  }, [recipe?.name]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Image scan ---
   const handleScan = (e) => {
@@ -927,6 +944,16 @@ export default function App() {
           onRate={handleRate}
           onLogMeal={handleLogMealFromCooking}
           onClose={() => setShowPostCooking(false)}
+        />
+      )}
+
+      {/* Recipe Mini Player — shown when recipe is loaded but user is not on result view */}
+      {recipe && view !== 'result' && view !== 'landing' && !miniPlayerDismissed && (
+        <RecipeMiniPlayer
+          recipe={recipe}
+          recipeImage={recipeImage}
+          onGoToRecipe={() => setView('result')}
+          onDismiss={() => setMiniPlayerDismissed(true)}
         />
       )}
     </div>

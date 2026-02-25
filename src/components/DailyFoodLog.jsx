@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, X, Trash2, Droplets, ChevronDown, ChevronUp } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
+import MonthlyNutritionReport from './MonthlyNutritionReport.jsx';
 
 const TODAY = () => new Date().toISOString().slice(0, 10);
 
@@ -184,6 +185,7 @@ export default function DailyFoodLog({ nutritionGoals, lastRecipe }) {
   const [log, setLog] = useLocalStorage('daily_food_log', []);
   const [isAdding, setIsAdding] = useState(false);
   const [form, setForm] = useState({ name: '', calories: '', protein: '', carbs: '', fat: '' });
+  const [showReport, setShowReport] = useState(false);
 
   const today = TODAY();
   const todayEntries = log.filter(e => e.date === today);
@@ -245,14 +247,24 @@ export default function DailyFoodLog({ nutritionGoals, lastRecipe }) {
           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">🥗 Daily Food Log</p>
           <p className="text-xs text-slate-500 mt-0.5">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
         </div>
-        <button
-          onClick={() => setIsAdding(v => !v)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded-xl text-xs font-medium hover:bg-orange-500/20 transition-all"
-        >
-          {isAdding ? <X size={13} /> : <Plus size={13} />}
-          {isAdding ? 'Cancel' : 'Log Meal'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowReport(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-white/10 text-slate-400 rounded-xl text-xs font-medium hover:text-white transition-all"
+            title="30-day nutrition report"
+          >
+            📊 Monthly
+          </button>
+          <button
+            onClick={() => setIsAdding(v => !v)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded-xl text-xs font-medium hover:bg-orange-500/20 transition-all"
+          >
+            {isAdding ? <X size={13} /> : <Plus size={13} />}
+            {isAdding ? 'Cancel' : 'Log Meal'}
+          </button>
+        </div>
       </div>
+      {showReport && <MonthlyNutritionReport onClose={() => setShowReport(false)} />}
 
       {/* Quick-log chip from last recipe */}
       {lastRecipe && !isAdding && (

@@ -321,3 +321,83 @@ export async function generateSubstitutionMatrix(recipe, dietaryFilter) {
   const parsed = JSON.parse(data.choices[0].message.content);
   return parsed.matrix || [];
 }
+
+export async function generateDrinkPairings(recipe) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Suggest 4 drink pairings for the recipe "${recipe.name}" (${recipe.description ? recipe.description.slice(0, 100) : ''}). Include a mix of wine, beer, cocktail, and non-alcoholic options. Return JSON: {"pairings": [{"type": "wine|beer|cocktail|non-alcoholic", "name": "specific drink name", "notes": "one sentence why it pairs well"}]}` }],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
+  const parsed = JSON.parse(data.choices[0].message.content);
+  return parsed.pairings || [];
+}
+
+export async function generateRecipeDebug(recipe, description) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `A home cook made "${recipe.name}" and had this problem: "${description}"\n\nIngredients: ${(recipe.ingredients || []).slice(0, 8).join(', ')}\nInstructions summary: ${(recipe.instructions || []).slice(0, 3).join(' | ')}\n\nDiagnose what likely went wrong and how to fix it next time. Return JSON: {"diagnosis": "what went wrong", "likelyCause": "most probable cause", "fix": "how to prevent it", "tip": "pro tip to nail it next time"}` }],
+    temperature: 0.6,
+    response_format: { type: 'json_object' },
+  });
+  return JSON.parse(data.choices[0].message.content);
+}
+
+export async function generateCollectionSuggestions(historyNames) {
+  const names = historyNames.slice(0, 30).join(', ');
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Given these recipe names: ${names}\n\nSuggest 3 meaningful cookbook collections to organize them. Return JSON: {"suggestions": [{"collectionName": "Collection Name", "recipeNames": ["Recipe A", "Recipe B"]}]}. Match exact recipe names from the list above.` }],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
+  const parsed = JSON.parse(data.choices[0].message.content);
+  return parsed.suggestions || [];
+}
+
+export async function generateTagMerges(allTags) {
+  const tagList = allTags.slice(0, 50).join(', ');
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Given these recipe tags: ${tagList}\n\nIdentify duplicate or near-duplicate tags that should be merged (e.g. "pasta" and "pastas", "quick" and "quick meal"). Return JSON: {"merges": [{"canonical": "preferred tag name", "duplicates": ["tag1", "tag2"]}]}. Only suggest obvious duplicates — return empty array if none found.` }],
+    temperature: 0.3,
+    response_format: { type: 'json_object' },
+  });
+  const parsed = JSON.parse(data.choices[0].message.content);
+  return parsed.merges || [];
+}
+
+export async function generateSmartMealPlan(pantryItems, nutritionGoals, prefs) {
+  const pantryText = pantryItems.length > 0 ? `Available pantry: ${pantryItems.slice(0, 15).join(', ')}.` : '';
+  const goalText = nutritionGoals?.calories ? `Daily calorie target: ${nutritionGoals.calories} kcal.` : '';
+  const prefText = prefs?.diet ? `Diet: ${prefs.diet}.` : '';
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Create a balanced 7-day meal plan for a home cook. ${pantryText} ${goalText} ${prefText}\n\nReturn JSON: {"plan": {"Monday": {"Breakfast": "dish name", "Lunch": "dish name", "Dinner": "dish name"}, "Tuesday": {...}, "Wednesday": {...}, "Thursday": {...}, "Friday": {...}, "Saturday": {...}, "Sunday": {...}}}. Use simple, practical dishes. Vary cuisines and nutrition balance.` }],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
+  const parsed = JSON.parse(data.choices[0].message.content);
+  return parsed.plan || {};
+}
+
+export async function generateIngredientNutrition(ingredient) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Provide approximate nutritional info per 100g for "${ingredient}". Return JSON: {"calories": 0, "protein": 0, "carbs": 0, "fat": 0, "fiber": 0, "per": "100g"}. Use whole numbers. If it's a non-food item return all zeros.` }],
+    temperature: 0.3,
+    response_format: { type: 'json_object' },
+  });
+  return JSON.parse(data.choices[0].message.content);
+}
+
+export async function parseIngredientSentence(text) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Extract individual ingredients from this voice input: "${text}"\n\nReturn JSON: {"ingredients": ["ingredient1", "ingredient2"]}. Each ingredient should be a simple food name without quantities. Return only clear food ingredients.` }],
+    temperature: 0.3,
+    response_format: { type: 'json_object' },
+  });
+  const parsed = JSON.parse(data.choices[0].message.content);
+  return parsed.ingredients || [];
+}

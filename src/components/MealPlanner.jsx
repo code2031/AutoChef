@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, ShoppingCart, Trash2, ChevronDown, ChevronUp, Check, Plus, Copy, Loader2 } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 import { buildSmartShoppingList } from '../lib/shoppingList.js';
-import { generateMealPrepGuide } from '../lib/groq.js';
+import { generateMealPrepGuide, generateSmartMealPlan } from '../lib/groq.js';
 import ShoppingIntegrations from './ShoppingIntegrations.jsx';
 import MealPlanNutrition from './MealPlanNutrition.jsx';
 
@@ -40,6 +40,17 @@ export default function MealPlanner({ history, onClose, nutritionGoals }) {
     const idx = (d.getDay() + 6) % 7; // Mon=0 … Sun=6
     return new Set([DAYS[idx]]);
   });
+
+  // AI Fill state
+  const [isAIFilling, setIsAIFilling] = useState(false);
+  const [aiPlanPreview, setAIPlanPreview] = useState(null);
+
+  // Drag-and-drop state and refs
+  const [highlightedSlot, setHighlightedSlot] = useState(null);
+  const [draggedEntry, setDraggedEntry] = useState(null);
+  const dragRef = useRef(null);
+  const dragTimerRef = useRef(null);
+  const ghostRef = useRef(null);
 
   const getSlot = (day, meal) => plan[day]?.[meal] ?? null;
   const setSlot = (day, meal, entryId) => {
@@ -107,6 +118,115 @@ export default function MealPlanner({ history, onClose, nutritionGoals }) {
     }
   };
 
+  // AI Fill handler
+  const handleAIFill = async () => {
+    setIsAIFilling(true);
+    try {
+      const pantryItems = (() => {
+        try { return JSON.parse(localStorage.getItem('pantry_items') || '[]').map(p => typeof p === 'string' ? p : (p.name || '')).filter(Boolean); }
+        catch { return []; }
+      })();
+      const nutritionGoalsRaw = (() => { try { return JSON.parse(localStorage.getItem('pref_nutrition_goals') || 'null'); } catch { return null; } })();
+      const result = await generateSmartMealPlan(pantryItems, nutritionGoalsRaw, {});
+      if (result?.plan) setAIPlanPreview(result.plan);
+    } catch { /* empty */ }
+    setIsAIFilling(false);
+  };
+
+  const applyAIPlan = () => {
+    if (!aiPlanPreview) return;
+    const newPlan = { ...plan };
+    Object.entries(aiPlanPreview).forEach(([day, meals]) => {
+      if (!newPlan[day]) newPlan[day] = {};
+      Object.entries(meals).forEach(([meal, recipeName]) => {
+        if (newPlan[day][meal]) return;
+        const match = history.find(e => e.recipe?.name?.toLowerCase() === recipeName?.toLowerCase());
+        if (match) newPlan[day][meal] = match.id;
+      });
+    });
+    setPlan(newPlan);
+    setAIPlanPreview(null);
+  };
+
+  // Desktop drag handlers
+  const handleDragStart = (e, entry) => {
+    setDraggedEntry(entry);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', entry.id);
+  };
+
+  const handleDragOver = (e, day, meal) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setHighlightedSlot({ day, meal });
+  };
+
+  const handleDragLeave = () => setHighlightedSlot(null);
+
+  const handleDrop = (e, day, meal) => {
+    e.preventDefault();
+    if (draggedEntry) {
+      setSlot(day, meal, draggedEntry.id);
+    }
+    setDraggedEntry(null);
+    setHighlightedSlot(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedEntry(null);
+    setHighlightedSlot(null);
+  };
+
+  // Mobile touch drag handlers
+  const handleTouchStart = (e, entry) => {
+    const touch = e.touches[0];
+    dragTimerRef.current = setTimeout(() => {
+      dragRef.current = entry;
+      const ghost = document.createElement('div');
+      ghost.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;background:rgba(249,115,22,0.15);border:2px solid rgba(249,115,22,0.5);border-radius:12px;padding:8px 12px;color:white;font-size:12px;font-weight:600;white-space:nowrap;transform:translateX(-50%)';
+      ghost.textContent = (entry.recipe?.name || 'Recipe').slice(0, 25);
+      ghost.style.left = touch.clientX + 'px';
+      ghost.style.top = (touch.clientY - 40) + 'px';
+      document.body.appendChild(ghost);
+      ghostRef.current = ghost;
+    }, 150);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!dragRef.current) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    if (ghostRef.current) {
+      ghostRef.current.style.left = touch.clientX + 'px';
+      ghostRef.current.style.top = (touch.clientY - 40) + 'px';
+    }
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const slot = el?.closest('[data-drop-slot]');
+    if (slot) {
+      const day = slot.dataset.day;
+      const meal = slot.dataset.meal;
+      if (day && meal) setHighlightedSlot({ day, meal });
+    } else {
+      setHighlightedSlot(null);
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    clearTimeout(dragTimerRef.current);
+    if (ghostRef.current) { document.body.removeChild(ghostRef.current); ghostRef.current = null; }
+    if (!dragRef.current) return;
+    const touch = e.changedTouches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const slot = el?.closest('[data-drop-slot]');
+    if (slot) {
+      const day = slot.dataset.day;
+      const meal = slot.dataset.meal;
+      if (day && meal) setSlot(day, meal, dragRef.current.id);
+    }
+    dragRef.current = null;
+    setHighlightedSlot(null);
+  };
+
   const shoppingList = buildShoppingList(plan, history);
 
   return (
@@ -126,6 +246,14 @@ export default function MealPlanner({ history, onClose, nutritionGoals }) {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={handleAIFill}
+            disabled={isAIFilling}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 transition-all disabled:opacity-50"
+          >
+            {isAIFilling ? <Loader2 size={15} className="animate-spin" /> : '🤖'}
+            {isAIFilling ? 'Planning...' : 'AI Fill'}
+          </button>
           {totalAssigned >= 3 && (
             <button
               onClick={handleGeneratePrepGuide}
@@ -189,6 +317,31 @@ export default function MealPlanner({ history, onClose, nutritionGoals }) {
         );
       })()}
 
+      {/* AI Plan Preview */}
+      {aiPlanPreview && (
+        <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-4 space-y-3 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-bold text-indigo-400">🤖 AI Meal Plan Preview</p>
+            <button onClick={() => setAIPlanPreview(null)} className="text-slate-500 hover:text-slate-300 text-xs">✕</button>
+          </div>
+          <p className="text-xs text-slate-500">Matched dishes from your saved recipes will be assigned. Empty slots won't be changed.</p>
+          <div className="space-y-1">
+            {Object.entries(aiPlanPreview).slice(0, 3).map(([day, meals]) => (
+              <div key={day} className="text-xs text-slate-400">
+                <span className="font-medium text-slate-300">{day}:</span> {Object.values(meals).join(' · ')}
+              </div>
+            ))}
+            {Object.keys(aiPlanPreview).length > 3 && <p className="text-xs text-slate-600">+ {Object.keys(aiPlanPreview).length - 3} more days</p>}
+          </div>
+          <button
+            onClick={applyAIPlan}
+            className="w-full py-2 bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-bold rounded-xl transition-all"
+          >
+            Apply Plan
+          </button>
+        </div>
+      )}
+
       {/* Nutrition Overview */}
       <MealPlanNutrition plan={plan} history={history} nutritionGoals={nutritionGoals} />
 
@@ -248,7 +401,13 @@ export default function MealPlanner({ history, onClose, nutritionGoals }) {
                   <button
                     key={entry.id}
                     data-recipe-card="true"
+                    draggable
                     onClick={() => handleRecipeTap(entry)}
+                    onDragStart={e => handleDragStart(e, entry)}
+                    onDragEnd={handleDragEnd}
+                    onTouchStart={e => handleTouchStart(e, entry)}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
                     className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left group select-none ${
                       isSelected
                         ? 'bg-orange-500/15 border-orange-500/50 shadow-lg shadow-orange-500/10'
@@ -310,14 +469,22 @@ export default function MealPlanner({ history, onClose, nutritionGoals }) {
                       const slotId = getSlot(day, meal);
                       const entry = slotId ? getEntry(slotId) : null;
                       const isAssignable = !!selectedEntry;
+                      const isHighlighted = highlightedSlot?.day === day && highlightedSlot?.meal === meal;
 
                       return (
                         <div
                           key={meal}
                           data-drop-slot="true"
+                          data-day={day}
+                          data-meal={meal}
                           onClick={() => handleSlotTap(day, meal)}
+                          onDragOver={e => handleDragOver(e, day, meal)}
+                          onDragLeave={handleDragLeave}
+                          onDrop={e => handleDrop(e, day, meal)}
                           className={`min-h-[80px] rounded-xl border-2 transition-all relative ${
-                            isAssignable
+                            isHighlighted
+                              ? 'border-indigo-500 bg-indigo-500/10'
+                              : isAssignable
                               ? 'border-orange-500/50 bg-orange-500/5 cursor-pointer hover:bg-orange-500/10 hover:border-orange-500/70'
                               : entry
                               ? 'border-white/10 bg-slate-800/60'
@@ -346,7 +513,7 @@ export default function MealPlanner({ history, onClose, nutritionGoals }) {
                                 </button>
                               </div>
                             </div>
-                          ) : !isAssignable ? (
+                          ) : !isAssignable && !isHighlighted ? (
                             <div className="flex items-center justify-center h-full pt-5 pb-2">
                               <p className="text-xs text-slate-600">Empty</p>
                             </div>

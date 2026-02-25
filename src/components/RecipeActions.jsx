@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, Share2, Printer, QrCode, RotateCcw, ThumbsUp, ThumbsDown, Image as ImageIcon, Loader2, Download, Code, MessageSquare, Languages, Leaf, DollarSign, ChevronDown, ShoppingCart, Shuffle, BookOpen, Flame, CreditCard, Copy, Check, X, Users, ChefHat, Globe } from 'lucide-react';
-import { generateVariant, generateSecretIngredient, generateChefLetter, generateRecipeHaiku, generateBatchPrep, generateFlavorPairings } from '../lib/groq.js';
+import { generateVariant, generateSecretIngredient, generateChefLetter, generateRecipeHaiku, generateBatchPrep, generateFlavorPairings, generateDrinkPairings, generateRecipeDebug } from '../lib/groq.js';
+import DrinkPairings from './DrinkPairings.jsx';
 import { buildVariantPrompt } from '../lib/prompts.js';
 async function buildLongUrl(recipe, imageUrl) {
   const payload = JSON.stringify({ r: recipe, i: imageUrl || "" });
@@ -47,6 +48,8 @@ export default function RecipeActions({
   const [batchResult, setBatchResult] = useState({ loading: false, data: null, servings: 20, inputShown: false });
   const [flavorPairs, setFlavorPairs] = useState(null);
   const [isLoadingPairs, setIsLoadingPairs] = useState(false);
+  const [drinkPairs, setDrinkPairs] = useState({ loading: false, data: null });
+  const [debugResult, setDebugResult] = useState({ loading: false, data: null, inputShown: false, description: '' });
   const [cardTheme, setCardTheme] = useState('orange');
 
   useEffect(() => {
@@ -89,6 +92,24 @@ export default function RecipeActions({
     await navigator.clipboard.writeText(tag);
     setEmbedCopied(true);
     setTimeout(() => setEmbedCopied(false), 2000);
+  };
+
+  const handleDrinkPairings = async () => {
+    if (drinkPairs.data) { setDrinkPairs({ loading: false, data: null }); return; }
+    setDrinkPairs({ loading: true, data: null });
+    try {
+      const result = await generateDrinkPairings(recipe);
+      setDrinkPairs({ loading: false, data: result });
+    } catch { setDrinkPairs({ loading: false, data: [] }); }
+  };
+
+  const handleDebugSubmit = async () => {
+    if (!debugResult.description.trim()) return;
+    setDebugResult(prev => ({ ...prev, loading: true }));
+    try {
+      const result = await generateRecipeDebug(recipe, debugResult.description);
+      setDebugResult(prev => ({ ...prev, loading: false, data: result }));
+    } catch { setDebugResult(prev => ({ ...prev, loading: false, data: null })); }
   };
 
   const handleVariant = async (variantType) => {
@@ -466,6 +487,22 @@ export default function RecipeActions({
             📋 Copy All Ingredients
           </button>
 
+          <button
+            onClick={handleDrinkPairings}
+            disabled={drinkPairs.loading}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-slate-800 border border-white/10 text-slate-300 rounded-xl hover:border-white/20 hover:text-white transition-all text-sm font-medium disabled:opacity-50"
+          >
+            {drinkPairs.loading ? <span className="w-4 h-4 border-2 border-slate-400/30 border-t-slate-400 rounded-full animate-spin" /> : '🍷'}
+            {drinkPairs.data ? 'Hide Drink Pairings' : 'Drink Pairings'}
+          </button>
+
+          <button
+            onClick={() => setDebugResult(prev => ({ ...prev, inputShown: !prev.inputShown, data: null }))}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-slate-800 border border-white/10 text-slate-300 rounded-xl hover:border-white/20 hover:text-white transition-all text-sm font-medium"
+          >
+            🔧 What Went Wrong?
+          </button>
+
           {/* Card Theme Picker */}
           <div className="space-y-2">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Export Card Theme</p>
@@ -567,6 +604,41 @@ export default function RecipeActions({
               <p className="text-xs text-slate-400">{p.whyItWorks}</p>
             </div>
           ))}
+        </div>
+      )}
+
+      {drinkPairs.data !== null && (
+        <DrinkPairings
+          pairings={drinkPairs.data}
+          isLoading={drinkPairs.loading}
+          onClose={() => setDrinkPairs({ loading: false, data: null })}
+        />
+      )}
+
+      {debugResult.inputShown && (
+        <div className="mt-3 bg-slate-900/60 border border-white/10 rounded-2xl p-4 space-y-3">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">🔧 Recipe Debugger</p>
+          <textarea
+            value={debugResult.description}
+            onChange={e => setDebugResult(prev => ({ ...prev, description: e.target.value }))}
+            placeholder="Describe what went wrong (e.g. 'the sauce was too watery', 'chicken was dry', 'too salty')..."
+            className="w-full bg-slate-800 border border-white/10 rounded-xl p-3 text-sm text-slate-300 outline-none resize-none h-20 placeholder:text-slate-600"
+          />
+          <button
+            onClick={handleDebugSubmit}
+            disabled={debugResult.loading || !debugResult.description.trim()}
+            className="w-full py-2.5 bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2"
+          >
+            {debugResult.loading ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Diagnosing...</> : '🔍 Diagnose'}
+          </button>
+          {debugResult.data && (
+            <div className="space-y-2 pt-2 border-t border-white/5">
+              <div><p className="text-xs font-bold text-red-400 mb-0.5">What went wrong</p><p className="text-xs text-slate-300">{debugResult.data.diagnosis}</p></div>
+              <div><p className="text-xs font-bold text-amber-400 mb-0.5">Likely cause</p><p className="text-xs text-slate-300">{debugResult.data.likelyCause}</p></div>
+              <div><p className="text-xs font-bold text-green-400 mb-0.5">Fix for next time</p><p className="text-xs text-slate-300">{debugResult.data.fix}</p></div>
+              {debugResult.data.tip && <div><p className="text-xs font-bold text-blue-400 mb-0.5">Pro tip</p><p className="text-xs text-slate-300">{debugResult.data.tip}</p></div>}
+            </div>
+          )}
         </div>
       )}
 

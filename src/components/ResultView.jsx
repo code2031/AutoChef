@@ -19,6 +19,8 @@ import { getSeasonalIngredients } from '../lib/seasonal.js';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 import { categorizeByAisle } from '../lib/shoppingList.js';
 import ShoppingIntegrations from './ShoppingIntegrations.jsx';
+import AllergyCheck from './AllergyCheck.jsx';
+import { buildImageUrl } from '../lib/pollinations.js';
 function detectTimerSeconds(step) {
   const patterns = [
     /for\s+(\d+)-(\d+)\s+min/i,
@@ -305,6 +307,7 @@ export default function ResultView({
   const [showImperial, setShowImperial] = useState(false);
   const [bannedList] = useLocalStorage('pref_banned', []);
   const [showSubMatrix, setShowSubMatrix] = useState(false);
+  const [stepImages, setStepImages] = useState({});
 
   useEffect(() => {
     if (recipe && !isGenerating && !isGeneratingImage && !confettiFired.current) {
@@ -315,6 +318,16 @@ export default function ResultView({
       }
     }
   }, [recipe, isGenerating, isGeneratingImage]);
+
+  const loadStepImage = (i, step) => {
+    if (stepImages[i] !== undefined) return;
+    setStepImages(prev => ({ ...prev, [i]: 'loading' }));
+    const url = buildImageUrl(step.slice(0, 60), 'cooking step: ' + step.slice(0, 40));
+    const img = new Image();
+    img.onload = () => setStepImages(prev => ({ ...prev, [i]: url }));
+    img.onerror = () => setStepImages(prev => ({ ...prev, [i]: null }));
+    img.src = url;
+  };
 
   useEffect(() => {
     confettiFired.current = false;
@@ -331,6 +344,7 @@ export default function ResultView({
       setPantryOpen(false);
       setPantryResult(null);
       setShowSubMatrix(false);
+      setStepImages({});
     }, 0);
   }, [recipe?.name]);
 
@@ -573,6 +587,7 @@ export default function ResultView({
 
         <div className="space-y-4">
           <p className="text-slate-300 italic text-lg leading-relaxed">{recipe.description}</p>
+          <AllergyCheck ingredients={recipe.ingredients} />
           {isLoadingStory && <div className="flex items-center gap-2 text-xs text-slate-500"><Loader2 size={12} className="animate-spin" />Loading story...</div>}
           {recipeStory && !isLoadingStory && (
             <blockquote className="border-l-4 border-orange-500/40 pl-4 py-1 text-slate-400 italic text-sm leading-relaxed">{recipeStory}</blockquote>
@@ -675,7 +690,7 @@ export default function ResultView({
                   );
                 })}
               </ul>
-              {Object.values(checked).some(Boolean) && <p className="text-xs text-slate-500">{Object.values(checked).filter(Boolean).length} / {(recipe.ingredients||[]).length} checked</p>}
+              {Object.values(checked).some(Boolean) && <p className="text-xs text-slate-500">{Object.values(checked).filter(Boolean).length}{' / '}{(recipe.ingredients||[]).length} checked</p>}
             </div>
             <div className="bg-orange-500/5 border border-orange-500/20 p-5 rounded-2xl space-y-2">
               <h4 className="text-xs font-bold uppercase tracking-widest text-orange-400">Smart Substitution</h4>
@@ -697,7 +712,8 @@ export default function ResultView({
                   return (
                     <div key={i} className="flex gap-4">
                       <span className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center font-bold text-orange-500 text-sm border border-white/5">{i+1}</span>
-                      <p className="text-slate-300 leading-relaxed pt-1">
+                      <div className="text-slate-300 leading-relaxed pt-1">
+                        <p>
                         {renderStepWithTechniques(stepText, setShowKnifeCut)}
                         {timerSecs && <InlineTimer key={recipe.name+"-"+i} seconds={timerSecs} />}
                         {temp && (
@@ -705,7 +721,16 @@ export default function ResultView({
                             🌡️ {tempUnit==="F"?temp.f+"°F":temp.c+"°C"} safe temp
                           </span>
                         )}
+                          <button
+                            onClick={() => loadStepImage(i, stepText)}
+                            className="inline-flex items-center gap-1 text-xs text-slate-600 hover:text-blue-400 ml-1"
+                            title="Generate step photo"
+                          >
+                            📸 See step
+                          </button>
                       </p>
+                        {stepImages[i] && (<img src={stepImages[i]} alt="Step" className="w-full max-h-40 object-cover rounded-xl mt-2" />)}
+                      </div>
                     </div>
                   );
                 })}

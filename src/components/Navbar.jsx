@@ -10,8 +10,12 @@ import { useLocalStorage } from '../hooks/useLocalStorage.js';
 function KeyboardShortcutsModal({ onClose }) {
   const shortcuts = [
     { key: 'Ctrl/Cmd + Enter', desc: 'Generate recipe (on generate page)' },
-    { key: 'Escape', desc: 'Clear ingredient input' },
+    { key: 'Escape', desc: 'Close modals / go back' },
     { key: '?', desc: 'Open keyboard shortcuts' },
+    { key: 'H', desc: 'Open Recipe History' },
+    { key: 'P', desc: 'Open Meal Planner' },
+    { key: 'G', desc: 'Go to Generate view' },
+    { key: 'S', desc: 'Save current recipe (on result page)' },
   ];
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">

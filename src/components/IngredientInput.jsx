@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Plus, X, Mic, MicOff, Camera, Loader2, Image as ImageIcon, Shuffle } from 'lucide-react';
 import { INGREDIENT_SUGGESTIONS, getEmojiForIngredient } from '../lib/ingredients.js';
+import { parseIngredientSentence } from '../lib/groq.js';
 
 export default function IngredientInput({
   ingredients,
@@ -15,6 +16,7 @@ export default function IngredientInput({
   const [inputValue, setInputValue] = useState('');
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
   const [isListening, setIsListening] = useState(false);
+  const [isParsingVoice, setIsParsingVoice] = useState(false);
   const [dragOver, setDragOver] = useState(null);
   const [dragItem, setDragItem] = useState(null);
   const recognitionRef = useRef(null);
@@ -77,15 +79,26 @@ export default function IngredientInput({
     recognitionRef.current = recognition;
     recognition.lang = navigator.language || 'en-US';
     recognition.interimResults = false;
-    recognition.onresult = (e) => {
-      const transcript = e.results[0][0].transcript;
-      transcript.split(/,|\band\b/i).forEach(part => {
-        const clean = part.trim();
-        if (clean) onAdd(clean);
-      });
+    recognition.onresult = async (e) => {
+      const transcript = e.results[0][0].transcript.trim();
+      const words = transcript.split(/\s+/).length;
+      const isComplexSentence = words > 3 && !/^[^,]+(?:,\s*[^,]+)+$/.test(transcript);
+      if (isComplexSentence) {
+        setIsParsingVoice(true);
+        try {
+          const parsed = await parseIngredientSentence(transcript);
+          (parsed || []).forEach(ing => { const c = ing.trim(); if (c) onAdd(c); });
+        } catch {
+          transcript.split(/,|\band\b/i).forEach(part => { const c = part.trim(); if (c) onAdd(c); });
+        } finally {
+          setIsParsingVoice(false);
+        }
+      } else {
+        transcript.split(/,|\band\b/i).forEach(part => { const c = part.trim(); if (c) onAdd(c); });
+      }
     };
     recognition.onend = () => setIsListening(false);
-    recognition.onerror = () => setIsListening(false);
+    recognition.onerror = () => { setIsListening(false); setIsParsingVoice(false); }
     recognition.start();
     setIsListening(true);
   };
@@ -122,10 +135,10 @@ export default function IngredientInput({
           <button
             onClick={toggleVoice}
             type="button"
-            className={`p-3 rounded-xl transition-colors ${isListening ? 'bg-red-500 text-white animate-pulse' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-            title="Voice input"
+            className={`p-3 rounded-xl transition-colors ${isListening ? 'bg-red-500 text-white animate-pulse' : isParsingVoice ? 'bg-blue-500/20 text-blue-400' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+            title={isParsingVoice ? 'Parsing ingredients...' : 'Voice input'}
           >
-            {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+            {isParsingVoice ? <Loader2 size={18} className="animate-spin" /> : isListening ? <MicOff size={18} /> : <Mic size={18} />}
           </button>
           <button
             onClick={() => handleAdd()}

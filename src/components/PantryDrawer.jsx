@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import PantryAnalytics from './PantryAnalytics.jsx';
-import { X, Plus, Trash2, ShoppingBag, AlertTriangle, ClipboardList } from 'lucide-react';
+import { X, Plus, Trash2, ShoppingBag, AlertTriangle, ClipboardList, Info } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 import { getEmojiForIngredient } from '../lib/ingredients.js';
-import { parseGroceryReceipt } from '../lib/groq.js';
+import { parseGroceryReceipt, generateIngredientNutrition } from '../lib/groq.js';
 
 const LOW_PANTRY_THRESHOLD = 3;
 
@@ -74,6 +74,22 @@ export default function PantryDrawer({ onAddAll, onClose }) {
   const [receiptText, setReceiptText] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [filterZone, setFilterZone] = useState('all');
+  const [nutritionData, setNutritionData] = useState({});
+
+  const loadNutrition = async (name) => {
+    if (nutritionData[name]?.data) {
+      setNutritionData(prev => { const n = { ...prev }; delete n[name]; return n; });
+      return;
+    }
+    if (nutritionData[name]?.loading) return;
+    setNutritionData(prev => ({ ...prev, [name]: { loading: true, data: null } }));
+    try {
+      const result = await generateIngredientNutrition(name);
+      setNutritionData(prev => ({ ...prev, [name]: { loading: false, data: result } }));
+    } catch {
+      setNutritionData(prev => ({ ...prev, [name]: { loading: false, data: null } }));
+    }
+  };
 
   const addItem = () => {
     const clean = newItem.trim().toLowerCase();
@@ -251,19 +267,49 @@ export default function PantryDrawer({ onAddAll, onClose }) {
             </p>
           )}
           {visiblePantry.map(item => (
-            <div key={item.name} className="flex items-center justify-between px-3 py-2.5 bg-slate-800 rounded-xl group">
-              <span className="flex items-center gap-2 text-sm min-w-0 flex-wrap">
-                <span>{getEmojiForIngredient(item.name)}</span>
-                <span className="truncate">{item.name}</span>
-                <ZoneBadge zone={item.zone} />
-                <ExpiryBadge expiresAt={item.expiresAt} />
-              </span>
-              <button
-                onClick={() => removeItem(item.name)}
-                className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all shrink-0 ml-2"
-              >
-                <Trash2 size={14} />
-              </button>
+            <div key={item.name} className="bg-slate-800 rounded-xl group">
+              <div className="flex items-center justify-between px-3 py-2.5">
+                <span className="flex items-center gap-2 text-sm min-w-0 flex-wrap">
+                  <span>{getEmojiForIngredient(item.name)}</span>
+                  <span className="truncate">{item.name}</span>
+                  <ZoneBadge zone={item.zone} />
+                  <ExpiryBadge expiresAt={item.expiresAt} />
+                </span>
+                <div className="flex items-center gap-1 shrink-0 ml-2">
+                  <button
+                    onClick={() => loadNutrition(item.name)}
+                    className="text-slate-600 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-all"
+                    title="Nutrition info"
+                  >
+                    {nutritionData[item.name]?.loading
+                      ? <span className="w-3.5 h-3.5 border border-blue-400/30 border-t-blue-400 rounded-full animate-spin inline-block" />
+                      : <Info size={14} />
+                    }
+                  </button>
+                  <button
+                    onClick={() => removeItem(item.name)}
+                    className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+              {nutritionData[item.name]?.data && (
+                <div className="px-3 pb-2.5 flex gap-3 flex-wrap text-xs border-t border-white/5 pt-2">
+                  {[
+                    { label: 'Cal', value: nutritionData[item.name].data.calories, color: 'text-orange-400' },
+                    { label: 'Pro', value: nutritionData[item.name].data.protein + 'g', color: 'text-blue-400' },
+                    { label: 'Carb', value: nutritionData[item.name].data.carbs + 'g', color: 'text-amber-400' },
+                    { label: 'Fat', value: nutritionData[item.name].data.fat + 'g', color: 'text-purple-400' },
+                    { label: 'Fiber', value: nutritionData[item.name].data.fiber + 'g', color: 'text-green-400' },
+                  ].map(({ label, value, color }) => (
+                    <span key={label} className="text-slate-500">
+                      <span className={`font-bold ${color}`}>{value}</span> {label}
+                    </span>
+                  ))}
+                  <span className="text-slate-600">per {nutritionData[item.name].data.per || '100g'}</span>
+                </div>
+              )}
             </div>
           ))}
         </div>

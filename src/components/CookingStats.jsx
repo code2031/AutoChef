@@ -4,6 +4,10 @@ import { useLocalStorage } from '../hooks/useLocalStorage.js';
 import { generateWeeklyDigest } from '../lib/groq.js';
 import { scoreRecipe } from './FlavorRadar.jsx';
 import IngredientFrequency from './IngredientFrequency.jsx';
+import StreakCalendar from './StreakCalendar.jsx';
+import DifficultyHeatMap from './DifficultyHeatMap.jsx';
+import ShoppingStaples from './ShoppingStaples.jsx';
+import CuisineDeepDive from './CuisineDeepDive.jsx';
 
 function exportCSV(history) {
   const headers = ['Name', 'Date', 'Difficulty', 'Calories', 'Protein', 'Carbs', 'Fat', 'Fiber', 'Rating', 'Cook Count', 'Tags'];
@@ -107,6 +111,7 @@ export default function CookingStats({ history }) {
   const [tab, setTab] = useState('ingredients');
   const [weeklyDigest, setWeeklyDigest] = useState(null);
   const [isLoadingDigest, setIsLoadingDigest] = useState(false);
+  const [showCuisineDive, setShowCuisineDive] = useState(false);
   const [weeklyBudget] = useLocalStorage('pref_weekly_budget', '');
 
   const cuisines = getCuisineBreakdown(history);
@@ -207,6 +212,8 @@ export default function CookingStats({ history }) {
           { id: 'difficulty', label: 'Difficulty' },
           { id: 'progression', label: 'Progression' },
           { id: 'flavor', label: 'Flavor DNA' },
+          { id: 'streak', label: '🔥 Streak Cal' },
+          { id: 'heatmap', label: '📅 Diff Map' },
         ].map(t => (
           <button
             key={t.id}
@@ -220,7 +227,12 @@ export default function CookingStats({ history }) {
 
       <div className="bg-slate-900/40 border border-white/5 rounded-2xl p-5">
         {/* Feature 43: IngredientFrequency component with better normalization */}
-        {tab === 'ingredients' && <IngredientFrequency history={history} />}
+        {tab === 'ingredients' && (
+          <div>
+            <IngredientFrequency history={history} />
+            <ShoppingStaples history={history} />
+          </div>
+        )}
         {tab === 'cuisine' && (
           <div className="space-y-3">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Cuisine Breakdown</p>
@@ -393,6 +405,8 @@ export default function CookingStats({ history }) {
             </div>
           );
         })()}
+        {tab === 'streak' && <StreakCalendar history={history} />}
+        {tab === 'heatmap' && <DifficultyHeatMap history={history} />}
       </div>
 
       {mostCooked && mostCooked.cookCount > 0 && (
@@ -460,6 +474,15 @@ export default function CookingStats({ history }) {
           <p className="text-xs text-slate-500">Set in Settings. Compare against Shopping List costs.</p>
         </div>
       )}
+      <div className="flex justify-center">
+        <button
+          onClick={() => setShowCuisineDive(true)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 rounded-xl text-sm font-medium transition-all"
+        >
+          🌍 Cuisine Deep-Dive
+        </button>
+      </div>
+      {showCuisineDive && <CuisineDeepDive onClose={() => setShowCuisineDive(false)} />}
     </div>
   );
 }

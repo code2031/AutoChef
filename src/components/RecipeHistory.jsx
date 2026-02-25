@@ -14,6 +14,8 @@ import MasteryBadge from './RecipeMastery.jsx';
 import WeeklyChallengeCard from './WeeklyChallengeCard.jsx';
 import RecipeOfTheDay from './RecipeOfTheDay.jsx';
 import CookingTipWidget from './CookingTipWidget.jsx';
+import CookAgainReminder from './CookAgainReminder.jsx';
+import { generateCollectionSuggestions, generateTagMerges } from '../lib/groq.js';
 
 function TagEditor({ entry, onAddTag, onRemoveTag }) {
   const [inputVal, setInputVal] = useState('');
@@ -250,6 +252,10 @@ export default function RecipeHistory({
   const [showVersionsFor, setShowVersionsFor] = useState(null);
   const [newCollectionName, setNewCollectionName] = useState('');
   const [remixMode, setRemixMode] = useState(false);
+  const [collectionSuggestions, setCollectionSuggestions] = useState(null);
+  const [isLoadingCollSugg, setIsLoadingCollSugg] = useState(false);
+  const [tagMerges, setTagMerges] = useState(null);
+  const [isLoadingTagMerges, setIsLoadingTagMerges] = useState(false);
   const [remixSelection, setRemixSelection] = useState([]);
   const [multiSelect, setMultiSelect] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -284,7 +290,8 @@ export default function RecipeHistory({
         (e.tags || []).some(t => t.includes(q)) ||
         (e.notes || '').toLowerCase().includes(q) ||
         // Feature 16: search by ingredient
-        (e.recipe?.ingredients || []).some(ing => ing.toLowerCase().includes(q))
+        (e.recipe?.ingredients || []).some(ing => ing.toLowerCase().includes(q)) ||
+        (e.recipe?.instructions || []).join(' ').toLowerCase().includes(q)
       );
     })
     .sort((a, b) => {
@@ -483,6 +490,7 @@ export default function RecipeHistory({
       {tab !== 'stats' && tab !== 'journal' && tab !== 'cuisine' && tab !== 'log' && tab !== 'trophy' && (
         <>
           {/* Feature 5 wired: Weekly Challenge Card */}
+          <CookAgainReminder history={history} onSelect={onSelect} />
           {history.length > 0 && <WeeklyChallengeCard history={history} />}
 
           {/* Feature 37: Recipe of the day suggestion */}
@@ -567,6 +575,24 @@ export default function RecipeHistory({
                   Remix 2 Recipes
                 </button>
               )}
+              <button
+                onClick={async () => {
+                  const allTags = [...new Set(history.flatMap(e => e.tags || []))];
+                  if (allTags.length < 3) return;
+                  setIsLoadingTagMerges(true);
+                  try {
+                    const result = await generateTagMerges(allTags);
+                    setTagMerges(result);
+                  } catch { /* ignore */ }
+                  setIsLoadingTagMerges(false);
+                }}
+                disabled={isLoadingTagMerges}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-xl bg-slate-800 border border-white/10 text-slate-500 hover:text-slate-300 text-xs transition-all disabled:opacity-50"
+                title="AI tag cleanup"
+              >
+                {isLoadingTagMerges ? <span className="w-3 h-3 border border-slate-400/30 border-t-slate-400 rounded-full animate-spin" /> : '🧹'}
+                Clean Tags
+              </button>
             </div>
           )}
 
@@ -596,6 +622,44 @@ export default function RecipeHistory({
           {/* Feature 48: result count */}
           {(search || diffFilter !== 'all' || ratingFilter !== 'all' || cuisineFilter || hasNotesFilter) && filtered.length > 0 && (
             <p className="text-xs text-slate-500">Showing {filtered.length} of {baseItems.length} recipes</p>
+          )}
+
+          {tagMerges && tagMerges.length > 0 && (
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold text-amber-400">Tag Cleanup Suggestions</p>
+                <button onClick={() => setTagMerges(null)} className="text-slate-600 hover:text-slate-400 text-xs">✕</button>
+              </div>
+              {tagMerges.map((merge, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  <span className="text-white font-medium">"{merge.canonical}"</span>
+                  <span className="text-slate-500">merges:</span>
+                  <span className="text-amber-300">{(merge.duplicates || []).join(', ')}</span>
+                  <button
+                    onClick={() => {
+                      // Apply merge: for each entry, replace duplicate tags with canonical
+                      history.forEach(entry => {
+                        const hasDup = (entry.tags || []).some(t => (merge.duplicates || []).includes(t));
+                        if (hasDup) {
+                          const hasCanon = (entry.tags || []).includes(merge.canonical);
+                          const newTags = (entry.tags || []).filter(t => !(merge.duplicates || []).includes(t));
+                          if (!hasCanon) newTags.push(merge.canonical);
+                          // Remove old tags and add canonical
+                          (merge.duplicates || []).forEach(dup => {
+                            if ((entry.tags || []).includes(dup)) onRemoveTag(entry.id, dup);
+                          });
+                          if (!hasCanon) onAddTag(entry.id, merge.canonical);
+                        }
+                      });
+                      setTagMerges(prev => prev.filter((_, j) => j !== i));
+                    }}
+                    className="text-green-400 hover:text-green-300 transition-colors ml-auto"
+                  >
+                    Apply
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
 
           {filtered.length === 0 && (
@@ -664,6 +728,52 @@ export default function RecipeHistory({
                   );
                 })
               )}
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">AI Collection Builder</p>
+                  <button
+                    onClick={async () => {
+                      const names = history.map(e => e.recipe?.name).filter(Boolean);
+                      if (names.length < 3) return;
+                      setIsLoadingCollSugg(true);
+                      try {
+                        const result = await generateCollectionSuggestions(names);
+                        setCollectionSuggestions(result);
+                      } catch { /* ignore */ }
+                      setIsLoadingCollSugg(false);
+                    }}
+                    disabled={isLoadingCollSugg || history.length < 3}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 rounded-xl text-xs font-medium transition-all disabled:opacity-50"
+                  >
+                    {isLoadingCollSugg ? <span className="w-3 h-3 border border-indigo-400/30 border-t-indigo-400 rounded-full animate-spin" /> : '✨'}
+                    AI Suggest
+                  </button>
+                </div>
+                {collectionSuggestions && collectionSuggestions.length > 0 && (
+                  <div className="space-y-2">
+                    {collectionSuggestions.map((sugg, i) => (
+                      <div key={i} className="p-3 bg-indigo-500/5 border border-indigo-500/15 rounded-xl space-y-1.5">
+                        <p className="text-sm font-semibold text-white">{sugg.collectionName}</p>
+                        <p className="text-xs text-slate-500">{(sugg.recipeNames || []).slice(0, 4).join(', ')}{sugg.recipeNames?.length > 4 ? '...' : ''}</p>
+                        <button
+                          onClick={() => {
+                            const id = onCreateCollection(sugg.collectionName);
+                            if (id && sugg.recipeNames) {
+                              sugg.recipeNames.forEach(name => {
+                                const entry = history.find(e => e.recipe?.name === name);
+                                if (entry) onSetEntryCollection(entry.id, id);
+                              });
+                            }
+                          }}
+                          className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                        >
+                          + Create &amp; Assign
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           ) : (() => {
             const effectiveViewMode = (remixMode || multiSelect) ? 'cards' : viewMode;

@@ -11,6 +11,8 @@ import { getSeasonalIngredients } from '../lib/seasonal.js';
 import { getRandomSurpriseIngredients, INGREDIENT_SUGGESTIONS } from '../lib/ingredients.js';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 import { generateSmartRecommendation } from '../lib/groq.js';
+import IngredientRoulette from './IngredientRoulette.jsx';
+import DifficultyRecommender from './DifficultyRecommender.jsx';
 
 const CUISINE_COLORS = {
   Italian: '#ef4444', Asian: '#f59e0b', Mexican: '#22c55e',
@@ -55,6 +57,7 @@ export default function GenerateView({
   const [bannedInput, setBannedInput] = useState('');
   const [smartRec, setSmartRec] = useState(null);
   const [isRecommending, setIsRecommending] = useState(false);
+  const [showRoulette, setShowRoulette] = useState(false);
   const [restaurantInput, setRestaurantInput] = useState('');
   const [restaurantDish, setRestaurantDish] = useState('');
   const fileInputRef = useRef(null);
@@ -524,6 +527,8 @@ export default function GenerateView({
         )}
       </div>
 
+      {history.length >= 3 && <DifficultyRecommender history={history} />}
+
       <IngredientInput
         ingredients={ingredients}
         onAdd={addIngredient}
@@ -693,6 +698,12 @@ export default function GenerateView({
           <Dices size={20} />
           <span className="hidden sm:inline text-sm">I&apos;m Feeling Lucky</span>
         </button>
+        <button
+          onClick={() => setShowRoulette(true)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 rounded-2xl text-sm font-bold transition-all"
+        >
+          🍰 Roulette
+        </button>
       </div>
 
       {showPantry && (
@@ -709,6 +720,12 @@ export default function GenerateView({
           onSelect={onSelectHistoryEntry || (() => {})}
           onGenerateFromPantry={onGenerateFromPantry || (() => {})}
           onClose={() => setShowPantryMatcher(false)}
+        />
+      )}
+      {showRoulette && (
+        <IngredientRoulette
+          onUseIngredients={(ings) => { ings.forEach(addIngredient); }}
+          onClose={() => setShowRoulette(false)}
         />
       )}
       </>

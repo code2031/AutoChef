@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Star, Clock, Package, Loader2 } from 'lucide-react';
+import { X, Star, Clock, Package, Loader2, Check } from 'lucide-react';
 import { generateStorageTips } from '../lib/groq.js';
 
 export default function PostCookingSummary({ recipe, recipeImage, cookingDurationMs, onRate, onLogMeal, onClose }) {
@@ -8,6 +8,26 @@ export default function PostCookingSummary({ recipe, recipeImage, cookingDuratio
   const [storageTips, setStorageTips] = useState(null);
   const [loadingTips, setLoadingTips] = useState(true);
   const [logged, setLogged] = useState(false);
+  const [pantryChecked, setPantryChecked] = useState({});
+  const [pantryRemoved, setPantryRemoved] = useState(false);
+
+  // Find matching pantry items
+  const rawPantryStr = typeof window !== 'undefined' ? localStorage.getItem('pantry_items') : null;
+  const rawPantry = rawPantryStr ? (() => { try { return JSON.parse(rawPantryStr); } catch { return []; } })() : [];
+  const pantryNames = rawPantry.map(p => typeof p === 'string' ? p : (p.name || '')).filter(Boolean);
+  const matchedPantry = recipe ? pantryNames.filter(name =>
+    (recipe.ingredients || []).some(ing => ing.toLowerCase().includes(name.toLowerCase()))
+  ) : [];
+
+  const handleRemoveUsed = () => {
+    const toRemove = matchedPantry.filter(name => pantryChecked[name] !== false);
+    const remaining = rawPantry.filter(p => {
+      const name = typeof p === 'string' ? p : (p.name || '');
+      return !toRemove.includes(name);
+    });
+    localStorage.setItem('pantry_items', JSON.stringify(remaining));
+    setPantryRemoved(true);
+  };
 
   useEffect(() => {
     if (!recipe) return;
@@ -134,6 +154,39 @@ export default function PostCookingSummary({ recipe, recipeImage, cookingDuratio
           >
             {logged ? '✓ Logged to Food Log' : `📋 Log "${recipe.name}" to Food Log`}
           </button>
+
+          {/* Pantry Depletion */}
+          {matchedPantry.length > 0 && !pantryRemoved && (
+            <div className="space-y-2">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">🧺 Used from Pantry?</p>
+              <p className="text-xs text-slate-500">Remove items you used from your pantry:</p>
+              <div className="space-y-1.5">
+                {matchedPantry.map(name => (
+                  <label key={name} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      defaultChecked
+                      onChange={e => setPantryChecked(prev => ({ ...prev, [name]: e.target.checked }))}
+                      className="w-4 h-4 rounded accent-orange-500"
+                    />
+                    <span className="text-xs text-slate-300 capitalize">{name}</span>
+                  </label>
+                ))}
+              </div>
+              <button
+                onClick={handleRemoveUsed}
+                className="w-full py-2 bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500/20 rounded-xl text-xs font-medium transition-all"
+              >
+                Remove Used Items from Pantry
+              </button>
+            </div>
+          )}
+          {pantryRemoved && (
+            <div className="flex items-center gap-2 py-1">
+              <Check size={13} className="text-green-400" />
+              <span className="text-xs text-green-400">Pantry updated!</span>
+            </div>
+          )}
 
           {/* Storage tips */}
           <div className="space-y-2">
