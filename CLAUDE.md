@@ -28,6 +28,10 @@ Tests use `mockGroq(page)` to intercept `**/openai/v1/chat/completions` and retu
 - `groqFetch` in `lib/groq.js` does **not** throw before making the fetch request (even if `VITE_GROQ_API_KEY` is empty) — this allows Playwright to intercept via `page.route()`. The error message on non-OK responses includes a hint about the missing key.
 - Playwright `.or()` locator chains resolve to all matching elements and trigger strict-mode violations if >1 matches. Always append `.first()` to any `.or()` chain before `toBeVisible()`. Also use `.first()` when a pantry item text may appear in multiple zone tabs.
 - The Navbar has `backdrop-filter` which creates a CSS stacking context — children of the nav are in the nav's stacking context. The `fixed inset-0 z-40` overlay rendered inside the nav (for Timer/Settings dropdowns) is above other nav children (z-auto) within that stacking context, so clicking nav buttons while a dropdown is open may be blocked. Close the dropdown via its overlay div click instead.
+- **CookingStats returns an early empty state** (`<p>No recipes yet...</p>`) when `history.length === 0` — the tab bar (`Top Ingredients`, `Streak Cal`, etc.) is only rendered when history exists. Tests that open the Stats tab must seed `recipe_history` via `page.addInitScript()` **before** `page.goto('/')`, so React's `useState` initializer reads the seeded data.
+- **RecipeHistory tab button text**: Collections tab = `📁 (0)` (not "collections"); Food Log tab = `🥗 Log` (not "food log"). Use `page.locator('button').filter({ hasText: /📁/ })` and `filter({ hasText: '🥗' })` respectively.
+- **RecipeHistory search/sort/remix/Clean Tags toolbar** is inside `{history.length > 0 && ...}` — hidden with empty history. Tests targeting those controls must save a recipe first.
+- **MealPlanner AI Fill bug** (fixed): `generateSmartMealPlan` returns the plan object directly; `handleAIFill` was checking `result?.plan` (always `undefined`). Fixed to `Object.keys(result).length > 0`.
 
 Local dev requires a `.env.local` file:
 ```

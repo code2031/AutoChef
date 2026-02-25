@@ -19,6 +19,7 @@ export default function ShoppingIntegrations({ items }) {
   const [haTokenInput, setHaTokenInput] = useState('');
   const [gtClientIdInput, setGtClientIdInput] = useState('');
   const [showCorsHelp, setShowCorsHelp] = useState(false);
+  const [corsHelpType, setCorsHelpType] = useState('cors'); // 'cors' | 'mixed'
 
   const haUrl = (() => { try { return JSON.parse(localStorage.getItem('pref_ha_url') || '""'); } catch { return ''; } })();
   const haToken = (() => { try { return JSON.parse(localStorage.getItem('pref_ha_token') || '""'); } catch { return ''; } })();
@@ -47,6 +48,17 @@ export default function ShoppingIntegrations({ items }) {
     setHaStatus('loading');
     setHaMsg('');
     setShowCorsHelp(false);
+
+    // Detect mixed content BEFORE attempting fetch: http:// HA on https:// page
+    // Browsers block this regardless of CORS config — different fix required
+    if (haUrl.startsWith('http://') && window.location.protocol === 'https:') {
+      setHaStatus('error');
+      setHaMsg('HTTP + HTTPS conflict — browser blocks mixed content');
+      setCorsHelpType('mixed');
+      setShowCorsHelp(true);
+      return;
+    }
+
     try {
       const { success, failed, corsBlocked } = await addToHAShoppingList(items, haUrl, haToken);
       if (failed === 0) {
@@ -55,6 +67,7 @@ export default function ShoppingIntegrations({ items }) {
       } else if (corsBlocked) {
         setHaStatus('error');
         setHaMsg('CORS blocked — HA needs to allow this origin');
+        setCorsHelpType('cors');
         setShowCorsHelp(true);
         return; // don't auto-dismiss so user can read the help
       } else {
@@ -117,7 +130,17 @@ export default function ShoppingIntegrations({ items }) {
               Home Assistant
             </button>
             {haMsg && <p className={`text-[10px] ${haStatus === 'error' ? 'text-red-400' : 'text-green-400'}`}>{haMsg}</p>}
-            {showCorsHelp && (
+            {showCorsHelp && corsHelpType === 'mixed' && (
+              <div className="mt-2 p-3 bg-red-500/10 border border-red-500/25 rounded-xl text-[11px] space-y-1.5">
+                <p className="text-red-400 font-semibold">Your HA URL uses HTTP but AutoChef is on HTTPS</p>
+                <p className="text-slate-400">Browsers block HTTP requests from HTTPS pages (mixed content). Two ways to fix:</p>
+                <p className="text-slate-300 font-medium">Option 1 — Enable HTTPS on Home Assistant:</p>
+                <p className="text-slate-500">Set up a reverse proxy (Nginx/Caddy) with a valid TLS cert, then update your HA URL above to <span className="text-slate-300">https://</span>.</p>
+                <p className="text-slate-300 font-medium">Option 2 — Use AutoChef from localhost:</p>
+                <p className="text-slate-500">Clone the repo and run <span className="text-slate-300 font-mono">npm run dev</span> — HTTP HA works fine from <span className="text-slate-300">http://localhost:5173</span>.</p>
+              </div>
+            )}
+            {showCorsHelp && corsHelpType === 'cors' && (
               <div className="mt-2 p-3 bg-amber-500/10 border border-amber-500/25 rounded-xl text-[11px] space-y-1.5">
                 <p className="text-amber-400 font-semibold">Fix: add CORS to HA configuration.yaml</p>
                 <pre className="bg-black/30 rounded p-2 text-amber-300 leading-relaxed text-[10px] overflow-x-auto">{`http:\n  cors_allowed_origins:\n    - https://code2031.github.io\n    - http://localhost:5173`}</pre>
