@@ -23,6 +23,9 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Restaurant Dish Recreator** — Enter a restaurant name and dish (e.g. "Noma, Celeriac shawarma") and AI recreates the recipe in that restaurant's style
 - **Flavor Pairing Explorer** — AI identifies complementary flavors for a recipe with explanations of why each pairing works
 - **Smart Recommender** — "What should I cook?" button suggests a dish based on your recipe history, pantry contents, and time of day
+- **Ingredient Roulette** — 🎰 Spin an 8-slot wheel that randomly picks ingredients from the full suggestion library; "Use These!" adds them all to your list
+- **Cuisine Deep-Dive** — 🌍 Explorer modal: pick a cuisine and get an AI-generated deep-dive covering key ingredients, techniques, home-cook tips, and a fun fact
+- **Difficulty Recommender** — Inline nudge (shown after 3+ recipes saved) suggesting whether to try an easier or harder difficulty based on your recent cook history
 
 ### Customization
 - **Dietary filters** — Vegetarian, vegan, keto, gluten-free, plus cuisine style, spice level, and serving size
@@ -61,7 +64,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Serving Scaler** — Scale ingredient quantities ½x, 1x, 2x, 3x, or any custom number; all numeric quantities in the ingredient list are automatically recalculated
 
 ### Input
-- **Voice Input** — Dictate ingredients using the browser's Web Speech API
+- **Voice Input** — Dictate ingredients using the browser's Web Speech API; complex natural-language sentences (e.g. "I have some chicken, a few tomatoes, and leftover rice") are parsed by AI into individual ingredients automatically
 - **Paste to Split** — Paste a comma- or newline-separated ingredient list and it auto-splits into tags
 - **Ingredient Autocomplete** — Inline suggestions as you type, with emoji per ingredient; drag to reorder tags
 - **Recent Ingredients** — Quick-add chips from your last 20 used ingredients
@@ -114,6 +117,10 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Substitution Matrix** — Full-screen modal listing 2 alternatives for every ingredient; dietary filter tabs (Vegan, Gluten-Free, Dairy-Free, Nut-Free) re-fetch with that constraint; "Copy All" clipboard export
 - **Leftover Transformer** — Shown after saving a recipe; generates 3 creative next-day dishes using the leftover ingredients
 - **Cook-Along Timeline** — SVG Gantt-style view of the cooking flow, with parallel tasks on a second lane; click "View Cooking Timeline" in the recipe view
+- **Allergy Cross-Check** — Inline warning banner below the recipe description when any ingredient matches your allergy settings; detects gluten, dairy, nuts, eggs, soy, shellfish, and fish
+- **Step-by-Step Photos** — 📸 "See step" button on every instruction step lazy-loads a Pollinations.ai photo illustrating that cooking action
+- **Drink Pairings** — 🍷 AI suggests wine, beer, cocktail, and non-alcoholic pairings for any recipe
+- **Recipe Debugger** — 🔧 "What Went Wrong?" panel: describe your problem and AI diagnoses the likely cause, explains why it happened, and gives a fix + pro tip
 
 ### History & Saving
 - **Recipe History** — All generated recipes saved to localStorage with thumbnail, rating, and favourite toggle
@@ -138,7 +145,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Weekly Grocery Budget** — Set a weekly budget in Settings; displayed in the Cooking Stats dashboard
 - **Multi-Recipe Shopping Merge** — Multi-select recipes from History and merge their ingredient lists into a single deduplicated, aisle-grouped smart shopping list; send directly to **Home Assistant** or **Google Tasks** with one tap
 - **Pantry Recipe Matcher** — "🧺 What Can I Make?" in the generate view cross-references your pantry against all saved recipes and shows match percentages; tap "Cook This →" to load the recipe, or "Generate New" to create a fresh recipe from pantry items
-- **Meal Planner** — Tap a saved recipe to select it, then tap any meal slot to assign it (Mon–Sun weekly grid, Breakfast / Lunch / Dinner); fully works on mobile and desktop; generates a combined smart shopping list for the whole week, deduplicated and grouped by supermarket aisle; **AI Prep Guide** (shown when ≥3 meals assigned) generates a day-by-day prep schedule and make-ahead task checklist
+- **Meal Planner** — Tap a saved recipe to select it, then tap any meal slot to assign it (Mon–Sun weekly grid, Breakfast / Lunch / Dinner); fully works on mobile and desktop; **drag-and-drop** on desktop and mobile (150ms press-and-hold to drag on touch screens, ghost element follows your finger); **AI Fill Plan** generates a full week of suggestions from your pantry and nutrition goals with a preview overlay before applying; generates a combined smart shopping list for the whole week, deduplicated and grouped by supermarket aisle; **AI Prep Guide** (shown when ≥3 meals assigned) generates a day-by-day prep schedule and make-ahead task checklist
 - **Monthly Challenges** — Track four monthly goals: cook 10 recipes, try 5 cuisines, save 5 favourites, use 20 unique ingredients
 - **Search & Sort** — Search history by name, tags, notes, or ingredients; sort by date, name, rating, cook count, or difficulty
 - **Tags & Notes** — Add custom tags and personal notes to any saved recipe; filter to "has notes" quickly
@@ -147,7 +154,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Streak Tracking** — Daily streak counter with personal best
 - **Trophy Case** — Dedicated 🏆 tab in History: streak stats and a 5-column badge grid showing all 12 badges with unlock hints for locked badges and full descriptions for unlocked ones
 - **Gallery / Moodboard View** — Toggle between the standard card grid and an image-first masonry gallery layout in Recipe History
-- **Post-Cooking Summary** — After finishing Cooking Mode, a modal shows your elapsed cook time, a 5-star rating prompt, a one-tap "Log to Food Log" button, and AI-generated leftover storage tips per component
+- **Post-Cooking Summary** — After finishing Cooking Mode, a modal shows your elapsed cook time, a 5-star rating prompt, a one-tap "Log to Food Log" button, AI-generated leftover storage tips per component, and **Pantry Depletion** — matching pantry items are shown as checkboxes so you can remove used ingredients from your pantry in one tap
 - **Recipe Mastery Badge** — Tracks how many times each recipe was cooked; shows Tried / Familiar / Mastered / Expert / Master badge on history cards
 - **Pin to Top** — 📌 Pin any recipe to the top of your history list
 - **Rating Filter** — Filter history to Liked / Disliked / Unrated recipes
@@ -159,6 +166,15 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Meal Plan Nutrition Dashboard** — Visual weekly calorie and macro overview for your meal plan; per-day bar chart, goal comparison, and empty state when fewer than 3 meals are assigned
 - **Daily Challenge** — 🔥 A new mystery ingredient challenge each day shown at the top of the generate view; maintaining a streak updates your gamification stats
 - **Average Calorie & Cook Time Stats** — CookingStats dashboard now shows avg calories/serving, total cook time, recipes cooked this month, and recipes ever cooked (not just saved)
+- **Streak Calendar** — 🔥 GitHub-style 365-day heatmap in the Stats tab showing your daily cooking frequency; darker orange = more dishes cooked
+- **Difficulty HeatMap** — 📅 Monthly calendar colored by the difficulty of dishes cooked each day (Easy=green / Medium=amber / Hard=red)
+- **Shopping Staples** — Top-10 most-used ingredients across all your saved recipes, shown in the Stats tab as a ranked staples list
+- **Cook-Again Reminder** — Widget in Recipe History surfaces favourite recipes you haven't cooked in 14+ days as gentle nudges
+- **AI Collection Suggestions** — "✨ AI Suggest" button in the Collections tab generates smart cookbook groupings from your full recipe history and assigns recipes automatically
+- **Tag Auto-Cleanup** — "🧹 Clean Tags" button proposes tag merges (e.g. "pasta" + "Pasta" → "pasta") to deduplicate your tag vocabulary
+- **Monthly Nutrition Report** — 📊 Modal in the Food Log tab showing 30-day calorie + macro averages, a day-by-day bar chart, and best/worst days
+- **Pantry Ingredient Nutrition** — ℹ️ button per pantry item fetches AI nutrition facts (calories, protein, carbs, fat, fiber per 100 g) in a popover
+- **Recipe Mini-Player** — Floating bottom-right card that follows you across all views when a recipe is loaded; one tap returns to the recipe view
 
 ### Sharing & Output
 - **Share & QR** — Every recipe gets its own shareable URL (compressed, shortened via is.gd); QR code links directly to the exact recipe including its image — no re-render needed on the recipient's end
@@ -182,7 +198,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Font Size** — SM / MD / LG scale, persisted
 - **High-Contrast Mode** — Stronger borders and white text for readability
 - **Temperature Unit** — Toggle between °C and °F
-- **Keyboard Shortcuts** — Cmd/Ctrl+Enter to generate; panel lists all shortcuts
+- **Keyboard Shortcuts** — Cmd/Ctrl+Enter to generate; H (history), P (planner), G (generate), S (save on result view); panel lists all shortcuts
 - **Scroll to Top** — Floating button appears after scrolling down
 
 ## Tech Stack
