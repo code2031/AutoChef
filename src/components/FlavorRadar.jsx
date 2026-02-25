@@ -29,6 +29,10 @@ export function scoreRecipe(recipe) {
 
 export default function FlavorRadar({ recipe }) {
   const scores = scoreRecipe(recipe);
+  const isDark = !document.getElementById('app-root')?.classList.contains('light-theme');
+  const labelColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(15,23,42,0.6)';
+  const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.12)';
+  const spokeColor = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.15)';
   const cx = 100, cy = 100, R = 68;
   const n = scores.length;
   const angleStep = (2 * Math.PI) / n;
@@ -52,11 +56,11 @@ export default function FlavorRadar({ recipe }) {
       <div className="flex items-center justify-center">
         <svg viewBox="0 0 200 200" className="w-full max-w-[220px]" aria-label="Flavor profile radar chart">
           {[0.33, 0.66, 1].map((pct, ri) => (
-            <path key={ri} d={hexPath(R * pct)} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+            <path key={ri} d={hexPath(R * pct)} fill="none" stroke={gridColor} strokeWidth="1" />
           ))}
           {scores.map((_, i) => {
             const p = pointAt(i, R);
-            return <line key={i} x1={cx} y1={cy} x2={p.x.toFixed(1)} y2={p.y.toFixed(1)} stroke="rgba(255,255,255,0.12)" strokeWidth="1" />;
+            return <line key={i} x1={cx} y1={cy} x2={p.x.toFixed(1)} y2={p.y.toFixed(1)} stroke={spokeColor} strokeWidth="1" />;
           })}
           <path d={dataPath()} fill="rgba(249,115,22,0.15)" stroke="rgba(249,115,22,0.7)" strokeWidth="2" strokeLinejoin="round" />
           {scores.map((s, i) => {
@@ -71,7 +75,7 @@ export default function FlavorRadar({ recipe }) {
             const anchor = lx < cx - 4 ? 'end' : lx > cx + 4 ? 'start' : 'middle';
             return (
               <g key={i}>
-                <text x={lx.toFixed(1)} y={(ly - 3).toFixed(1)} textAnchor={anchor} fontSize="7" fill="rgba(255,255,255,0.5)" fontFamily="system-ui,sans-serif">{s.flavor}</text>
+                <text x={lx.toFixed(1)} y={(ly - 3).toFixed(1)} textAnchor={anchor} fontSize="7" fill={labelColor} fontFamily="system-ui,sans-serif">{s.flavor}</text>
                 <text x={lx.toFixed(1)} y={(ly + 6).toFixed(1)} textAnchor={anchor} fontSize="7" fill="#f97316" fontFamily="system-ui,sans-serif" fontWeight="bold">{s.score}/10</text>
               </g>
             );

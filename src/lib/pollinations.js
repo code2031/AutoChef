@@ -1,3 +1,5 @@
+const POLLINATIONS_KEY = import.meta.env.VITE_POLLINATIONS_API_KEY || '';
+
 export function buildImageUrl(recipeName, recipeDesc, imageStyle = 'plated') {
   const styleDesc = {
     plated: 'elegantly plated on a fine dining table, cinematic lighting, shallow depth of field, photorealistic, appetizing.',
@@ -8,5 +10,6 @@ export function buildImageUrl(recipeName, recipeDesc, imageStyle = 'plated') {
   const imagePrompt = `A high-quality, professional food photography shot of ${recipeName}. ${recipeDesc}. ${styleDesc[imageStyle] || styleDesc.plated}`;
   const encodedPrompt = encodeURIComponent(imagePrompt);
   const seed = Math.floor(Math.random() * 100000);
-  return `https://gen.pollinations.ai/image/${encodedPrompt}?model=flux&seed=${seed}&width=1024&height=768&negative_prompt=blurry%2C+low+quality`;
+  const keyParam = POLLINATIONS_KEY ? `&key=${POLLINATIONS_KEY}` : '';
+  return `https://gen.pollinations.ai/image/${encodedPrompt}?model=flux&seed=${seed}&width=1024&height=768&negative_prompt=blurry%2C+low+quality${keyParam}`;
 }
