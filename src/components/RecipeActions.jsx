@@ -412,6 +412,60 @@ export default function RecipeActions({
             ⬇️ Save as HTML (Offline)
           </button>
 
+          {/* Feature 45: Save as Markdown */}
+          <button
+            onClick={() => {
+              if (!recipe) return;
+              const n = recipe.nutrition || {};
+              const md = [
+                `# ${recipe.name}`,
+                '',
+                recipe.description || '',
+                '',
+                `## Stats`,
+                `- **Time**: ${recipe.time || recipe.cookTime || '—'} min`,
+                `- **Difficulty**: ${recipe.difficulty || '—'}`,
+                `- **Calories**: ${recipe.calories || '—'} kcal/serving`,
+                `- **Servings**: ${recipe.servings || '—'}`,
+                n.protein ? `- **Protein**: ${n.protein}` : '',
+                n.carbs ? `- **Carbs**: ${n.carbs}` : '',
+                n.fat ? `- **Fat**: ${n.fat}` : '',
+                '',
+                `## Ingredients`,
+                ...(recipe.ingredients || []).map(i => `- ${i}`),
+                '',
+                `## Instructions`,
+                ...(recipe.instructions || []).map((s, i) => `${i + 1}. ${s}`),
+                recipe.chefTip ? `\n## Chef's Tip\n${recipe.chefTip}` : '',
+                '',
+                '---',
+                '*Generated with AutoChef AI*',
+              ].filter(l => l !== '').join('\n');
+              const blob = new Blob([md], { type: 'text/markdown' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `${(recipe.name || 'recipe').replace(/[^a-z0-9]/gi, '-').toLowerCase()}.md`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-slate-800 border border-white/10 text-slate-300 rounded-xl hover:border-white/20 hover:text-white transition-all text-sm font-medium"
+          >
+            📝 Save as Markdown
+          </button>
+
+          {/* Feature 56: Copy all ingredients to clipboard */}
+          <button
+            onClick={async () => {
+              if (!recipe?.ingredients) return;
+              const text = (recipe.ingredients).join('\n');
+              await navigator.clipboard.writeText(text);
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-slate-800 border border-white/10 text-slate-300 rounded-xl hover:border-white/20 hover:text-white transition-all text-sm font-medium"
+          >
+            📋 Copy All Ingredients
+          </button>
+
           {/* Card Theme Picker */}
           <div className="space-y-2">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Export Card Theme</p>

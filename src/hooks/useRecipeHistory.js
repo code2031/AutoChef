@@ -102,6 +102,28 @@ export function useRecipeHistory() {
     return history.some(e => e.recipe.name.toLowerCase().trim() === name);
   };
 
+  // Feature 46: Pin / unpin a recipe (pinned entries sort to top in RecipeHistory)
+  const togglePin = (id) => {
+    setHistory(prev =>
+      prev.map(entry => entry.id === id ? { ...entry, isPinned: !entry.isPinned } : entry)
+    );
+  };
+
+  // Feature 47: Bulk-delete multiple entries
+  const bulkDelete = (ids) => {
+    setHistory(prev => prev.filter(e => !ids.includes(e.id)));
+  };
+
+  // Feature 48: Import / merge entries from a backup (deduplicate by id)
+  const importHistory = (entries) => {
+    if (!Array.isArray(entries)) return;
+    setHistory(prev => {
+      const existingIds = new Set(prev.map(e => e.id));
+      const newEntries = entries.filter(e => e && e.id && !existingIds.has(e.id));
+      return [...newEntries, ...prev].slice(0, 50);
+    });
+  };
+
   // Save old version before updating recipe in-place (for variant/similar flows)
   const updateRecipeWithVersion = (id, newRecipe, newImageUrl) => {
     setHistory(prev => prev.map(entry => {
@@ -148,6 +170,9 @@ export function useRecipeHistory() {
     isDuplicate,
     incrementCookCount,
     cloneRecipe,
+    togglePin,
+    bulkDelete,
+    importHistory,
     toggleWantToCook,
     updateRecipeWithVersion,
     collections,

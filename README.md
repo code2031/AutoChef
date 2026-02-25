@@ -67,6 +67,10 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Recent Ingredients** — Quick-add chips from your last 20 used ingredients
 - **Ingredient of the Week** — A rotating featured ingredient chip to inspire new dishes
 - **Surprise Cuisine** — Randomly picks a cuisine style for you
+- **Meal Type Presets** — Quick Breakfast / Lunch / Dinner / Snack chips set the mood in one tap
+- **Speed Mode** — ⚡ `<20 min` toggle forces short recipes (sets a 20-minute time cap)
+- **Pantry Expiry Alert** — Red banner at the top of the generate view lists pantry items expiring within 3 days; tap to open the Pantry drawer
+- **Clear All Ingredients** — ✕ Clear button removes all ingredient tags in one tap when ingredients are present
 
 ### Recipe Details
 - **Recipe Story** — AI-generated 2–3 sentence cultural or historical background, auto-loaded with each recipe
@@ -98,7 +102,18 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Metric ↔ Imperial Toggle** — Switch any recipe's ingredient quantities between grams/ml and oz/fl oz/lbs with one tap
 - **Banned Ingredient Warning** — Ingredients matching your banned list are highlighted with a red ⚠️ badge directly in the recipe
 - **Save as HTML** — Download a fully self-contained offline recipe card as a `.html` file (no internet required to view)
+- **Save as Markdown** — Export any recipe as a `.md` file with full metadata, ingredients, steps, and chef's tip
+- **Copy All Ingredients** — One-click copy of all recipe ingredients to clipboard (also available from More panel)
 - **Recipe Card Theme** — Choose from 5 colour themes (orange, blue, green, purple, red) before exporting the recipe card PNG
+- **Macro Pie Chart** — SVG donut chart showing protein / carbs / fat / fiber ratios for each recipe
+- **Nutrition Density Badge** — Scores a recipe's nutrient density (protein + fiber) per calorie (Very Dense / Nutrient-Rich / Moderate / Low)
+- **Vegan & Vegetarian Badges** — Auto-detected from ingredients (no meat keywords → vegetarian; no meat + no dairy → vegan)
+- **High-Protein Badge** — Shown when protein provides >25% of total calories
+- **Allergen Warning** — Red banner if any ingredient in the recipe matches your banned-ingredients list
+- **Quick Badges** — One-Pot 🫕, Freezer-Friendly ❄️, Meal Prep 📦, Quick Meal ⚡ — auto-detected from the recipe text
+- **Substitution Matrix** — Full-screen modal listing 2 alternatives for every ingredient; dietary filter tabs (Vegan, Gluten-Free, Dairy-Free, Nut-Free) re-fetch with that constraint; "Copy All" clipboard export
+- **Leftover Transformer** — Shown after saving a recipe; generates 3 creative next-day dishes using the leftover ingredients
+- **Cook-Along Timeline** — SVG Gantt-style view of the cooking flow, with parallel tasks on a second lane; click "View Cooking Timeline" in the recipe view
 
 ### History & Saving
 - **Recipe History** — All generated recipes saved to localStorage with thumbnail, rating, and favourite toggle
@@ -125,15 +140,25 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Pantry Recipe Matcher** — "🧺 What Can I Make?" in the generate view cross-references your pantry against all saved recipes and shows match percentages; tap "Cook This →" to load the recipe, or "Generate New" to create a fresh recipe from pantry items
 - **Meal Planner** — Tap a saved recipe to select it, then tap any meal slot to assign it (Mon–Sun weekly grid, Breakfast / Lunch / Dinner); fully works on mobile and desktop; generates a combined smart shopping list for the whole week, deduplicated and grouped by supermarket aisle; **AI Prep Guide** (shown when ≥3 meals assigned) generates a day-by-day prep schedule and make-ahead task checklist
 - **Monthly Challenges** — Track four monthly goals: cook 10 recipes, try 5 cuisines, save 5 favourites, use 20 unique ingredients
-- **Search & Sort** — Search history by name, tags, or notes; sort by date, name, or rating
-- **Tags & Notes** — Add custom tags and personal notes to any saved recipe
-- **Export** — Download your full recipe history as a JSON file
+- **Search & Sort** — Search history by name, tags, notes, or ingredients; sort by date, name, rating, cook count, or difficulty
+- **Tags & Notes** — Add custom tags and personal notes to any saved recipe; filter to "has notes" quickly
+- **Export** — Download your full recipe history as a JSON file; Backup & Restore via the Kitchen Tools menu
 - **Activity Heatmap** — 5-week grid showing your cooking frequency
 - **Streak Tracking** — Daily streak counter with personal best
-- **XP Level System** — Earn XP for every recipe generated, saved, and cooked; progress through 21 levels (Apprentice → Grand Maître) with a visual progress bar and gradient level banner in the new Trophy tab
-- **Trophy Case** — Dedicated 🏆 tab in History: level banner, streak stats, and a 5-column badge grid showing all 10 badges with unlock hints for locked badges and full descriptions for unlocked ones
-- **Gallery / Moodboard View** — Toggle between the standard card grid and an image-first masonry gallery layout in Recipe History; hover (desktop) or always-visible strip (mobile) shows recipe name and rating
+- **Trophy Case** — Dedicated 🏆 tab in History: streak stats and a 5-column badge grid showing all 12 badges with unlock hints for locked badges and full descriptions for unlocked ones
+- **Gallery / Moodboard View** — Toggle between the standard card grid and an image-first masonry gallery layout in Recipe History
 - **Post-Cooking Summary** — After finishing Cooking Mode, a modal shows your elapsed cook time, a 5-star rating prompt, a one-tap "Log to Food Log" button, and AI-generated leftover storage tips per component
+- **Recipe Mastery Badge** — Tracks how many times each recipe was cooked; shows Tried / Familiar / Mastered / Expert / Master badge on history cards
+- **Pin to Top** — 📌 Pin any recipe to the top of your history list
+- **Rating Filter** — Filter history to Liked / Disliked / Unrated recipes
+- **Cuisine Filter** — Quick-tap cuisine chips (Italian/Asian/Mexican/Indian/French/Japanese) filter the history list instantly
+- **Bulk Delete** — Multi-select recipes and delete them all in one tap
+- **Recipe of the Day** — Deterministic daily suggestion from your saved recipes shown at the top of History
+- **Cooking Tip Widget** — Daily rotating chef tip shown in Recipe History; tap ↻ to see the next tip
+- **Weekly Challenge Card** — Shows this week's cooking progress: recipes cooked, cuisines tried, and favourites saved
+- **Meal Plan Nutrition Dashboard** — Visual weekly calorie and macro overview for your meal plan; per-day bar chart, goal comparison, and empty state when fewer than 3 meals are assigned
+- **Daily Challenge** — 🔥 A new mystery ingredient challenge each day shown at the top of the generate view; maintaining a streak updates your gamification stats
+- **Average Calorie & Cook Time Stats** — CookingStats dashboard now shows avg calories/serving, total cook time, recipes cooked this month, and recipes ever cooked (not just saved)
 
 ### Sharing & Output
 - **Share & QR** — Every recipe gets its own shareable URL (compressed, shortened via is.gd); QR code links directly to the exact recipe including its image — no re-render needed on the recipient's end
@@ -144,6 +169,10 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Social Caption** — Auto-generated caption ready to paste into Instagram, X, etc.
 - **Embed Code** — `<iframe>` snippet to embed any recipe on a website
 - **Cook Tonight Notification** — Request a browser notification reminder to cook the current recipe
+- **Quick Share Bar** — Compact action row below the recipe: Web Share API / clipboard, WhatsApp, email, print, copy recipe name; shows reading time estimate
+- **Unit Converter** — Kitchen Tools modal (from Navbar Settings) converts cups/tbsp/tsp/oz/lb/g/ml/l and °C/°F; bi-directional inputs
+- **Kitchen Reference Card** — Kitchen Tools modal with measurement equivalents, cooking temperature guide, doneness chart, and substitution table
+- **Backup & Restore** — Kitchen Tools modal to export and import recipe history as JSON
 
 ### Accessibility & Appearance
 - **Installable PWA** — Install AutoChef to your home screen; works offline with cached assets

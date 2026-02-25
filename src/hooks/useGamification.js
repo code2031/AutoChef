@@ -2,7 +2,6 @@ import { useLocalStorage } from './useLocalStorage.js';
 import { checkNewBadges } from '../lib/achievements.js';
 
 export function useGamification() {
-  const [points, setPoints] = useLocalStorage('game_points', 0);
   const [streak, setStreak] = useLocalStorage('game_streak', 0);
   const [lastCookDate, setLastCookDate] = useLocalStorage('game_last_cook_date', null);
   const [badges, setBadges] = useLocalStorage('game_badges', []);
@@ -16,17 +15,11 @@ export function useGamification() {
     surpriseUses: 0,
   });
 
-  const addPoints = (amount) => {
-    setPoints(prev => prev + amount);
-  };
-
   const updateStat = (key, updater) => {
     setStats(prev => ({ ...prev, [key]: updater(prev[key]) }));
   };
 
   const recordRecipe = (cuisine, diet, difficulty) => {
-    addPoints(10);
-
     // Update streak
     const today = new Date().toDateString();
     if (lastCookDate !== today) {
@@ -52,12 +45,10 @@ export function useGamification() {
   };
 
   const recordPhotoScan = () => {
-    addPoints(5);
     updateStat('photoScans', n => n + 1);
   };
 
   const recordSave = () => {
-    addPoints(2);
     updateStat('totalSaved', n => n + 1);
   };
 
@@ -66,7 +57,6 @@ export function useGamification() {
   };
 
   const recordChallengeComplete = (challengeStreak) => {
-    addPoints(25);
     setStats(prev => ({
       ...prev,
       challengesCompleted: (prev.challengesCompleted || 0) + 1,
@@ -75,7 +65,7 @@ export function useGamification() {
   };
 
   const recordNewCuisine = () => {
-    addPoints(15);
+    // no-op (XP removed)
   };
 
   // Check and unlock new badges, returns array of newly unlocked badge objects
@@ -89,11 +79,9 @@ export function useGamification() {
   };
 
   return {
-    points,
     streak,
     badges,
     stats,
-    addPoints,
     recordRecipe,
     recordPhotoScan,
     recordSave,

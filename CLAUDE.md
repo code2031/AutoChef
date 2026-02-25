@@ -217,11 +217,11 @@ All `localStorage` keys:
 | `pref_ha_url` | `Navbar.jsx` (via `useLocalStorage`) — Home Assistant base URL |
 | `pref_ha_token` | `Navbar.jsx` (via `useLocalStorage`) — Home Assistant long-lived access token |
 | `pref_google_client_id` | `Navbar.jsx` (via `useLocalStorage`) — Google OAuth client ID for Tasks integration |
-| `recipe_history` | `useRecipeHistory` (max 50 entries; each has `tags[]`, `notes`, `isFavourite`, `wantToCook`, `rating`, `versions[]`, `collectionId`, `cookCount`) |
+| `recipe_history` | `useRecipeHistory` (max 50 entries; each has `tags[]`, `notes`, `isFavourite`, `wantToCook`, `rating`, `versions[]`, `collectionId`, `cookCount`, `isPinned`) |
 | `recipe_collections` | `useRecipeHistory` — array of `{ id, name }` cookbook objects |
 | `meal_plan` | `MealPlanner` — `{ Monday: { Breakfast: entryId\|null, ... }, ... }` |
 | `long_cook_timers` | `KitchenTimer` — `[{ id, label, startedAt, durationMs }]` persisted for multi-day timers |
-| `game_points`, `game_streak`, `game_last_cook_date`, `game_badges`, `game_stats` | `useGamification` |
+| `game_streak`, `game_last_cook_date`, `game_badges`, `game_stats` | `useGamification` — **note: XP/points system removed; `game_points` no longer used** |
 | `game_best_streak` | `App.jsx` (uses `useLocalStorage` directly) |
 | `recent_ingredients` | `App.jsx` (uses `useLocalStorage` directly; max 20 items) |
 | `pantry_items` | `PantryDrawer` (uses `useLocalStorage` directly) |
@@ -250,7 +250,7 @@ All `localStorage` keys:
 
 **`MealPlanNutrition.jsx`** — collapsible panel, no API calls. Props: `{ plan, history, nutritionGoals }`. Computes `calories/protein/carbs/fat` per day by summing `recipe.calories` + `recipe.nutrition.*` for each assigned meal slot. UI: 4 summary stat cards, SVG 7-bar calorie chart (green/amber/red vs goal, dashed goal line), 7 horizontal stacked macro bars (protein blue / carbs amber / fat purple), goal comparison progress bars. Empty state when `totalAssigned < 3`.
 
-**`DailyChallengeCard.jsx`** — banner rendered at top of GenerateView ingredients mode. Props: `{ onUseIngredient }`. Reads today's challenge ingredient from `getDailyChallengeIngredient()` (deterministic daily pick via day index % pool). Shows: 🔥 "Today's Challenge" header, ingredient name with pulsing glow, streak count, "+25 bonus XP" badge. "Use it!" button calls `onUseIngredient(ingredient)` to add to ingredient list. Completed state (green ✅) shown when `isChallengeCompletedToday()` returns true. Challenge completion is checked in `App.jsx` after recipe generation by matching the challenge ingredient against recipe ingredients (case-insensitive substring); on match calls `gamification.recordChallengeComplete(streak)` and `markChallengeComplete(state)`.
+**`DailyChallengeCard.jsx`** — banner rendered at top of GenerateView ingredients mode. Props: `{ onUseIngredient }`. Reads today's challenge ingredient from `getDailyChallengeIngredient()` (deterministic daily pick via day index % pool). Shows: 🔥 "Today's Challenge" header, ingredient name with pulsing glow, streak count. "Use it!" button calls `onUseIngredient(ingredient)` to add to ingredient list. Completed state (green ✅) shown when `isChallengeCompletedToday()` returns true. Challenge completion is checked in `App.jsx` after recipe generation by matching the challenge ingredient against recipe ingredients (case-insensitive substring); on match calls `gamification.recordChallengeComplete(streak)` and `markChallengeComplete(state)`.
 
 **`LeftoverTransformer.jsx`** — collapsible section in ResultView, shown only when `isSaved && onLeftoverGenerate`. Props: `{ recipe, onGenerateLeftover }`. Lazy-loaded (not auto-called). "♻️ Leftover Ideas" toggle triggers `generateLeftoverIdeas(recipe)` → 3 idea cards each with dish name, description, `keyTransformation` note, and "Cook This →" button. "Cook This →" calls `onLeftoverGenerate(idea.name, recipe)` in `App.jsx` which builds a leftover-context prompt and generates a full new recipe.
 
@@ -290,7 +290,7 @@ All `localStorage` keys:
 
 **`PostCookingSummary.jsx`** — modal overlay (`z-[300]`) shown after `onCookDone` fires. Props: `{ recipe, recipeImage, cookingDurationMs, onRate, onLogMeal, onClose }`. Displays recipe image with gradient overlay, elapsed cook time, 5-star rating (hover + click; maps ≥4 → `'up'`, <4 → `'down'` via `onRate`), a "Log to Food Log" button that calls `onLogMeal(mealData)` (extracts name + macros from recipe), and leftover storage tips loaded from `generateStorageTips(recipe)`. Uses `setTimeout(..., 0)` to defer `setLoadingTips(true)` inside `useEffect` (ESLint `react-hooks/set-state-in-effect` rule).
 
-**`TrophyCase.jsx`** — shown in RecipeHistory "🏆 Trophy" tab. Props: `{ points, badges, streak, bestStreak, stats }`. `LevelBanner` shows level number + title + XP total + progress bar using a gradient that shifts from grey (L1) through colours to gold (L21) based on `getLevel(points)`. Three `StatCard` tiles show current streak, best streak, and total recipes. Badge grid is 5-column: unlocked badges show icon + name in full colour; locked show grey `?` and dim text. Tapping any badge opens a detail panel below the grid — shows description for unlocked, or `hint` for locked with "How to unlock:" prefix.
+**`TrophyCase.jsx`** — shown in RecipeHistory "🏆 Trophy" tab. Props: `{ badges, streak, bestStreak, stats }`. **XP/points system has been removed** — no `LevelBanner`, no `getLevel()` import. Three `StatCard` tiles show current streak, best streak, and total recipes. Badge grid is 5-column: unlocked badges show icon + name in full colour; locked show grey `?` and dim text. Tapping any badge opens a detail panel below the grid — shows description for unlocked, or `hint` for locked with "How to unlock:" prefix.
 
 **`SyncPlanner.jsx`** — Multi-dish timing calculator (`view === 'sync'`, Navbar "Sync" button). User enters dishes with cook times + a serve-in minutes value; component calculates `startIn = serveInMins - cookMins` for each dish and renders a timeline sorted by start time. Shows "NOW" for dishes that should already be started; warns if `startIn < 0`.
 
@@ -298,7 +298,53 @@ All `localStorage` keys:
 
 **`RecipeHistory.jsx`** — tabs: All, Saved, Wishlist, Collections, Stats, Journal, Cuisine Passport, Food Log, and **🏆 Trophy**. Accepts `gamification`, `bestStreak`, `nutritionGoals`, `lastRecipe` props from `App.jsx` and forwards the latter two to `DailyFoodLog`, and the former two to `TrophyCase`. **🎲 Random** button in header picks a random history entry and calls `onSelect`. **View toggle** (☰ / ⊞ buttons): `viewMode` state switches between `'cards'` (2-column grid) and `'gallery'` (CSS `columns-2 sm:columns-3` masonry); gallery auto-reverts to cards during remix or multi-select. Gallery shows name strip on mobile always; desktop hover reveals name + difficulty + rating overlay. `MonthlyChallenges` tracks monthly goals. Each card shows version + cook count badges, plus a **Clone** button (calls `onClone(entry.id)`). **Multi-select** toggle (🛒) enables selecting multiple cards; "Merge Shopping Lists" calls `buildSmartShoppingList()`, renders by aisle in the modal, and includes `<ShoppingIntegrations>` for HA/Google Tasks; when exactly 2 selected: "Compare" button opens `<RecipeCompare>` modal. **Remix mode** (🔀 toggle): select up to 2 → "Create Fusion Dish →" calls `onRemix(recipeA, recipeB)`.
 
-**`Navbar.jsx`** — Settings dropdown includes: theme toggle, high contrast, font size (SM/MD/LG), temperature unit (°C/°F), Daily Nutrition Goals (calorie/protein/carbs/fat targets), **Custom Prompt** textarea (appended to every generation), **Integrations** section (collapsible) with Home Assistant URL + token inputs and Google Tasks Client ID input. Timer, Planner, Sync, History buttons in the main bar.
+**`Navbar.jsx`** — Settings dropdown includes: theme toggle, high contrast, font size (SM/MD/LG), temperature unit (°C/°F), Daily Nutrition Goals (calorie/protein/carbs/fat targets), **Custom Prompt** textarea (appended to every generation), **Integrations** section (collapsible) with Home Assistant URL + token inputs and Google Tasks Client ID input, **Kitchen Tools** section with buttons for Unit Converter, Kitchen Reference, and Backup & Restore. Timer, Planner, Sync, History buttons in the main bar. Props: `history` (for backup), `onImportHistory` (from `importHistory` in `useRecipeHistory`).
+
+**`UnitConverter.jsx`** — standalone modal (opened from Navbar Kitchen Tools). Converts cups/tbsp/tsp/oz/lb/g/ml/l and temperature (°C/°F). Two input fields with bi-directional conversion; unit type selector.
+
+**`KitchenReference.jsx`** — standalone modal (opened from Navbar Kitchen Tools). Reference cards for measurement equivalents, temperature guide (common cooking temps), doneness chart, and common substitutions table.
+
+**`RecipeJsonBackup.jsx`** — standalone modal (opened from Navbar Kitchen Tools). Props: `{ history, onImport, onClose }`. Shows history count, Export JSON button (`autochef_history_*.json`), Import JSON button (file picker, calls `onImport(data)`). `importHistory` in `useRecipeHistory` deduplicates by entry id when merging.
+
+**`MasteryBadge` (default export from `RecipeMastery.jsx`)** — small inline badge chip. Props: `{ cookCount, className }`. Levels: Tried (1 cook), Familiar (2), Mastered (3), Expert (5), Master (10). Returns null if cookCount < 1. Rendered in RecipeHistory card meta.
+
+**`WeeklyChallengeCard.jsx`** — collapsible card in RecipeHistory. Detects this week's recipes (Mon–Sun range), counts total and unique cuisines; shows 3 weekly challenge progress bars (5 recipes, 3 cuisines, 1 favourite).
+
+**`RecipeOfTheDay.jsx`** — deterministic daily pick from history (`dayIndex % history.length`, index computed in `useState` initializer to avoid impure render). Clickable card with recipe image, name, and cook time. Props: `{ history, onSelect }`.
+
+**`CookingTipWidget.jsx`** — 20 rotating cooking tips; initial index from `Date.now()` (computed in `useState` initializer). Manual ↻ next button. Rendered in RecipeHistory above MonthlyChallenges.
+
+**`MacroPieChart.jsx`** — SVG donut chart for protein/carbs/fat/fiber using polar-to-Cartesian arc paths. No external lib. Rendered in ResultView after StatsBar.
+
+**`NutritionDensityBadge.jsx`** — score = `(protein + fiber×2) / calories × 100` → Very Dense / Nutrient-Rich / Moderate / Low Density badge. Rendered alongside MacroPieChart in ResultView.
+
+**`PantryExpiryAlert.jsx`** — reads `pantry_items` from localStorage (now uses `useState` initializer for the `now` timestamp to satisfy lint). Shows items expiring within 3 days as a red alert banner. Rendered at top of GenerateView ingredients mode via `onGoToPantry={() => setShowPantry(true)}`.
+
+**`IngredientFrequency.jsx`** — top-10 most-used ingredients bar chart. Normalizes ingredient strings by stripping quantity/unit prefixes and taking the first 3 words. Props: `{ history }`. Now the content of CookingStats "Top Ingredients" tab.
+
+**`QuickShareBar.jsx`** — compact row of share actions. Props: `{ recipe }`. Includes Web Share API / clipboard, WhatsApp, mailto, print, copy recipe name. Reading time computed inline (`words / 200`).
+
+**`SubstitutionMatrix.jsx`** — full-screen modal (`z-[250]`). Generates 2 subs per ingredient across the whole recipe; dietary filter tabs re-fetch with constraint; "Copy All" clipboard button. Triggered by "🔄 Subs Map" button in ResultView ingredient header.
+
+**`LeftoverTransformer.jsx`** — collapsible section in ResultView (visible when recipe is saved). "♻️ Leftover Ideas" → Groq call → 3 cards with dish name, description, key transformation, "Cook This →" button.
+
+**`CookTimeline.jsx`** — SVG Gantt-style cook timeline. Triggered by "View Cooking Timeline" button in ResultView. Two lanes (Main/Parallel), step bars with duration labels, gridlines every 5–10 min. Pure SVG, horizontal scroll on mobile.
+
+**`MealPlanNutrition.jsx`** — purely computed from recipe data in history. Weekly calorie bar chart (SVG), per-day macro stacked bars, weekly average goal comparison. Toggle button in MealPlanner alongside Shopping List and Prep Guide buttons.
+
+**`LeftoverTransformer.jsx`** — see Leftover Transformer above.
+
+**`useRecipeHistory`** additional methods added: `togglePin(id)` (toggles `isPinned` flag, pinned entries sort to top), `bulkDelete(ids)` (deletes array of ids), `importHistory(entries)` (merges entries deduplicating by id). Passed to `RecipeHistory` as `onTogglePin`, and to `Navbar` as `onImportHistory`.
+
+**`RecipeHistory.jsx`** — additional features: sort by cook count (`'cooks'`) and difficulty (`'difficulty'`), difficulty filter dropdown, rating filter (`all/up/down/unrated`), cuisine quick-filter chips (Italian/Asian/Mexican/Indian/French/Japanese), "has notes" filter toggle, ingredient search (searches inside `recipe.ingredients`), result count display when filters active, clear-filters button, pin-to-top with 📌 icon, cook-again button (🍳), bulk delete in multi-select action bar, colored difficulty chips (green/slate/red).
+
+**`StatsBar.jsx`** — additional badges: One-Pot 🫕, Freezer-Friendly ❄️, Meal Prep 📦, Quick Meal ⚡ (from `getQuickBadges`); Vegan 🌱, Vegetarian 🥦, High Protein 💪 (detected from ingredients/nutrition); allergen warning banner when recipe contains any `pref_banned` items; ingredient count and reading time stats. Uses `useLocalStorage('pref_banned')` to detect banned items.
+
+**`CookingStats.jsx`** — "Top Ingredients" tab now uses `IngredientFrequency` component. Summary stat cards expanded: Ever Cooked (cookCount > 0), Avg Cal/Serving, Total Cook Time, This Month count. `getTopIngredients` function removed (replaced by IngredientFrequency).
+
+**`GenerateView.jsx`** — additional: `PantryExpiryAlert` shown at top of ingredients mode; quick meal type preset chips (Breakfast/Lunch/Dinner/Snack sets mood); ⚡ `<20 min` speed toggle (sets maxTime to 20); "Clear" button to clear all ingredients when list is non-empty.
+
+**`RecipeActions.jsx`** — additional exports: 📝 "Save as Markdown" (`.md` file with full recipe), 📋 "Copy All Ingredients" (copies all ingredient strings to clipboard).
 
 ### Utility libraries
 
@@ -306,7 +352,7 @@ All `localStorage` keys:
 - `lib/carbon.js` — `getCarbonScore(ingredients[])` returns `{ total, label, color, icon }` — CO₂e footprint rating
 - `lib/seasonal.js` — `getSeasonalIngredients()` / `getSeasonalHint()` — month-based seasonal produce
 - `lib/ingredients.js` — `INGREDIENT_SUGGESTIONS`, `getEmojiForIngredient()`, `getRandomSurpriseIngredients()`
-- `lib/achievements.js` — `BADGES` (12 badges, each with `hint` for locked state), `checkNewBadges(stats, unlockedIds[])`, `LEVEL_THRESHOLDS` (21 levels: Apprentice → Grand Maître), `getLevel(points)` → `{ level, title, pointsForNext, progress, currentMin }`. New badges: `challenge_first` (🎯 Challenge Accepted — 1 challenge done), `challenge_streak_5` (🏅 Unstoppable — 5-day challenge streak)
+- `lib/achievements.js` — `BADGES` (12 badges, each with `hint` for locked state), `checkNewBadges(stats, unlockedIds[])`. **`LEVEL_THRESHOLDS` and `getLevel()` have been removed** — XP/points system no longer exists. Badges include `challenge_first` (🎯 Challenge Accepted — 1 challenge done) and `challenge_streak_5` (🏅 Unstoppable — 5-day challenge streak)
 - `lib/challenges.js` — `CHALLENGE_POOL` (60+ unique ingredients), `getDailyChallengeIngredient()` (deterministic daily pick via `Math.floor(Date.now() / 86400000) % pool.length`), `getChallengeState()` / `markChallengeComplete(state)` / `isChallengeCompletedToday(state)` — all read/write `daily_challenge` localStorage key
 - `lib/shoppingList.js` — `parseIngredient(text)` → `{ qty, unit, name, original }`; `deduplicateIngredients(ingredients[])` groups by normalized name and sums matching units; `categorizeByAisle(ingredients[])` → `{ aisleLabel: [...] }` (9 aisles); `buildSmartShoppingList(ingredients[])` runs the full deduplicate → categorize pipeline. Used by `MealPlanner`, `RecipeHistory` merged list, and `ResultView`'s `ShoppingListModal`.
 - `lib/homeAssistant.js` — `addToHAShoppingList(items, haUrl, haToken)` — POSTs each item to HA REST API; returns `{ success, failed }`. Handles CORS errors gracefully.

@@ -3,6 +3,7 @@ import { BarChart2, Download } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 import { generateWeeklyDigest } from '../lib/groq.js';
 import { scoreRecipe } from './FlavorRadar.jsx';
+import IngredientFrequency from './IngredientFrequency.jsx';
 
 function exportCSV(history) {
   const headers = ['Name', 'Date', 'Difficulty', 'Calories', 'Protein', 'Carbs', 'Fat', 'Fiber', 'Rating', 'Cook Count', 'Tags'];
@@ -27,19 +28,6 @@ function exportCSV(history) {
   a.download = 'autochef-history.csv';
   a.click();
   URL.revokeObjectURL(url);
-}
-
-// Top N ingredients across all recipes
-function getTopIngredients(history, n = 10) {
-  const counts = {};
-  history.forEach(entry => {
-    (entry.recipe?.ingredients || []).forEach(ing => {
-      // Extract the base ingredient name (first 1-2 words, lowercase)
-      const base = ing.toLowerCase().replace(/^\d+[\s\w/]*\s/, '').split(/[,\s(]/)[0].trim();
-      if (base.length > 2) counts[base] = (counts[base] || 0) + 1;
-    });
-  });
-  return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, n);
 }
 
 // Cuisine breakdown
@@ -121,17 +109,16 @@ export default function CookingStats({ history }) {
   const [isLoadingDigest, setIsLoadingDigest] = useState(false);
   const [weeklyBudget] = useLocalStorage('pref_weekly_budget', '');
 
-  const topIngredients = getTopIngredients(history);
   const cuisines = getCuisineBreakdown(history);
   const weeklyData = getWeeklyActivity(history);
   const diffData = getDifficultyBreakdown(history);
 
-  const maxIng = Math.max(...topIngredients.map(([, c]) => c), 1);
   const maxCuisine = Math.max(...cuisines.map(([, c]) => c), 1);
   const maxWeek = Math.max(...weeklyData.map(w => w.count), 1);
 
   // Stats summary
   const totalCooked = history.length;
+  const cookedRecipes = history.filter(e => (e.cookCount || 0) > 0).length;
   const mostCooked = history.length > 0 ? [...history].sort((a, b) => (b.cookCount || 0) - (a.cookCount || 0))[0] : null;
   const avgRating = (() => {
     const rated = history.filter(e => e.rating);
@@ -139,6 +126,20 @@ export default function CookingStats({ history }) {
     const ups = rated.filter(e => e.rating === 'up').length;
     return Math.round((ups / rated.length) * 100);
   })();
+  // Feature 49: avg calories per serving
+  const avgCalories = (() => {
+    const calEntries = history.filter(e => parseInt(e.recipe?.calories) > 0);
+    if (!calEntries.length) return null;
+    return Math.round(calEntries.reduce((s, e) => s + parseInt(e.recipe.calories || 0), 0) / calEntries.length);
+  })();
+  // Feature 50: total estimated cook time
+  const totalCookMins = history.reduce((s, e) => s + (parseInt(e.recipe?.time || e.recipe?.cookTime || 0) || 0), 0);
+  const totalCookTimeLabel = totalCookMins > 0
+    ? totalCookMins >= 60 ? `${Math.floor(totalCookMins / 60)}h ${totalCookMins % 60}m` : `${totalCookMins}m`
+    : null;
+  // Feature 57: recipes saved this month
+  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
+  const thisMonthCount = history.filter(e => new Date(e.savedAt) >= monthStart).length;
 
   if (history.length === 0) {
     return (
@@ -178,14 +179,18 @@ export default function CookingStats({ history }) {
         </div>
       )}
 
-      {/* Summary cards */}
+      {/* Summary cards — features 49, 50, 54, 57 */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: 'Total Saved', value: totalCooked },
           { label: 'Favourites', value: history.filter(e => e.isFavourite).length },
           { label: 'Approval Rate', value: avgRating !== null ? `${avgRating}%` : '—' },
           { label: 'Most Cooked', value: mostCooked?.cookCount > 0 ? `${mostCooked.cookCount}×` : '—' },
-        ].map(({ label, value }) => (
+          cookedRecipes > 0 && { label: 'Ever Cooked', value: cookedRecipes },
+          avgCalories && { label: 'Avg Cal/Serving', value: `${avgCalories}` },
+          totalCookTimeLabel && { label: 'Total Cook Time', value: totalCookTimeLabel },
+          thisMonthCount > 0 && { label: 'This Month', value: thisMonthCount },
+        ].filter(Boolean).map(({ label, value }) => (
           <div key={label} className="bg-slate-800/60 border border-white/5 rounded-2xl p-4 text-center">
             <p className="text-2xl font-bold text-orange-400">{value}</p>
             <p className="text-xs text-slate-500 mt-1">{label}</p>
@@ -214,12 +219,8 @@ export default function CookingStats({ history }) {
       </div>
 
       <div className="bg-slate-900/40 border border-white/5 rounded-2xl p-5">
-        {tab === 'ingredients' && (
-          <div className="space-y-3">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Most Used Ingredients</p>
-            <BarChart data={topIngredients} maxVal={maxIng} color="#f97316" />
-          </div>
-        )}
+        {/* Feature 43: IngredientFrequency component with better normalization */}
+        {tab === 'ingredients' && <IngredientFrequency history={history} />}
         {tab === 'cuisine' && (
           <div className="space-y-3">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Cuisine Breakdown</p>

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Clock, Utensils, Flame, Leaf, Users, Wine, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, Utensils, Flame, Leaf, Users, Wine, DollarSign, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { estimateCost } from '../lib/costs.js';
 import { getCarbonScore } from '../lib/carbon.js';
+import { useLocalStorage } from '../hooks/useLocalStorage.js';
 const DIFFICULTY_INFO = {
   Easy: 'Beginner-friendly. Simple techniques, few steps, forgiving timing.',
   Medium: 'Some experience helpful. Requires attention to timing and technique.',
@@ -15,6 +16,27 @@ const HIGH_GI = ['white rice','white bread','potato','pasta','cornflakes','white
 const HYDRATING = ['cucumber','watermelon','tomato','lettuce','celery','zucchini','broth','stock','soup','coconut water'];
 const EQUIP_KW=["knife","pan","skillet","pot","saucepan","mixing bowl","whisk","spatula","colander","blender","tongs","ladle","peeler","grater","wok","oven","grill"];
 const EQUIP_ICONS={knife:"🔪",pan:"🍳",skillet:"🍳",pot:"🫕",saucepan:"🫕","mixing bowl":"🥣",whisk:"🥄",spatula:"🥄",colander:"🫙",blender:"🫙",tongs:"🤏",ladle:"🥄",peeler:"🔪",grater:"🔩",wok:"🍳",oven:"♨️",grill:"🔥"};
+
+// Feature 29–32: quick keyword badges
+function getQuickBadges(ings, instructions, totalTime) {
+  const text = (ings.join(' ') + ' ' + (instructions || []).join(' ')).toLowerCase();
+  const badges = [];
+  if (['one-pan','one pan','one pot','one-pot','sheet pan','sheet-pan'].some(k => text.includes(k)))
+    badges.push({ label: 'One Pot', icon: '🫕', color: 'text-green-400' });
+  if (['freeze','freezer','frozen'].some(k => text.includes(k)))
+    badges.push({ label: 'Freezer-Friendly', icon: '❄️', color: 'text-cyan-400' });
+  if (['meal prep','batch cook','make ahead','make-ahead'].some(k => text.includes(k)))
+    badges.push({ label: 'Meal Prep', icon: '📦', color: 'text-purple-400' });
+  const mins = parseInt(totalTime);
+  if (mins && mins <= 20) badges.push({ label: 'Quick Meal', icon: '⚡', color: 'text-amber-400' });
+  return badges;
+}
+
+function getReadingTime(instructions) {
+  if (!instructions || instructions.length === 0) return null;
+  const words = instructions.join(' ').split(/\s+/).length;
+  return Math.max(1, Math.round(words / 200));
+}
 
 function getAntiInflamScore(items) {
   const t=items.join(" ").toLowerCase();
@@ -102,10 +124,26 @@ function MacroBar({ label, value, color, goal }) {
   );
 }
 
+const MEAT_KEYWORDS = ['chicken','beef','pork','lamb','fish','salmon','tuna','shrimp','prawn','turkey','duck','bacon','sausage','ham','steak','mince','meatball','anchovy','anchovies'];
+const DAIRY_KEYWORDS = ['milk','cheese','butter','cream','yogurt','ghee','whey','lactose'];
+
 export default function StatsBar({ recipe, diet, nutritionGoals }) {
   const [showEquipment, setShowEquipment] = useState(false);
   const [showBurn, setShowBurn] = useState(false);
+  const [bannedItems] = useLocalStorage('pref_banned', []);
   const ings = recipe.ingredients || [];
+  const ingText = ings.join(' ').toLowerCase();
+  // Feature 51: allergen detection (banned ingredients found in recipe)
+  const allergenHits = (bannedItems || []).filter(b => ingText.includes(b.toLowerCase()));
+  // Feature 53: vegan/vegetarian badge
+  const hasMeat = MEAT_KEYWORDS.some(k => ingText.includes(k));
+  const hasDairy = DAIRY_KEYWORDS.some(k => ingText.includes(k));
+  const isVegan = !hasMeat && !hasDairy;
+  const isVegetarian = !hasMeat;
+  // Feature 52: high-protein badge
+  const calNum = parseInt(recipe.calories);
+  const proteinNum = parseInt(recipe.nutrition?.protein);
+  const isHighProtein = calNum > 0 && proteinNum > 0 && (proteinNum * 4) > calNum * 0.25; // >25% calories from protein
   const costInfo = ings.length>0 ? estimateCost(ings) : null;
   const carbonInfo = ings.length>0 ? getCarbonScore(ings) : null;
   const antiInflam = ings.length>0 ? getAntiInflamScore(ings) : null;
@@ -114,6 +152,9 @@ export default function StatsBar({ recipe, diet, nutritionGoals }) {
   const equipment = detectEquipment(recipe.instructions);
   const complexity = getComplexityScore(ings, recipe.instructions, equipment);
   const burn = getCalorieBurn(recipe.calories);
+  // Feature 29-32: quick badges
+  const quickBadges = getQuickBadges(ings, recipe.instructions, recipe.time);
+  const readingTime = getReadingTime(recipe.instructions);
   const stats = [
     recipe.prepTime && { icon: <Clock size={16} className="text-blue-400" />, label: "Prep", value: recipe.prepTime },
     recipe.cookTime && { icon: <Clock size={16} className="text-orange-500" />, label: "Cook", value: recipe.cookTime },
@@ -129,6 +170,8 @@ export default function StatsBar({ recipe, diet, nutritionGoals }) {
     giScore && { icon: <span>📊</span>, label: "GI", value: giScore.label, tooltip: giScore.tooltip, valueColor: giScore.color },
     hydration && { icon: <span>💧</span>, label: "Hydrating", value: hydration+" items", tooltip: "High-water items", valueColor: "#38bdf8" },
     { icon: <span>🎯</span>, label: "Complexity", value: complexity.label, valueColor: complexity.color, tooltip: `${ings.length} ingredients · ${(recipe.instructions||[]).length} steps · ${equipment.length} tools` },
+    ings.length > 0 && { icon: <span>🧺</span>, label: "Ingredients", value: ings.length, tooltip: `${ings.length} ingredients in this recipe` },
+    readingTime && { icon: <span>📖</span>, label: "Read Time", value: `${readingTime} min`, tooltip: "Time to read through all instructions" },
   ].filter(Boolean);
   const goals = nutritionGoals || {};
   const hasGoals = goals.calories || goals.protein || goals.carbs || goals.fat;
@@ -150,6 +193,38 @@ export default function StatsBar({ recipe, diet, nutritionGoals }) {
           </div>
         ))}
       </div>
+      {/* Features 25-28 quick badges + 52-53 new badges */}
+      {(quickBadges.length > 0 || isHighProtein || isVegan || isVegetarian) && (
+        <div className="flex flex-wrap gap-2">
+          {quickBadges.map(b => (
+            <span key={b.label} className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-slate-800 border border-white/10 ${b.color}`}>
+              {b.icon} {b.label}
+            </span>
+          ))}
+          {isVegan && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-400">
+              🌱 Vegan
+            </span>
+          )}
+          {!isVegan && isVegetarian && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-300">
+              🥦 Vegetarian
+            </span>
+          )}
+          {isHighProtein && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400">
+              💪 High Protein
+            </span>
+          )}
+        </div>
+      )}
+      {/* Feature 51: allergen warning */}
+      {allergenHits.length > 0 && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30">
+          <AlertTriangle size={14} className="text-red-400 shrink-0" />
+          <span className="text-xs text-red-400 font-medium">Contains banned: {allergenHits.join(', ')}</span>
+        </div>
+      )}
       {recipe.nutrition && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <MacroBar label="protein" value={recipe.nutrition.protein} color="#22c55e" goal={goals.protein} />

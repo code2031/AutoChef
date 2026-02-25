@@ -316,7 +316,7 @@ test.describe('Recipe Generation', () => {
 
   test('Ingredients list renders', async ({ page }) => {
     await addIngredientAndGenerate(page);
-    await expect(page.locator('text=Ingredients')).toBeVisible();
+    await expect(page.locator('text=Ingredients').first()).toBeVisible();
     await expect(page.locator('text=pasta').first()).toBeVisible();
   });
 
@@ -485,10 +485,10 @@ test.describe('StatsBar badges', () => {
   });
 
   test('Nutrition macro bars render', async ({ page }) => {
-    await expect(page.locator('text=protein')).toBeVisible();
-    await expect(page.locator('text=carbs')).toBeVisible();
-    await expect(page.locator('text=fat')).toBeVisible();
-    await expect(page.locator('text=fiber')).toBeVisible();
+    await expect(page.locator('text=protein').first()).toBeVisible();
+    await expect(page.locator('text=carbs').first()).toBeVisible();
+    await expect(page.locator('text=fat').first()).toBeVisible();
+    await expect(page.locator('text=fiber').first()).toBeVisible();
   });
 });
 

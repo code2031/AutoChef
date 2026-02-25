@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { History, Sun, Moon, Type, Contrast, Keyboard, X, Thermometer, Target, Timer, CalendarDays, UtensilsCrossed, Link } from 'lucide-react';
+import { History, Sun, Moon, Type, Contrast, Keyboard, X, Thermometer, Target, Timer, CalendarDays, UtensilsCrossed, Link, Scale, BookOpen, Archive } from 'lucide-react';
 import logoUrl from '../assets/AutoChef_Logo.png';
 import KitchenTimer from './KitchenTimer.jsx';
+import UnitConverter from './UnitConverter.jsx';
+import KitchenReference from './KitchenReference.jsx';
+import RecipeJsonBackup from './RecipeJsonBackup.jsx';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 
 function KeyboardShortcutsModal({ onClose }) {
@@ -35,12 +38,16 @@ export default function Navbar({
   view, setView, theme, setTheme,
   fontSz, setFontSz, highContrast, setHighContrast, tempUnit, setTempUnit,
   nutritionGoals, setNutritionGoals, customPrompt, setCustomPrompt,
+  history, onImportHistory,
 }) {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showGoals, setShowGoals] = useState(false);
   const [showTimer, setShowTimer] = useState(false);
   const [showIntegrations, setShowIntegrations] = useState(false);
+  const [showConverter, setShowConverter] = useState(false);
+  const [showKitchenRef, setShowKitchenRef] = useState(false);
+  const [showBackup, setShowBackup] = useState(false);
   const [haUrl, setHaUrl] = useLocalStorage('pref_ha_url', '');
   const [haToken, setHaToken] = useLocalStorage('pref_ha_token', '');
   const [googleClientId, setGoogleClientId] = useLocalStorage('pref_google_client_id', '');
@@ -52,6 +59,15 @@ export default function Navbar({
   return (
     <>
       {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
+      {showConverter && <UnitConverter onClose={() => setShowConverter(false)} />}
+      {showKitchenRef && <KitchenReference onClose={() => setShowKitchenRef(false)} />}
+      {showBackup && (
+        <RecipeJsonBackup
+          history={history || []}
+          onImport={(data) => { if (onImportHistory) onImportHistory(data); }}
+          onClose={() => setShowBackup(false)}
+        />
+      )}
       <nav className="fixed top-0 w-full z-50 bg-slate-950/80 dark:bg-slate-950/80 light:bg-white/80 backdrop-blur-md px-4 md:px-6 py-2 flex justify-between items-center no-print relative overflow-visible">
         {/* Logo: absolute so it does not set navbar height; overflows below the slim bar */}
         <img
@@ -286,6 +302,32 @@ export default function Navbar({
                   >
                     <Keyboard size={16} />
                     Keyboard Shortcuts
+                  </button>
+
+                  <div className="border-t border-white/5 my-1" />
+
+                  {/* Kitchen Tools */}
+                  <p className="px-3 pt-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Kitchen Tools</p>
+                  <button
+                    onClick={() => { setShowSettings(false); setShowConverter(true); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+                  >
+                    <Scale size={16} />
+                    Unit Converter
+                  </button>
+                  <button
+                    onClick={() => { setShowSettings(false); setShowKitchenRef(true); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+                  >
+                    <BookOpen size={16} />
+                    Kitchen Reference
+                  </button>
+                  <button
+                    onClick={() => { setShowSettings(false); setShowBackup(true); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+                  >
+                    <Archive size={16} />
+                    Backup &amp; Restore
                   </button>
                 </div>
               </>

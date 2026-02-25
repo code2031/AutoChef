@@ -11,6 +11,9 @@ import RegionalVariants from './RegionalVariants.jsx';
 import LeftoverTransformer from './LeftoverTransformer.jsx';
 import CookTimeline from './CookTimeline.jsx';
 import SubstitutionMatrix from './SubstitutionMatrix.jsx';
+import QuickShareBar from './QuickShareBar.jsx';
+import MacroPieChart from './MacroPieChart.jsx';
+import NutritionDensityBadge from './NutritionDensityBadge.jsx';
 import { generateRecipeStory, generateCommonMistakes, generateIngredientPrepTip, generateIngredientSubs } from '../lib/groq.js';
 import { getSeasonalIngredients } from '../lib/seasonal.js';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
@@ -587,9 +590,21 @@ export default function ResultView({
           </div>
         </div>
 
+        {/* Feature 21-26: Quick share / utility bar */}
+        <QuickShareBar recipe={recipe} recipeImage={recipeImage} />
+
         <div>
           <StatsBar recipe={recipe} diet={diet} tempUnit={tempUnit} nutritionGoals={nutritionGoals} />
         </div>
+
+        {/* Feature 34-35: Macro donut chart + nutrition density */}
+        {recipe.nutrition && (
+          <div className="flex items-center justify-between flex-wrap gap-4 bg-slate-900 border border-white/5 rounded-2xl p-4">
+            <MacroPieChart nutrition={recipe.nutrition} />
+            <NutritionDensityBadge recipe={recipe} />
+          </div>
+        )}
+
         <div>
           <FlavorRadar recipe={recipe} />
         </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, Trash2, Clock, Search, Download, SortAsc, X, FolderPlus, BarChart2, Shuffle, Bookmark, LayoutGrid, List } from 'lucide-react';
+import { Heart, Trash2, Clock, Search, Download, SortAsc, X, FolderPlus, BarChart2, Shuffle, Bookmark, LayoutGrid, List, Pin } from 'lucide-react';
 import { Image as ImageIcon } from 'lucide-react';
 import CookingStats from './CookingStats.jsx';
 import { useRecipeHistory } from '../hooks/useRecipeHistory.js';
@@ -10,6 +10,10 @@ import RecipeCompare from './RecipeCompare.jsx';
 import TrophyCase from './TrophyCase.jsx';
 import { buildSmartShoppingList } from '../lib/shoppingList.js';
 import ShoppingIntegrations from './ShoppingIntegrations.jsx';
+import MasteryBadge from './RecipeMastery.jsx';
+import WeeklyChallengeCard from './WeeklyChallengeCard.jsx';
+import RecipeOfTheDay from './RecipeOfTheDay.jsx';
+import CookingTipWidget from './CookingTipWidget.jsx';
 
 function TagEditor({ entry, onAddTag, onRemoveTag }) {
   const [inputVal, setInputVal] = useState('');
@@ -228,6 +232,8 @@ export default function RecipeHistory({
   currentStreak,
   onRemix,
   onClone,
+  onTogglePin,
+  onBulkDelete,
   gamification,
   bestStreak,
   nutritionGoals,
@@ -237,6 +243,10 @@ export default function RecipeHistory({
   const [tab, setTab] = useState('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('date');
+  const [diffFilter, setDiffFilter] = useState('all');
+  const [ratingFilter, setRatingFilter] = useState('all'); // 'all' | 'up' | 'down' | 'unrated'
+  const [cuisineFilter, setCuisineFilter] = useState(''); // '' | 'Italian' | 'Asian' | etc.
+  const [hasNotesFilter, setHasNotesFilter] = useState(false); // Feature 58: "has notes" filter
   const [showVersionsFor, setShowVersionsFor] = useState(null);
   const [newCollectionName, setNewCollectionName] = useState('');
   const [remixMode, setRemixMode] = useState(false);
@@ -252,20 +262,47 @@ export default function RecipeHistory({
 
   const filtered = baseItems
     .filter(e => {
+      // Difficulty filter
+      if (diffFilter !== 'all' && e.recipe?.difficulty !== diffFilter) return false;
+      // Feature 46: rating filter
+      if (ratingFilter === 'up' && e.rating !== 'up') return false;
+      if (ratingFilter === 'down' && e.rating !== 'down') return false;
+      if (ratingFilter === 'unrated' && e.rating) return false;
+      // Feature 58: has-notes filter
+      if (hasNotesFilter && !e.notes?.trim()) return false;
+      // Feature 59: cuisine filter
+      if (cuisineFilter) {
+        const cui = cuisineFilter.toLowerCase();
+        const matchesTag = (e.tags || []).some(t => t.toLowerCase().includes(cui));
+        const matchesName = (e.recipe?.name || '').toLowerCase().includes(cui);
+        if (!matchesTag && !matchesName) return false;
+      }
       if (!search) return true;
       const q = search.toLowerCase();
       return (
         e.recipe.name.toLowerCase().includes(q) ||
         (e.tags || []).some(t => t.includes(q)) ||
-        (e.notes || '').toLowerCase().includes(q)
+        (e.notes || '').toLowerCase().includes(q) ||
+        // Feature 16: search by ingredient
+        (e.recipe?.ingredients || []).some(ing => ing.toLowerCase().includes(q))
       );
     })
     .sort((a, b) => {
+      // Feature 20: pinned entries always float to top
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
       if (sort === 'date') return new Date(b.savedAt) - new Date(a.savedAt);
       if (sort === 'name') return a.recipe.name.localeCompare(b.recipe.name);
       if (sort === 'rating') {
         const score = r => r.rating === 'up' ? 1 : r.rating === 'down' ? -1 : 0;
         return score(b) - score(a);
+      }
+      // Feature 13: sort by cook count
+      if (sort === 'cooks') return (b.cookCount || 0) - (a.cookCount || 0);
+      // Feature 14: sort by difficulty
+      if (sort === 'difficulty') {
+        const order = { Easy: 0, Medium: 1, Hard: 2 };
+        return (order[a.recipe?.difficulty] ?? 1) - (order[b.recipe?.difficulty] ?? 1);
       }
       return 0;
     });
@@ -436,7 +473,6 @@ export default function RecipeHistory({
       {tab === 'log' && <DailyFoodLog nutritionGoals={nutritionGoals} lastRecipe={lastRecipe} />}
       {tab === 'trophy' && (
         <TrophyCase
-          points={gamification?.points || 0}
           badges={gamification?.badges || []}
           streak={gamification?.streak || 0}
           bestStreak={bestStreak || 0}
@@ -446,6 +482,15 @@ export default function RecipeHistory({
 
       {tab !== 'stats' && tab !== 'journal' && tab !== 'cuisine' && tab !== 'log' && tab !== 'trophy' && (
         <>
+          {/* Feature 5 wired: Weekly Challenge Card */}
+          {history.length > 0 && <WeeklyChallengeCard history={history} />}
+
+          {/* Feature 37: Recipe of the day suggestion */}
+          {history.length > 0 && <RecipeOfTheDay history={history} onSelect={onSelect} />}
+
+          {/* Feature 38: Cooking tip widget */}
+          <CookingTipWidget />
+
           {/* Monthly challenges */}
           {history.length > 0 && <MonthlyChallenges history={history} favourites={favourites} />}
 
@@ -474,8 +519,45 @@ export default function RecipeHistory({
                   <option value="date">Newest</option>
                   <option value="name">Name</option>
                   <option value="rating">Rating</option>
+                  <option value="cooks">Most Cooked</option>
+                  <option value="difficulty">Difficulty</option>
                 </select>
               </div>
+              {/* Feature 15: difficulty filter */}
+              <div className="flex items-center gap-1 bg-slate-900 border border-white/5 rounded-xl px-3">
+                <select
+                  value={diffFilter}
+                  onChange={e => setDiffFilter(e.target.value)}
+                  className="bg-transparent text-sm text-slate-400 outline-none py-2 cursor-pointer"
+                >
+                  <option value="all">All levels</option>
+                  <option value="Easy">Easy</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Hard">Hard</option>
+                </select>
+              </div>
+              {/* Feature 46: rating filter */}
+              <div className="flex items-center gap-1 bg-slate-900 border border-white/5 rounded-xl px-3">
+                <select
+                  value={ratingFilter}
+                  onChange={e => setRatingFilter(e.target.value)}
+                  className="bg-transparent text-sm text-slate-400 outline-none py-2 cursor-pointer"
+                >
+                  <option value="all">All ratings</option>
+                  <option value="up">👍 Liked</option>
+                  <option value="down">👎 Disliked</option>
+                  <option value="unrated">Unrated</option>
+                </select>
+              </div>
+              {/* Feature 47: clear filters button */}
+              {(search || diffFilter !== 'all' || ratingFilter !== 'all' || cuisineFilter || hasNotesFilter) && (
+                <button
+                  onClick={() => { setSearch(''); setDiffFilter('all'); setRatingFilter('all'); setCuisineFilter(''); setHasNotesFilter(false); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-white/5 text-slate-400 text-xs hover:border-red-500/30 hover:text-red-400 transition-all"
+                >
+                  <X size={12} /> Clear filters
+                </button>
+              )}
               {history.length >= 2 && (
                 <button
                   onClick={() => { setRemixMode(v => !v); setRemixSelection([]); }}
@@ -486,6 +568,34 @@ export default function RecipeHistory({
                 </button>
               )}
             </div>
+          )}
+
+          {/* Feature 59: cuisine quick-filter chips */}
+          {history.length > 3 && (
+            <div className="flex flex-wrap gap-1.5 items-center">
+              <span className="text-xs text-slate-600">Cuisine:</span>
+              {['Italian', 'Asian', 'Mexican', 'Indian', 'French', 'Japanese'].map(c => (
+                <button
+                  key={c}
+                  onClick={() => setCuisineFilter(cuisineFilter === c ? '' : c)}
+                  className={`px-2.5 py-1 rounded-full text-xs border transition-all ${cuisineFilter === c ? 'bg-orange-500/20 border-orange-500/40 text-orange-300' : 'bg-slate-900 border-white/5 text-slate-500 hover:text-slate-300 hover:border-white/15'}`}
+                >
+                  {c}
+                </button>
+              ))}
+              {/* Feature 58: has notes toggle */}
+              <button
+                onClick={() => setHasNotesFilter(v => !v)}
+                className={`px-2.5 py-1 rounded-full text-xs border transition-all ${hasNotesFilter ? 'bg-blue-500/20 border-blue-500/40 text-blue-300' : 'bg-slate-900 border-white/5 text-slate-500 hover:text-slate-300 hover:border-white/15'}`}
+              >
+                📝 Has notes
+              </button>
+            </div>
+          )}
+
+          {/* Feature 48: result count */}
+          {(search || diffFilter !== 'all' || ratingFilter !== 'all' || cuisineFilter || hasNotesFilter) && filtered.length > 0 && (
+            <p className="text-xs text-slate-500">Showing {filtered.length} of {baseItems.length} recipes</p>
           )}
 
           {filtered.length === 0 && (
@@ -663,7 +773,10 @@ export default function RecipeHistory({
                           <Clock size={12} />
                           {formatDate(entry.savedAt)}
                           {entry.recipe.difficulty && (
-                            <span className="px-2 py-0.5 bg-slate-800 rounded-full">{entry.recipe.difficulty}</span>
+                            <span className={`px-2 py-0.5 rounded-full ${entry.recipe.difficulty === 'Hard' ? 'bg-red-500/10 text-red-400' : entry.recipe.difficulty === 'Easy' ? 'bg-green-500/10 text-green-400' : 'bg-slate-800 text-slate-400'}`}>{entry.recipe.difficulty}</span>
+                          )}
+                          {entry.recipe.calories && (
+                            <span className="text-slate-600">{entry.recipe.calories} kcal</span>
                           )}
                           {entry.versions && entry.versions.length > 0 && (
                             <button
@@ -675,14 +788,36 @@ export default function RecipeHistory({
                             </button>
                           )}
                           {(entry.cookCount || 0) > 0 && (
-                            <span className="text-xs text-slate-500">Cooked {entry.cookCount}×</span>
+                            <>
+                              <span className="text-xs text-slate-500">Cooked {entry.cookCount}×</span>
+                              <MasteryBadge cookCount={entry.cookCount} />
+                            </>
                           )}
                         </div>
                         <div className="flex items-center gap-1">
+                          {entry.isPinned && <span className="text-amber-400 text-xs" title="Pinned">📌</span>}
                           {entry.rating === 'up' && <span className="text-green-400 text-xs">👍</span>}
                           {entry.rating === 'down' && <span className="text-red-400 text-xs">👎</span>}
                           {!remixMode && !multiSelect && (
                             <>
+                              {/* Feature 17: cook-again button */}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onSelect(entry); }}
+                                className="p-1.5 rounded-lg text-slate-600 hover:text-green-400 transition-all"
+                                title="Cook this again"
+                              >
+                                🍳
+                              </button>
+                              {/* Feature 20: pin/unpin */}
+                              {onTogglePin && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); onTogglePin(entry.id); }}
+                                  className={`p-1.5 rounded-lg transition-all ${entry.isPinned ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}`}
+                                  title={entry.isPinned ? 'Unpin' : 'Pin to top'}
+                                >
+                                  <Pin size={14} fill={entry.isPinned ? 'currentColor' : 'none'} />
+                                </button>
+                              )}
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleClone(entry.id); }}
                                 className="p-1.5 rounded-lg text-slate-600 hover:text-orange-400 transition-all"
@@ -782,6 +917,15 @@ export default function RecipeHistory({
                     </button>
                   )}
                 </>
+              )}
+              {/* Feature 18: bulk delete */}
+              {onBulkDelete && (
+                <button
+                  onClick={() => { if (window.confirm(`Delete ${selectedIds.length} recipes?`)) { onBulkDelete(selectedIds); setSelectedIds([]); setMultiSelect(false); } }}
+                  className="px-3 py-2 bg-red-500/20 border border-red-500/30 text-red-400 text-sm rounded-xl hover:bg-red-500/30 transition-all"
+                >
+                  🗑️ Delete
+                </button>
               )}
               <button
                 onClick={() => setSelectedIds([])}

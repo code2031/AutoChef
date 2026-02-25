@@ -79,6 +79,7 @@ export default function App() {
     addTag, removeTag, setNotes, isDuplicate,
     updateRecipeWithVersion, collections, createCollection, deleteCollection, setEntryCollection,
     incrementCookCount, toggleWantToCook, cloneRecipe,
+    togglePin, bulkDelete, importHistory,
   } = useRecipeHistory();
   const gamification = useGamification();
 
@@ -753,6 +754,8 @@ export default function App() {
         setNutritionGoals={prefs.setNutritionGoals}
         customPrompt={prefs.customPrompt}
         setCustomPrompt={prefs.setCustomPrompt}
+        history={history}
+        onImportHistory={importHistory}
       />
 
       {/* Progress bar during generation */}
@@ -884,6 +887,8 @@ export default function App() {
             onSetEntryCollection={setEntryCollection}
             onRemix={handleRemix}
             onClone={cloneRecipe}
+            onTogglePin={togglePin}
+            onBulkDelete={bulkDelete}
             gamification={gamification}
             bestStreak={bestStreak}
             nutritionGoals={prefs.nutritionGoals}

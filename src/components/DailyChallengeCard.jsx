@@ -26,14 +26,11 @@ export default function DailyChallengeCard({ onUseIngredient }) {
           </div>
           <div className="flex items-center gap-3">
             <span className={`text-xl font-black ${completed ? 'text-green-300' : 'text-white'} capitalize`}>{ingredient}</span>
-            {!completed && (
-              <span className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded-full font-medium">+25 bonus XP</span>
-            )}
           </div>
           <p className="text-xs text-slate-400">
             {completed
               ? '✅ Challenge complete! Come back tomorrow for a new ingredient.'
-              : 'Use this ingredient in today\'s recipe to earn bonus XP.'}
+              : 'Use this ingredient in today\'s recipe to complete the challenge.'}
           </p>
         </div>
 

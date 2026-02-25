@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import DailyChallengeCard from './DailyChallengeCard.jsx';
+import PantryExpiryAlert from './PantryExpiryAlert.jsx';
 import { Zap, ShoppingBag, Shuffle, X, Ban, UtensilsCrossed, ListOrdered, Dices, FileText, Clock } from 'lucide-react';
 import IngredientInput from './IngredientInput.jsx';
 import SelectorGroup from './SelectorGroup.jsx';
@@ -339,7 +340,33 @@ export default function GenerateView({
         </div>
       ) : (
       <>
+      {/* Feature 44: Pantry expiry alert */}
+      <PantryExpiryAlert onGoToPantry={() => setShowPantry(true)} />
+
       <DailyChallengeCard onUseIngredient={(ing) => addIngredient(ing)} />
+
+      {/* Feature 44: Quick meal type presets */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <span className="text-xs text-slate-500">Meal type:</span>
+        {[{ emoji: '🍳', label: 'Breakfast', mood: 'healthy breakfast' }, { emoji: '🥗', label: 'Lunch', mood: 'quick lunch' }, { emoji: '🍽️', label: 'Dinner', mood: 'dinner party' }, { emoji: '🍎', label: 'Snack', mood: 'light snack' }].map(m => (
+          <button
+            key={m.label}
+            onClick={() => { setMood(m.mood); }}
+            className={`px-3 py-1 rounded-full text-xs border transition-all ${mood === m.mood ? 'bg-orange-500/20 border-orange-500/40 text-orange-300' : 'bg-slate-900 border-white/5 text-slate-400 hover:border-orange-500/30 hover:text-orange-400'}`}
+          >
+            {m.emoji} {m.label}
+          </button>
+        ))}
+        {/* Feature 46: Speed mode toggle */}
+        <button
+          onClick={() => setMaxTime(maxTime === '20' ? '' : '20')}
+          className={`px-3 py-1 rounded-full text-xs border transition-all ${maxTime === '20' ? 'bg-amber-500/20 border-amber-500/40 text-amber-300' : 'bg-slate-900 border-white/5 text-slate-400 hover:border-amber-500/30 hover:text-amber-400'}`}
+          title="Limit to 20-minute recipes"
+        >
+          ⚡ &lt;20 min
+        </button>
+      </div>
+
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
           <h2 className="text-2xl sm:text-3xl font-bold">What&apos;s in your pantry?</h2>
@@ -369,6 +396,17 @@ export default function GenerateView({
             >
               🧺
               <span className="hidden sm:inline">What Can I Make?</span>
+            </button>
+          )}
+          {/* Feature 55: clear all ingredients */}
+          {ingredients.length > 0 && (
+            <button
+              onClick={() => setIngredients([])}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 border border-white/5 text-slate-500 text-sm hover:border-red-500/30 hover:text-red-400 transition-all shrink-0"
+              title="Clear all ingredients"
+            >
+              <X size={14} />
+              <span className="hidden sm:inline">Clear</span>
             </button>
           )}
         </div>
