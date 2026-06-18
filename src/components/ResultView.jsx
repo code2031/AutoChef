@@ -20,6 +20,8 @@ import { useLocalStorage } from '../hooks/useLocalStorage.js';
 import { categorizeByAisle } from '../lib/shoppingList.js';
 import ShoppingIntegrations from './ShoppingIntegrations.jsx';
 import AllergyCheck from './AllergyCheck.jsx';
+import NutritionistReview from './NutritionistReview.jsx';
+import CookingScienceCard from './CookingScienceCard.jsx';
 import { buildImageUrl } from '../lib/pollinations.js';
 function detectTimerSeconds(step) {
   const patterns = [
@@ -308,6 +310,7 @@ export default function ResultView({
   const [bannedList] = useLocalStorage('pref_banned', []);
   const [showSubMatrix, setShowSubMatrix] = useState(false);
   const [stepImages, setStepImages] = useState({});
+  const [addedToPantry, setAddedToPantry] = useState(null);
 
   useEffect(() => {
     if (recipe && !isGenerating && !isGeneratingImage && !confettiFired.current) {
@@ -404,6 +407,25 @@ export default function ResultView({
     });
     setPantryResult({ have, need });
     setPantryOpen(true);
+  };
+
+  // Round 10: add this recipe's ingredients straight into the pantry store.
+  const addAllToPantry = () => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('pantry_items') || '[]');
+      const existing = raw.map(i => (typeof i === 'string' ? i : (i.name || '')).toLowerCase());
+      const additions = [];
+      (recipe.ingredients || []).forEach(ing => {
+        const name = ing.split(',')[0].trim().replace(/^[\d./\s]+(cup|tsp|tbsp|oz|lb|g|kg|ml|l)s?\s*/i, '').trim();
+        if (name && name.length <= 40 && !existing.includes(name.toLowerCase())) {
+          additions.push({ name, expiresAt: null, zone: 'pantry' });
+          existing.push(name.toLowerCase());
+        }
+      });
+      localStorage.setItem('pantry_items', JSON.stringify([...raw, ...additions]));
+      setAddedToPantry(additions.length);
+      setTimeout(() => setAddedToPantry(null), 2500);
+    } catch { /* ignore */ }
   };
 
   const toggleCheck = (i) => setChecked(prev => ({ ...prev, [i]: !prev[i] }));
@@ -639,6 +661,7 @@ export default function ResultView({
                       {showImperial ? '🔄 Metric' : '🔄 Imperial'}
                     </button>
                     <button onClick={handlePantryCheck} className={"px-2.5 py-1 rounded-lg text-xs font-medium transition-all "+(pantryOpen?"bg-green-500/20 text-green-400":"text-slate-500 hover:text-white bg-slate-800")}>🧺 Pantry</button>
+                    <button onClick={addAllToPantry} className="px-2.5 py-1 rounded-lg text-xs font-medium transition-all text-slate-500 hover:text-green-400 bg-slate-800" title="Add all ingredients to your pantry">{addedToPantry !== null ? `✓ +${addedToPantry}` : '➕ To Pantry'}</button>
                     <button onClick={() => setShowSubMatrix(v => !v)} className={"px-2.5 py-1 rounded-lg text-xs font-medium transition-all "+(showSubMatrix?"bg-blue-500/20 text-blue-400":"text-slate-500 hover:text-white bg-slate-800")} title="Ingredient Substitution Matrix">🔄 Subs Map</button>
                     <button onClick={copyIngList} className="p-1.5 rounded-lg text-slate-500 hover:text-white transition-all">{copiedIngredients?<Check size={14} className="text-green-400" />:<Copy size={14} />}</button>
                   </div>
@@ -752,6 +775,9 @@ export default function ResultView({
             )}
 
             <CookTimeline key={recipe.name} recipe={recipe} />
+
+            <NutritionistReview key={`nr-${recipe.name}`} recipe={recipe} />
+            <CookingScienceCard key={`sci-${recipe.name}`} recipe={recipe} />
 
             <div className="p-5 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex gap-4">
               <Sparkles className="text-blue-400 flex-shrink-0 mt-0.5" size={18} />

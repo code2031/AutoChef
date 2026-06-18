@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
-import { History, Sun, Moon, Type, Contrast, Keyboard, X, Thermometer, Target, Timer, CalendarDays, UtensilsCrossed, Link, Scale, BookOpen, Archive } from 'lucide-react';
+import { History, Sun, Moon, Type, Contrast, Keyboard, X, Thermometer, Target, Timer, CalendarDays, UtensilsCrossed, Link, Scale, BookOpen, Archive, Refrigerator, Wine, Sparkles, CheckSquare, Zap, GraduationCap } from 'lucide-react';
 import logoUrl from '../assets/AutoChef_Logo.png';
 import KitchenTimer from './KitchenTimer.jsx';
 import UnitConverter from './UnitConverter.jsx';
 import KitchenReference from './KitchenReference.jsx';
 import RecipeJsonBackup from './RecipeJsonBackup.jsx';
+import IngredientWeightConverter from './IngredientWeightConverter.jsx';
+import ShelfLifeGuide from './ShelfLifeGuide.jsx';
+import WinePairingGuide from './WinePairingGuide.jsx';
+import SpicePairingGuide from './SpicePairingGuide.jsx';
+import PantryStaplesChecklist from './PantryStaplesChecklist.jsx';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 
 function KeyboardShortcutsModal({ onClose }) {
@@ -43,6 +48,7 @@ export default function Navbar({
   fontSz, setFontSz, highContrast, setHighContrast, tempUnit, setTempUnit,
   nutritionGoals, setNutritionGoals, customPrompt, setCustomPrompt,
   history, onImportHistory,
+  skillLevel, setSkillLevel, reducedMotion, setReducedMotion,
 }) {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -52,6 +58,11 @@ export default function Navbar({
   const [showConverter, setShowConverter] = useState(false);
   const [showKitchenRef, setShowKitchenRef] = useState(false);
   const [showBackup, setShowBackup] = useState(false);
+  const [showWeightConv, setShowWeightConv] = useState(false);
+  const [showShelfLife, setShowShelfLife] = useState(false);
+  const [showWineGuide, setShowWineGuide] = useState(false);
+  const [showSpiceGuide, setShowSpiceGuide] = useState(false);
+  const [showStaples, setShowStaples] = useState(false);
   const [haUrl, setHaUrl] = useLocalStorage('pref_ha_url', '');
   const [haToken, setHaToken] = useLocalStorage('pref_ha_token', '');
   const [googleClientId, setGoogleClientId] = useLocalStorage('pref_google_client_id', '');
@@ -65,6 +76,11 @@ export default function Navbar({
       {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
       {showConverter && <UnitConverter onClose={() => setShowConverter(false)} />}
       {showKitchenRef && <KitchenReference onClose={() => setShowKitchenRef(false)} />}
+      {showWeightConv && <IngredientWeightConverter onClose={() => setShowWeightConv(false)} />}
+      {showShelfLife && <ShelfLifeGuide onClose={() => setShowShelfLife(false)} />}
+      {showWineGuide && <WinePairingGuide onClose={() => setShowWineGuide(false)} />}
+      {showSpiceGuide && <SpicePairingGuide onClose={() => setShowSpiceGuide(false)} />}
+      {showStaples && <PantryStaplesChecklist onClose={() => setShowStaples(false)} />}
       {showBackup && (
         <RecipeJsonBackup
           history={history || []}
@@ -146,7 +162,7 @@ export default function Navbar({
             {showSettings && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowSettings(false)} />
-                <div className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-slate-900 border border-white/10 rounded-2xl p-3 space-y-1 z-50 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-1.5rem)] max-h-[80vh] overflow-y-auto bg-slate-900 border border-white/10 rounded-2xl p-3 space-y-1 z-50 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
                   {/* Theme */}
                   <button
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -194,6 +210,34 @@ export default function Navbar({
                       </button>
                     ))}
                   </div>
+
+                  {/* Reduced motion */}
+                  {setReducedMotion && (
+                    <button
+                      onClick={() => setReducedMotion(!reducedMotion)}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${reducedMotion ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                    >
+                      <Zap size={16} />
+                      Reduce Motion {reducedMotion ? 'On' : 'Off'}
+                    </button>
+                  )}
+
+                  {/* Cooking skill level */}
+                  {setSkillLevel && (
+                    <div className="flex items-center gap-2 px-3 py-2.5">
+                      <GraduationCap size={16} className="text-slate-400 shrink-0" />
+                      <span className="text-sm text-slate-400 flex-1">Skill</span>
+                      {[{ v: '', l: 'Any' }, { v: 'beginner', l: 'New' }, { v: 'advanced', l: 'Pro' }].map(o => (
+                        <button
+                          key={o.v}
+                          onClick={() => setSkillLevel(o.v)}
+                          className={`px-2 py-0.5 rounded text-xs font-bold transition-all ${skillLevel === o.v ? 'bg-orange-500 text-white' : 'text-slate-500 hover:text-white'}`}
+                        >
+                          {o.l}
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="border-t border-white/5 my-1" />
 
@@ -325,6 +369,41 @@ export default function Navbar({
                   >
                     <BookOpen size={16} />
                     Kitchen Reference
+                  </button>
+                  <button
+                    onClick={() => { setShowSettings(false); setShowWeightConv(true); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+                  >
+                    <Scale size={16} />
+                    Cups → Grams Converter
+                  </button>
+                  <button
+                    onClick={() => { setShowSettings(false); setShowShelfLife(true); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+                  >
+                    <Refrigerator size={16} />
+                    Food Storage &amp; Shelf Life
+                  </button>
+                  <button
+                    onClick={() => { setShowSettings(false); setShowWineGuide(true); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+                  >
+                    <Wine size={16} />
+                    Wine &amp; Beer Pairings
+                  </button>
+                  <button
+                    onClick={() => { setShowSettings(false); setShowSpiceGuide(true); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+                  >
+                    <Sparkles size={16} />
+                    Herb &amp; Spice Pairings
+                  </button>
+                  <button
+                    onClick={() => { setShowSettings(false); setShowStaples(true); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+                  >
+                    <CheckSquare size={16} />
+                    Pantry Staples Checklist
                   </button>
                   <button
                     onClick={() => { setShowSettings(false); setShowBackup(true); }}

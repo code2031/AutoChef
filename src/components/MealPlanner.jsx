@@ -84,6 +84,39 @@ export default function MealPlanner({ history, onClose, nutritionGoals }) {
 
   const totalAssigned = Object.values(plan).flatMap(d => Object.values(d)).filter(Boolean).length;
 
+  // Round 10: quick week actions
+  const clearWeek = () => { setPlan({}); setSelectedEntry(null); };
+
+  const shuffleFill = () => {
+    if (!history || history.length === 0) return;
+    const next = {};
+    DAYS.forEach(day => {
+      next[day] = {};
+      MEALS.forEach(meal => {
+        next[day][meal] = history[Math.floor(Math.random() * history.length)].id;
+      });
+    });
+    setPlan(next);
+    setSelectedEntry(null);
+  };
+
+  const [planCopied, setPlanCopied] = useState(false);
+  const copyPlanText = async () => {
+    const lines = [];
+    DAYS.forEach(day => {
+      const row = MEALS.map(meal => {
+        const e = getEntry(plan[day]?.[meal]);
+        return `${meal}: ${e?.recipe?.name || '—'}`;
+      });
+      lines.push(`${day}\n  ${row.join('\n  ')}`);
+    });
+    try {
+      await navigator.clipboard.writeText(`My Meal Plan\n\n${lines.join('\n\n')}`);
+      setPlanCopied(true);
+      setTimeout(() => setPlanCopied(false), 2000);
+    } catch { /* ignore */ }
+  };
+
   // Reset prep guide when plan changes
   useEffect(() => {
     setTimeout(() => setPrepGuide(null), 0);
@@ -255,6 +288,33 @@ export default function MealPlanner({ history, onClose, nutritionGoals }) {
             {isAIFilling ? <Loader2 size={15} className="animate-spin" /> : '🤖'}
             {isAIFilling ? 'Planning...' : 'AI Fill'}
           </button>
+          {history.length > 0 && (
+            <button
+              onClick={shuffleFill}
+              title="Randomly fill the whole week from your saved recipes"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-slate-800 border border-white/10 text-slate-400 hover:text-white transition-all"
+            >
+              🎲 Shuffle
+            </button>
+          )}
+          {totalAssigned > 0 && (
+            <>
+              <button
+                onClick={copyPlanText}
+                title="Copy the plan as text"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-slate-800 border border-white/10 text-slate-400 hover:text-white transition-all"
+              >
+                {planCopied ? '✓ Copied' : '📋 Copy'}
+              </button>
+              <button
+                onClick={clearWeek}
+                title="Clear the whole week"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-slate-800 border border-white/10 text-slate-500 hover:text-red-400 hover:border-red-500/30 transition-all"
+              >
+                🗑️ Clear
+              </button>
+            </>
+          )}
           {totalAssigned >= 3 && (
             <button
               onClick={handleGeneratePrepGuide}

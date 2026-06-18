@@ -29,6 +29,12 @@ export function usePreferences() {
   const [rootToStem, setRootToStem] = useLocalStorage('pref_root_to_stem', false);
   const [customPrompt, setCustomPrompt] = useLocalStorage('pref_custom_prompt', '');
   const [weeklyBudget, setWeeklyBudget] = useLocalStorage('pref_weekly_budget', '');
+  // Round 10 generation modes + display prefs
+  const [highProtein, setHighProtein] = useLocalStorage('pref_high_protein', false);
+  const [budget, setBudget] = useLocalStorage('pref_budget_mode', false);
+  const [onePan, setOnePan] = useLocalStorage('pref_one_pan', false);
+  const [skillLevel, setSkillLevel] = useLocalStorage('pref_skill_level', '');
+  const [reducedMotion, setReducedMotion] = useLocalStorage('pref_reduced_motion', false);
 
   const toggleAllergy = (allergy) => {
     setAllergies(prev =>
@@ -73,5 +79,10 @@ export function usePreferences() {
     rootToStem, setRootToStem,
     customPrompt, setCustomPrompt,
     weeklyBudget, setWeeklyBudget,
+    highProtein, setHighProtein,
+    budget, setBudget,
+    onePan, setOnePan,
+    skillLevel, setSkillLevel,
+    reducedMotion, setReducedMotion,
   };
 }

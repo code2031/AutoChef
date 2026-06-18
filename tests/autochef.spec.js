@@ -46,6 +46,27 @@ const UNIVERSAL_MOCK_RESPONSE = {
   likelyCause: 'Water not fully boiling before adding pasta.',
   fix: 'Bring water to a rolling boil before adding pasta.',
   merges: [],
+  // Round 10 fields
+  dishName: 'Cozy Tomato Soup',
+  vibe: 'comfort',
+  verdict: 'A balanced, protein-friendly plate.',
+  score: 8,
+  positives: ['Good protein', 'Reasonable calories'],
+  improvements: ['Add more fibre', 'Use whole-grain pasta'],
+  insights: [{ title: 'Salting pasta water', science: 'Salt seasons from within as starch absorbs it.', tip: 'Use 1 tbsp salt per litre.' }],
+  theme: 'Italian Comfort Night',
+  courses: [
+    { course: 'Starter', name: 'Bruschetta', note: 'Light and bright.' },
+    { course: 'Main', name: 'Test Pasta', note: 'The star of the show.' },
+    { course: 'Dessert', name: 'Tiramisu', note: 'A classic finish.' },
+  ],
+  pairing: 'Chianti',
+  note: 'Bright acidity matches the tomato beautifully.',
+  budget: 'A 2020 Sangiovese',
+  nonAlcoholic: 'Sparkling blood orange',
+  skill: 'Emulsifying a pan sauce',
+  why: 'It turns fat and starch water into a glossy, clingy sauce.',
+  practice: 'Toss cooked pasta with a splash of pasta water and oil off the heat.',
   plan: {
     Monday: { Breakfast: 'Test Pasta', Lunch: 'Test Pasta', Dinner: 'Test Pasta' },
     Tuesday: { Breakfast: 'Test Pasta', Lunch: 'Test Pasta', Dinner: 'Test Pasta' },
@@ -1067,5 +1088,189 @@ test.describe('Round 9 — Pantry Ingredient Nutrition', () => {
     await expect(
       page.locator('text=Cal').or(page.locator('text=per 100g')).first()
     ).toBeVisible({ timeout: 10000 });
+  });
+});
+
+// ─── ROUND 10: GENERATION MODES ───────────────────────────────────────────────
+
+test.describe('Round 10 — Generation modes', () => {
+  test('High Protein / Budget / One-Pan toggles are present and toggle', async ({ page }) => {
+    await goToGenerate(page);
+    const hp = page.locator('button', { hasText: /high protein/i }).first();
+    const bud = page.locator('button', { hasText: /budget/i }).first();
+    const op = page.locator('button', { hasText: /one-pan/i }).first();
+    await expect(hp).toBeVisible();
+    await expect(bud).toBeVisible();
+    await expect(op).toBeVisible();
+    await hp.click();
+    await expect(hp).toHaveClass(/blue/);
+  });
+});
+
+// ─── ROUND 10: MOOD FOOD FINDER ────────────────────────────────────────────────
+
+test.describe('Round 10 — Mood Food Finder', () => {
+  test.beforeEach(async ({ page }) => { await mockGroq(page); });
+
+  test('mood food button is present and opens chips', async ({ page }) => {
+    await goToGenerate(page);
+    await page.locator('button', { hasText: /mood food/i }).click();
+    await expect(page.locator('text=How are you feeling')).toBeVisible();
+  });
+
+  test('selecting a mood chip returns a dish suggestion', async ({ page }) => {
+    await goToGenerate(page);
+    await page.locator('button', { hasText: /mood food/i }).click();
+    await page.locator('button', { hasText: /cozy & comforting/i }).click();
+    await expect(page.locator('text=Cozy Tomato Soup').first()).toBeVisible({ timeout: 10000 });
+  });
+});
+
+// ─── ROUND 10: KITCHEN TOOLS ──────────────────────────────────────────────────
+
+test.describe('Round 10 — Kitchen Tools', () => {
+  async function openTool(page, name) {
+    await page.goto('/');
+    await page.locator('nav button[title="Settings"]').click();
+    await page.locator('button', { hasText: name }).click();
+  }
+
+  test('Cups → Grams converter opens and computes a weight', async ({ page }) => {
+    await openTool(page, /cups .* grams/i);
+    await expect(page.locator('text=Cups → Grams')).toBeVisible();
+    // Default 1 cup all-purpose flour ≈ 125 g
+    await expect(page.locator('text=125').first()).toBeVisible();
+  });
+
+  test('Food Storage guide opens and is searchable', async ({ page }) => {
+    await openTool(page, /food storage/i);
+    await expect(page.locator('text=Food Storage').first()).toBeVisible();
+    await page.locator('input[placeholder*="Search a food" i]').fill('chicken');
+    await expect(page.locator('text=Raw chicken')).toBeVisible();
+  });
+
+  test('Wine & Beer pairing guide opens', async ({ page }) => {
+    await openTool(page, /wine .* beer pairings/i);
+    await expect(page.locator('text=Pairing Chart').first()).toBeVisible();
+    await expect(page.locator('text=Steak').first()).toBeVisible();
+  });
+
+  test('Herb & Spice guide opens and switches spices', async ({ page }) => {
+    await openTool(page, /herb .* spice pairings/i);
+    await expect(page.locator('text=Herb').first()).toBeVisible();
+    await page.locator('button', { hasText: /Cumin/i }).first().click();
+    await expect(page.locator('text=Pairs beautifully with')).toBeVisible();
+  });
+
+  test('Pantry Staples checklist opens and persists a check', async ({ page }) => {
+    await openTool(page, /pantry staples/i);
+    await expect(page.locator('text=Pantry Staples').first()).toBeVisible();
+    const cb = page.locator('input[type="checkbox"]').first();
+    await cb.check();
+    await expect(cb).toBeChecked();
+  });
+});
+
+// ─── ROUND 10: SETTINGS ───────────────────────────────────────────────────────
+
+test.describe('Round 10 — Settings', () => {
+  test('Reduce Motion toggle adds reduce-motion class', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('nav button[title="Settings"]').click();
+    await page.locator('button', { hasText: /reduce motion/i }).click();
+    await expect(page.locator('#app-root')).toHaveClass(/reduce-motion/);
+  });
+
+  test('Skill level selector is present', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('nav button[title="Settings"]').click();
+    await expect(page.locator('text=Skill').first()).toBeVisible();
+    await page.getByRole('button', { name: 'Pro' }).click();
+  });
+});
+
+// ─── ROUND 10: RESULTVIEW CARDS ───────────────────────────────────────────────
+
+test.describe('Round 10 — ResultView cards', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockGroq(page);
+    await addIngredientAndGenerate(page);
+  });
+
+  test("Dietitian's Review expands and shows a verdict", async ({ page }) => {
+    await page.locator('button', { hasText: /dietitian.*review/i }).click();
+    await expect(
+      page.locator('text=balanced, protein-friendly').or(page.locator('text=Strengths')).first()
+    ).toBeVisible({ timeout: 10000 });
+  });
+
+  test('Science card expands and shows an insight', async ({ page }) => {
+    await page.locator('button', { hasText: /science behind it/i }).click();
+    await expect(
+      page.locator('text=Salting pasta water').or(page.locator('text=Science Behind')).first()
+    ).toBeVisible({ timeout: 10000 });
+  });
+
+  test('Add-to-Pantry button is present in ingredient header', async ({ page }) => {
+    await expect(page.locator('button', { hasText: /to pantry/i }).first()).toBeVisible();
+  });
+
+  test('Water footprint and Satiety badges render in StatsBar', async ({ page }) => {
+    await expect(page.locator('text=Water').first()).toBeVisible();
+    await expect(page.locator('text=Satiety').first()).toBeVisible();
+  });
+});
+
+// ─── ROUND 10: RECIPE ACTIONS ─────────────────────────────────────────────────
+
+test.describe('Round 10 — RecipeActions', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockGroq(page);
+    await addIngredientAndGenerate(page);
+    await page.locator('button', { hasText: /more/i }).first().click();
+  });
+
+  test('Dinner-Party Menu button triggers AI call and shows courses', async ({ page }) => {
+    await page.locator('button', { hasText: /dinner-party menu/i }).click();
+    await expect(
+      page.locator('text=Italian Comfort Night').or(page.locator('text=Bruschetta')).first()
+    ).toBeVisible({ timeout: 10000 });
+  });
+
+  test("Sommelier's Note button shows a pairing", async ({ page }) => {
+    await page.locator('button', { hasText: /sommelier/i }).click();
+    await expect(
+      page.locator('text=Chianti').or(page.locator('text=Sommelier')).first()
+    ).toBeVisible({ timeout: 10000 });
+  });
+
+  test('Level Up a Skill button shows a tip', async ({ page }) => {
+    await page.locator('button', { hasText: /level up a skill/i }).click();
+    await expect(
+      page.locator('text=Emulsifying').or(page.locator('text=Level Up')).first()
+    ).toBeVisible({ timeout: 10000 });
+  });
+});
+
+// ─── ROUND 10: HISTORY & PLANNER ──────────────────────────────────────────────
+
+test.describe('Round 10 — History & Planner', () => {
+  test.beforeEach(async ({ page }) => { await mockGroq(page); });
+
+  test('Cookbook export button appears after saving a recipe', async ({ page }) => {
+    await addIngredientAndGenerate(page);
+    await page.locator('button', { hasText: /save/i }).first().click();
+    await page.getByRole('button', { name: /history/i }).click();
+    await expect(page.locator('button', { hasText: /cookbook/i })).toBeVisible();
+  });
+
+  test('Meal Planner Shuffle/Copy/Clear appear once recipes exist', async ({ page }) => {
+    await addIngredientAndGenerate(page);
+    await page.locator('button', { hasText: /save/i }).first().click();
+    await page.getByRole('button', { name: /planner/i }).click();
+    await expect(page.locator('button', { hasText: /shuffle/i })).toBeVisible();
+    // Shuffle fills the week → Copy + Clear become available
+    await page.locator('button', { hasText: /shuffle/i }).click();
+    await expect(page.locator('button', { hasText: /clear/i }).first()).toBeVisible();
   });
 });

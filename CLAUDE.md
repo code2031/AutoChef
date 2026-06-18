@@ -110,6 +110,12 @@ All API keys are read from `import.meta.env` — set in `.env.local` locally, an
 | `generateSmartMealPlan(pantryItems, nutritionGoals, prefs)` | `{plan: {Monday: {Breakfast, Lunch, Dinner}, ...}}` | 0.7 |
 | `generateIngredientNutrition(ingredient)` | `{calories, protein, carbs, fat, fiber, per}` | 0.3 |
 | `parseIngredientSentence(text)` | `string[]` (parsed ingredient names) | 0.3 |
+| `generateNutritionistReview(recipe)` | `{verdict, score (1-10), positives[], improvements[]}` | 0.5 |
+| `generateCookingScience(recipe)` | `[{title, science, tip}]` (3 insights) | 0.6 |
+| `generateThemedMenu(recipe)` | `{theme, courses: [{course, name, note}]}` (5 courses) | 0.8 |
+| `generateMoodFood(mood)` | `{dishName, reason, vibe}` | 0.85 |
+| `generateSkillTip(recipe)` | `{skill, why, practice}` | 0.6 |
+| `generateWinePairingNote(recipe)` | `{pairing, note, budget, nonAlcoholic}` (sommelier note) | 0.7 |
 
 `buildImageUrl()` accepts an optional `imageStyle` (`'plated'` / `'overhead'` / `'rustic'` / `'close-up'`) that is injected into the Pollinations prompt. It uses a random seed, so two calls produce different images — the URL must be preserved explicitly when sharing.
 
@@ -187,6 +193,12 @@ All recipe flows end with: `buildImageUrl(name, desc, prefs.imageStyle)` called 
 - `gutHealth` — boolean; adds gut-health-friendly instruction (fermented foods, fibre, probiotics)
 - `rootToStem` — boolean; adds zero-waste instruction (use whole vegetable including peels/stems)
 - `customPrompt` — string; appended verbatim to every generation prompt
+- `highProtein` — boolean (Round 10); maximises protein per serving (aim 30g+)
+- `budget` — boolean (Round 10); cheap pantry staples only, low cost per serving
+- `onePan` — boolean (Round 10); dish must cook in a single pan/pot/tray
+- `skillLevel` — `''` / `'beginner'` / `'advanced'` (Round 10); adjusts technique complexity and language
+
+These four Round 10 modes are assembled by a shared `buildModeText({ highProtein, budget, onePan, skillLevel })` helper used by both `buildRecipePrompt` and `buildDishPrompt`.
 
 `buildHistoricalPrompt({ dishName, era, diet, allergies, banned, customPrompt })` returns a full recipe JSON prompt requesting a historical-era version of a dish. Era options: Medieval Europe, Victorian England, 1920s Paris, Ancient Rome, Ming Dynasty, Ottoman Empire.
 
@@ -231,6 +243,9 @@ All `localStorage` keys:
 | `pref_root_to_stem` | `usePreferences` — boolean; injects zero-waste/root-to-stem instruction |
 | `pref_custom_prompt` | `usePreferences` — string appended verbatim to every generation |
 | `pref_weekly_budget` | `usePreferences` — string; weekly grocery budget target displayed in Cooking Stats |
+| `pref_high_protein`, `pref_budget_mode`, `pref_one_pan`, `pref_skill_level` | `usePreferences` (Round 10 generation modes) |
+| `pref_reduced_motion` | `usePreferences` (Round 10) — boolean; adds `.reduce-motion` class on `#app-root` to disable animations/transitions |
+| `pantry_staples` | `PantryStaplesChecklist` (Round 10) — `{ [itemName]: boolean }` map of stocked staples |
 | `pref_ha_url` | `Navbar.jsx` (via `useLocalStorage`) — Home Assistant base URL |
 | `pref_ha_token` | `Navbar.jsx` (via `useLocalStorage`) — Home Assistant long-lived access token |
 | `pref_google_client_id` | `Navbar.jsx` (via `useLocalStorage`) — Google OAuth client ID for Tasks integration |
@@ -388,6 +403,38 @@ All `localStorage` keys:
 - `lib/shoppingList.js` — `parseIngredient(text)` → `{ qty, unit, name, original }`; `deduplicateIngredients(ingredients[])` groups by normalized name and sums matching units; `categorizeByAisle(ingredients[])` → `{ aisleLabel: [...] }` (9 aisles); `buildSmartShoppingList(ingredients[])` runs the full deduplicate → categorize pipeline. Used by `MealPlanner`, `RecipeHistory` merged list, and `ResultView`'s `ShoppingListModal`.
 - `lib/homeAssistant.js` — `addToHAShoppingList(items, haUrl, haToken)` — POSTs each item to HA REST API; returns `{ success, failed }`. Handles CORS errors gracefully.
 - `lib/googleTasks.js` — `loadGIS()` dynamically loads GIS script; `getGoogleAccessToken(clientId)` initiates OAuth popup (scope: `https://www.googleapis.com/auth/tasks`); `addToGoogleTasks(items, accessToken)` finds or creates "AutoChef Shopping" task list, then adds each item. Returns `{ success, failed }`.
+- `lib/units.js` (Round 10) — shared measurement conversions: `convertVolume`, `convertWeight`, `volumeToGrams(value, unit, ingredientKey)`, `cToF` / `fToC`, `tidy(n, decimals)`. Exposes `VOLUME_TO_ML`, `WEIGHT_TO_G`, and `INGREDIENT_DENSITY_G_PER_CUP` (density table for cup→gram conversion). Used by `IngredientWeightConverter`.
+- `lib/water.js` (Round 10) — `getWaterFootprint(ingredients[])` → `{ total, label, color, icon, showers }` freshwater-footprint estimate (litres). Returns `null` when no ingredients match. Used by the StatsBar Water badge.
+- `lib/cookbook.js` (Round 10) — `buildCookbookHtml(entries, title?)` builds a self-contained, printable HTML cookbook (table of contents + every recipe with inline styles, HTML-escaped). Used by the "📖 Cookbook" export button in `RecipeHistory`.
+
+### Round 10 components
+
+**Generation modes** — `GenerateView` Mode section adds **💪 High Protein**, **💰 Budget**, **🍳 One-Pan** toggles (persisted via `usePreferences`, fed into `buildModeText`). `Navbar` Settings adds a **Skill** selector (Any/New/Pro → `skillLevel`) and a **Reduce Motion** toggle.
+
+**`MoodFoodFinder.jsx`** — collapsible widget in GenerateView ingredients mode. Props: `{ onUseDish, generateMoodFood }`. Mood chips + free-text → `generateMoodFood(mood)` → `{dishName, reason, vibe}`; "→ Make it" sets the dish-name input and switches to dish mode.
+
+**`VoiceIngredientInput.jsx`** — Web Speech API mic button in GenerateView. Props: `{ onAddIngredients, parseIngredientSentence }`. Transcribes a spoken sentence → `parseIngredientSentence(text)` → adds parsed ingredient names. Returns `null` when `SpeechRecognition` is unavailable.
+
+**`NutritionistReview.jsx`** — lazy (button-triggered, collapsed by default so it does not auto-fire) AI card in ResultView instructions column. Calls `generateNutritionistReview(recipe)` → score ring + verdict + strengths + improvements. Reset via `key={`nr-${recipe.name}`}`.
+
+**`CookingScienceCard.jsx`** — lazy AI collapsible in ResultView. Calls `generateCookingScience(recipe)` → 3 `{title, science, tip}` insight cards. Reset via `key={`sci-${recipe.name}`}`.
+
+**ResultView "➕ To Pantry"** — button in the ingredient header; `addAllToPantry()` parses ingredient names (strips quantities/units), dedupes against `pantry_items`, and appends `{ name, expiresAt: null, zone: 'pantry' }` objects. Shows a transient `✓ +N` confirmation.
+
+**StatsBar new badges** (Round 10, all computed): **Water** (`getWaterFootprint`), **Satiety** (`getSatietyScore` — `(protein*4 + fiber*6) / calories * 100` → Light/Moderate/Filling/Very Filling), **Protein/$** (`proteinNum * servings / estimatedCost`).
+
+**`RecipeActions` More-panel additions** — **🍽️ Build a Dinner-Party Menu** (`generateThemedMenu` → theme + 5 courses), **🍷 Sommelier's Pairing Note** (`generateWinePairingNote` → pairing/note/budget/non-alcoholic), **🎓 Level Up a Skill** (`generateSkillTip` → skill/why/practice). Each is a toggle that shows/hides an inline result card.
+
+**Kitchen Tools** (opened from Navbar Settings → Kitchen Tools, all full-screen modals at `z-[260]`):
+- **`IngredientWeightConverter.jsx`** — cups/tbsp/tsp of a common ingredient → grams + ounces using `INGREDIENT_DENSITY_G_PER_CUP`.
+- **`ShelfLifeGuide.jsx`** — searchable, category-filterable pantry/fridge/freezer storage-life table (static).
+- **`WinePairingGuide.jsx`** — searchable wine & beer pairing chart by dish/protein (static).
+- **`SpicePairingGuide.jsx`** — herb/spice flavour-affinity guide; tap a spice to see pairings + usage (static).
+- **`PantryStaplesChecklist.jsx`** — interactive well-stocked-kitchen checklist; persists to `pantry_staples`; progress bar.
+
+**`IngredientWordCloud.jsx`** — pure-compute word cloud (top-40 normalized ingredient words sized by frequency) rendered in the CookingStats "Top Ingredients" tab.
+
+**MealPlanner week actions** (Round 10) — **🎲 Shuffle** (random-fill the whole week from saved history), **📋 Copy** (plan as text to clipboard), **🗑️ Clear** (empty the week). Shuffle/Clear/Copy appear conditionally based on history and `totalAssigned`.
 
 ### Styling
 
