@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: '/AutoChef/', // GitHub Pages subdirectory URL
+  base: '/', // served from site root (custom domain / root deployment)
   build: {
     // This is a feature-rich, client-only SPA (60+ components, all eagerly
     // imported for instant view switching). ~180 kB gzipped is acceptable;
