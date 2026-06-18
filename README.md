@@ -26,6 +26,8 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Ingredient Roulette** — 🎰 Spin an 8-slot wheel that randomly picks ingredients from the full suggestion library; "Use These!" adds them all to your list
 - **Cuisine Deep-Dive** — 🌍 Explorer modal: pick a cuisine and get an AI-generated deep-dive covering key ingredients, techniques, home-cook tips, and a fun fact
 - **Difficulty Recommender** — Inline nudge (shown after 3+ recipes saved) suggesting whether to try an easier or harder difficulty based on your recent cook history
+- **Mood Food Finder** — ❤️ "How are you feeling?" picks a dish to match your mood or craving (cozy, fresh, indulgent, celebrating…)
+- **Voice Ingredient Entry** — 🎙️ Speak a sentence ("I've got chicken, garlic and some rice") and AI extracts the individual ingredients into your list
 
 ### Customization
 - **Dietary filters** — Vegetarian, vegan, keto, gluten-free, plus cuisine style, spice level, and serving size
@@ -39,6 +41,10 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Kid-Friendly Mode** — Overrides spice to mild; simple techniques, no alcohol
 - **Gut Health Mode** — Steers recipes toward fermented foods, high-fibre ingredients, and probiotics
 - **Zero-Waste / Root-to-Stem Mode** — Encourages use of the whole vegetable including peels, stems, and tops
+- **High-Protein Mode** — 💪 Maximises protein per serving (aim 30g+) with lean proteins and legumes
+- **Budget Mode** — 💰 Sticks to cheap, widely-available pantry staples and keeps cost per serving low
+- **One-Pan Mode** — 🍳 Restricts the recipe to a single pan, pot, or sheet tray to minimise washing up
+- **Skill Level** — Set Any / New / Pro in Settings to tune technique complexity and recipe language
 - **Custom Prompt** — Append your own instruction to every recipe generation (e.g. "always include a vegan variation")
 - **Persistent Pantry** — Save staple ingredients with optional expiry dates and storage zone (🗄️ Pantry / 🧊 Fridge / ❄️ Freezer); colour-coded freshness badges; zone filter tabs; add all to any recipe in one click
 - **Auto-Reorder List** — Expired pantry items are automatically collected into a collapsible reorder list with one-click copy
@@ -121,6 +127,15 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Step-by-Step Photos** — 📸 "See step" button on every instruction step lazy-loads a Pollinations.ai photo illustrating that cooking action
 - **Drink Pairings** — 🍷 AI suggests wine, beer, cocktail, and non-alcoholic pairings for any recipe
 - **Recipe Debugger** — 🔧 "What Went Wrong?" panel: describe your problem and AI diagnoses the likely cause, explains why it happened, and gives a fix + pro tip
+- **Dietitian's Review** — 🩺 Collapsible AI card scoring the recipe out of 10 with a verdict, nutritional strengths, and specific suggestions to make it healthier
+- **The Science Behind It** — 🧪 Collapsible AI card explaining the food science (Maillard, emulsification, gluten development…) behind the recipe's key steps, with a practical tip for each
+- **Dinner-Party Menu Builder** — 🍽️ AI designs a cohesive 5-course menu (starter, side, main, dessert, drink) around the current recipe
+- **Sommelier's Pairing Note** — 🍷 A detailed AI pairing note with a specific style, the logic behind it, a budget pick, and a non-alcoholic alternative
+- **Level Up a Skill** — 🎓 AI picks one technique from the recipe worth mastering and gives a simple drill to practice it
+- **Add to Pantry** — ➕ One-tap button adds all of a recipe's ingredients straight into your pantry store
+- **Water Footprint** — 💧 Estimated freshwater footprint badge (in shower-equivalents) alongside the carbon score
+- **Satiety Index** — 🍽️ How filling the dish is per calorie (from protein + fibre): Light → Very Filling
+- **Protein-per-Dollar** — 💪 Grams of protein per estimated dollar — handy for budget-conscious gains
 
 ### History & Saving
 - **Recipe History** — All generated recipes saved to localStorage with thumbnail, rating, and favourite toggle
@@ -175,6 +190,9 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Monthly Nutrition Report** — 📊 Modal in the Food Log tab showing 30-day calorie + macro averages, a day-by-day bar chart, and best/worst days
 - **Pantry Ingredient Nutrition** — ℹ️ button per pantry item fetches AI nutrition facts (calories, protein, carbs, fat, fiber per 100 g) in a popover
 - **Recipe Mini-Player** — Floating bottom-right card that follows you across all views when a recipe is loaded; one tap returns to the recipe view
+- **Cookbook Export** — 📖 Export all your saved recipes as a single self-contained, printable HTML cookbook with a table of contents
+- **Ingredient Word Cloud** — Visual cloud of your most-used ingredients across all recipes, sized by frequency, in the Stats tab
+- **Meal Planner Quick Actions** — 🎲 Shuffle (random-fill the whole week from saved recipes), 📋 Copy the plan as text, and 🗑️ Clear the week
 
 ### Sharing & Output
 - **Share & QR** — Every recipe gets its own shareable URL (compressed, shortened via is.gd); QR code links directly to the exact recipe including its image — no re-render needed on the recipient's end
@@ -188,6 +206,11 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Quick Share Bar** — Compact action row below the recipe: Web Share API / clipboard, WhatsApp, email, print, copy recipe name; shows reading time estimate
 - **Unit Converter** — Kitchen Tools modal (from Navbar Settings) converts cups/tbsp/tsp/oz/lb/g/ml/l and °C/°F; bi-directional inputs
 - **Kitchen Reference Card** — Kitchen Tools modal with measurement equivalents, cooking temperature guide, doneness chart, and substitution table
+- **Cups → Grams Converter** — Kitchen Tools modal converting a volume of a common ingredient into a scale weight using ingredient densities (more accurate baking)
+- **Food Storage & Shelf-Life Guide** — Searchable, category-filtered reference of how long foods keep in the pantry, fridge, and freezer
+- **Wine & Beer Pairing Chart** — Searchable chart matching dishes and proteins to wine and beer styles with a short "why"
+- **Herb & Spice Pairing Guide** — Tap a herb or spice to see what it pairs with and how to use it
+- **Pantry Staples Checklist** — Interactive, persisted checklist of well-stocked-kitchen staples with a progress bar
 - **Backup & Restore** — Kitchen Tools modal to export and import recipe history as JSON
 
 ### Accessibility & Appearance
@@ -197,6 +220,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 - **Dark / Light theme** — Override and persist via settings
 - **Font Size** — SM / MD / LG scale, persisted
 - **High-Contrast Mode** — Stronger borders and white text for readability
+- **Reduce Motion** — Toggle in Settings disables animations and transitions for a calmer, motion-sensitive experience
 - **Temperature Unit** — Toggle between °C and °F
 - **Keyboard Shortcuts** — Cmd/Ctrl+Enter to generate; H (history), P (planner), G (generate), S (save on result view); panel lists all shortcuts
 - **Scroll to Top** — Floating button appears after scrolling down

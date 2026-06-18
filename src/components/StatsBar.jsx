@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Clock, Utensils, Flame, Leaf, Users, Wine, DollarSign, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { estimateCost } from '../lib/costs.js';
 import { getCarbonScore } from '../lib/carbon.js';
+import { getWaterFootprint } from '../lib/water.js';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 const DIFFICULTY_INFO = {
   Easy: 'Beginner-friendly. Simple techniques, few steps, forgiving timing.',
@@ -71,6 +72,20 @@ function getComplexityScore(ings, instructions, equipment) {
   if (score <= 45) return { label: 'Moderate', color: '#f59e0b' };
   if (score <= 70) return { label: 'Complex', color: '#f97316' };
   return { label: 'Expert', color: '#ef4444' };
+}
+
+// Round 10: satiety/fullness index — protein and fibre keep you fuller per
+// calorie. Higher score = more filling for the calories.
+function getSatietyScore(recipe) {
+  const cal = parseInt(recipe.calories);
+  const protein = parseInt(recipe.nutrition?.protein);
+  const fiber = parseInt(recipe.nutrition?.fiber);
+  if (!cal || cal <= 0) return null;
+  const score = ((protein || 0) * 4 + (fiber || 0) * 6) / cal * 100;
+  if (score >= 18) return { label: 'Very Filling', color: '#22c55e' };
+  if (score >= 10) return { label: 'Filling', color: '#86efac' };
+  if (score >= 5) return { label: 'Moderate', color: '#f59e0b' };
+  return { label: 'Light', color: '#38bdf8' };
 }
 
 function getCalorieBurn(calories) {
@@ -146,6 +161,12 @@ export default function StatsBar({ recipe, diet, nutritionGoals }) {
   const isHighProtein = calNum > 0 && proteinNum > 0 && (proteinNum * 4) > calNum * 0.25; // >25% calories from protein
   const costInfo = ings.length>0 ? estimateCost(ings) : null;
   const carbonInfo = ings.length>0 ? getCarbonScore(ings) : null;
+  const waterInfo = ings.length>0 ? getWaterFootprint(ings) : null;
+  const satiety = getSatietyScore(recipe);
+  // Protein-per-dollar: how much protein you get for the estimated cost.
+  const proteinPerDollar = (costInfo && proteinNum > 0 && parseFloat(costInfo.total) > 0)
+    ? (proteinNum * (parseInt(recipe.servings) || 2) / parseFloat(costInfo.total)).toFixed(0)
+    : null;
   const antiInflam = ings.length>0 ? getAntiInflamScore(ings) : null;
   const giScore = ings.length>0 ? getGIScore(ings) : null;
   const hydration = ings.length>0 ? getHydrationScore(ings) : null;
@@ -166,6 +187,9 @@ export default function StatsBar({ recipe, diet, nutritionGoals }) {
     recipe.winePairing && { icon: <Wine size={18} className="text-orange-500" />, label: "Pairs With", value: recipe.winePairing },
     costInfo && { icon: <DollarSign size={18} className="text-green-400" />, label: "Est. Cost", value: `~$${costInfo.total}`, tooltip: "Estimated cost per batch" },
     carbonInfo && { icon: <span className="text-base">{carbonInfo.icon}</span>, label: "Carbon", value: carbonInfo.label, tooltip: "CO2 footprint", valueColor: carbonInfo.color },
+    waterInfo && { icon: <span className="text-base">{waterInfo.icon}</span>, label: "Water", value: waterInfo.label, tooltip: `~${waterInfo.total.toLocaleString()} L of freshwater (≈${waterInfo.showers} showers)`, valueColor: waterInfo.color },
+    satiety && { icon: <span>🍽️</span>, label: "Satiety", value: satiety.label, tooltip: "How filling this is per calorie (protein + fibre)", valueColor: satiety.color },
+    proteinPerDollar && { icon: <span>💪</span>, label: "Protein/$", value: `${proteinPerDollar}g`, tooltip: "Grams of protein per estimated dollar — great for budget gains" },
     antiInflam && { icon: <span>🌿</span>, label: "Inflam.", value: antiInflam.label, tooltip: antiInflam.tooltip, valueColor: antiInflam.color },
     giScore && { icon: <span>📊</span>, label: "GI", value: giScore.label, tooltip: giScore.tooltip, valueColor: giScore.color },
     hydration && { icon: <span>💧</span>, label: "Hydrating", value: hydration+" items", tooltip: "High-water items", valueColor: "#38bdf8" },

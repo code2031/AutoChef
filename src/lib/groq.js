@@ -446,3 +446,69 @@ export async function parseIngredientSentence(text) {
   const parsed = JSON.parse(data.choices[0].message.content);
   return parsed.ingredients || [];
 }
+
+// ─── Round 10 on-demand functions ──────────────────────────────────────────
+
+export async function generateNutritionistReview(recipe) {
+  const n = recipe.nutrition || {};
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Act as a registered dietitian reviewing "${recipe.name}" (${recipe.calories || '?'} kcal/serving; protein ${n.protein || '?'}, carbs ${n.carbs || '?'}, fat ${n.fat || '?'}, fiber ${n.fiber || '?'}). Ingredients: ${(recipe.ingredients || []).slice(0, 10).join(', ')}.\n\nReturn JSON: {"verdict": "one-sentence overall nutrition verdict", "score": 7, "positives": ["up to 3 nutritional strengths"], "improvements": ["up to 3 specific, actionable suggestions to make it healthier"]}. score is 1-10. Be honest but encouraging.` }],
+    temperature: 0.5,
+    response_format: { type: 'json_object' },
+  });
+  return JSON.parse(data.choices[0].message.content);
+}
+
+export async function generateCookingScience(recipe) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Explain the food science behind 3 key steps or techniques in "${recipe.name}". Ingredients: ${(recipe.ingredients || []).slice(0, 8).join(', ')}. For each, explain WHY it works (Maillard reaction, emulsification, gluten development, etc.) in plain language.\n\nReturn JSON: {"insights": [{"title": "short technique/step name", "science": "1-2 sentence explanation of the science", "tip": "how to use this knowledge to cook better"}]}` }],
+    temperature: 0.6,
+    response_format: { type: 'json_object' },
+  });
+  const parsed = JSON.parse(data.choices[0].message.content);
+  return parsed.insights || [];
+}
+
+export async function generateThemedMenu(recipe) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Design a complete dinner-party menu built around the main course "${recipe.name}". Suggest a cohesive starter, side, dessert, and drink that match its cuisine and mood.\n\nReturn JSON: {"theme": "name of the menu theme", "courses": [{"course": "Starter|Side|Main|Dessert|Drink", "name": "dish name", "note": "one sentence on why it fits"}]}. Include the Main as "${recipe.name}". Return 5 courses.` }],
+    temperature: 0.8,
+    response_format: { type: 'json_object' },
+  });
+  const parsed = JSON.parse(data.choices[0].message.content);
+  return parsed.courses ? parsed : { theme: '', courses: [] };
+}
+
+export async function generateMoodFood(mood) {
+  const safeMood = sanitizeInput(mood, 120);
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `A person feels: "${safeMood}". Recommend exactly one dish that fits this mood or craving, with a warm reason. Return JSON: {"dishName": "Dish Name", "reason": "one sentence on why it suits this mood", "vibe": "comfort|fresh|indulgent|energizing|cozy"}` }],
+    temperature: 0.85,
+    response_format: { type: 'json_object' },
+  });
+  return JSON.parse(data.choices[0].message.content);
+}
+
+export async function generateSkillTip(recipe) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Pick one cooking technique used in "${recipe.name}" that a home cook could practice to level up. Explain it briefly and give a drill. Return JSON: {"skill": "technique name", "why": "why it's worth mastering", "practice": "a simple way to practice it"}` }],
+    temperature: 0.6,
+    response_format: { type: 'json_object' },
+  });
+  return JSON.parse(data.choices[0].message.content);
+}
+
+export async function generateWinePairingNote(recipe) {
+  const data = await groqFetch({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: `Act as a sommelier. Give a detailed pairing note for "${recipe.name}". Suggest a specific style and explain the pairing logic (acidity, body, tannin, flavour bridges). Return JSON: {"pairing": "specific wine/drink style", "note": "2-3 sentence sommelier explanation", "budget": "an affordable bottle suggestion", "nonAlcoholic": "a non-alcoholic alternative"}` }],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
+  return JSON.parse(data.choices[0].message.content);
+}

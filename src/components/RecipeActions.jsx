@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, Share2, Printer, QrCode, RotateCcw, ThumbsUp, ThumbsDown, Image as ImageIcon, Loader2, Download, Code, MessageSquare, Languages, Leaf, DollarSign, ChevronDown, ShoppingCart, Shuffle, BookOpen, Flame, CreditCard, Copy, Check, X, Users, ChefHat, Globe } from 'lucide-react';
-import { generateVariant, generateSecretIngredient, generateChefLetter, generateRecipeHaiku, generateBatchPrep, generateFlavorPairings, generateDrinkPairings, generateRecipeDebug } from '../lib/groq.js';
+import { generateVariant, generateSecretIngredient, generateChefLetter, generateRecipeHaiku, generateBatchPrep, generateFlavorPairings, generateDrinkPairings, generateRecipeDebug, generateThemedMenu, generateWinePairingNote, generateSkillTip } from '../lib/groq.js';
 import DrinkPairings from './DrinkPairings.jsx';
 import { buildVariantPrompt } from '../lib/prompts.js';
 async function buildLongUrl(recipe, imageUrl) {
@@ -50,6 +50,9 @@ export default function RecipeActions({
   const [isLoadingPairs, setIsLoadingPairs] = useState(false);
   const [drinkPairs, setDrinkPairs] = useState({ loading: false, data: null });
   const [debugResult, setDebugResult] = useState({ loading: false, data: null, inputShown: false, description: '' });
+  const [menu, setMenu] = useState({ loading: false, data: null });
+  const [somm, setSomm] = useState({ loading: false, data: null });
+  const [skillTip, setSkillTip] = useState({ loading: false, data: null });
   const [cardTheme, setCardTheme] = useState('orange');
 
   useEffect(() => {
@@ -101,6 +104,33 @@ export default function RecipeActions({
       const result = await generateDrinkPairings(recipe);
       setDrinkPairs({ loading: false, data: result });
     } catch { setDrinkPairs({ loading: false, data: [] }); }
+  };
+
+  const handleThemedMenu = async () => {
+    if (menu.data) { setMenu({ loading: false, data: null }); return; }
+    setMenu({ loading: true, data: null });
+    try {
+      const result = await generateThemedMenu(recipe);
+      setMenu({ loading: false, data: result });
+    } catch { setMenu({ loading: false, data: null }); }
+  };
+
+  const handleSommNote = async () => {
+    if (somm.data) { setSomm({ loading: false, data: null }); return; }
+    setSomm({ loading: true, data: null });
+    try {
+      const result = await generateWinePairingNote(recipe);
+      setSomm({ loading: false, data: result });
+    } catch { setSomm({ loading: false, data: null }); }
+  };
+
+  const handleSkillTip = async () => {
+    if (skillTip.data) { setSkillTip({ loading: false, data: null }); return; }
+    setSkillTip({ loading: true, data: null });
+    try {
+      const result = await generateSkillTip(recipe);
+      setSkillTip({ loading: false, data: result });
+    } catch { setSkillTip({ loading: false, data: null }); }
   };
 
   const handleDebugSubmit = async () => {
@@ -503,6 +533,33 @@ export default function RecipeActions({
             🔧 What Went Wrong?
           </button>
 
+          <button
+            onClick={handleThemedMenu}
+            disabled={menu.loading}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded-xl hover:bg-amber-500/15 transition-all text-sm font-medium disabled:opacity-50"
+          >
+            {menu.loading ? <span className="w-4 h-4 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin" /> : '🍽️'}
+            {menu.data ? 'Hide Dinner-Party Menu' : 'Build a Dinner-Party Menu'}
+          </button>
+
+          <button
+            onClick={handleSommNote}
+            disabled={somm.loading}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-purple-500/10 border border-purple-500/20 text-purple-300 rounded-xl hover:bg-purple-500/15 transition-all text-sm font-medium disabled:opacity-50"
+          >
+            {somm.loading ? <span className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" /> : '🍷'}
+            {somm.data ? "Hide Sommelier's Note" : "Sommelier's Pairing Note"}
+          </button>
+
+          <button
+            onClick={handleSkillTip}
+            disabled={skillTip.loading}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-teal-500/10 border border-teal-500/20 text-teal-300 rounded-xl hover:bg-teal-500/15 transition-all text-sm font-medium disabled:opacity-50"
+          >
+            {skillTip.loading ? <span className="w-4 h-4 border-2 border-teal-400/30 border-t-teal-400 rounded-full animate-spin" /> : '🎓'}
+            {skillTip.data ? 'Hide Skill Tip' : 'Level Up a Skill'}
+          </button>
+
           {/* Card Theme Picker */}
           <div className="space-y-2">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Export Card Theme</p>
@@ -613,6 +670,52 @@ export default function RecipeActions({
           isLoading={drinkPairs.loading}
           onClose={() => setDrinkPairs({ loading: false, data: null })}
         />
+      )}
+
+      {menu.data && Array.isArray(menu.data.courses) && menu.data.courses.length > 0 && (
+        <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-amber-400 uppercase tracking-widest">🍽️ {menu.data.theme || 'Dinner-Party Menu'}</p>
+            <button onClick={() => setMenu({ loading: false, data: null })} className="text-slate-600 hover:text-slate-400"><X size={14} /></button>
+          </div>
+          <div className="space-y-2">
+            {menu.data.courses.map((c, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400/80 w-16 shrink-0 pt-0.5">{c.course}</span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white">{c.name}</p>
+                  {c.note && <p className="text-xs text-slate-400">{c.note}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {somm.data && (
+        <div className="p-4 bg-purple-500/5 border border-purple-500/20 rounded-2xl space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-purple-400 uppercase tracking-widest">🍷 Sommelier&apos;s Note</p>
+            <button onClick={() => setSomm({ loading: false, data: null })} className="text-slate-600 hover:text-slate-400"><X size={14} /></button>
+          </div>
+          {somm.data.pairing && <p className="text-sm font-bold text-white">{somm.data.pairing}</p>}
+          {somm.data.note && <p className="text-sm text-slate-300 italic leading-relaxed">{somm.data.note}</p>}
+          <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs pt-1">
+            {somm.data.budget && <span className="text-slate-400">💵 Budget pick: <span className="text-slate-300">{somm.data.budget}</span></span>}
+            {somm.data.nonAlcoholic && <span className="text-slate-400">🚫🍷 Non-alc: <span className="text-slate-300">{somm.data.nonAlcoholic}</span></span>}
+          </div>
+        </div>
+      )}
+
+      {skillTip.data && (
+        <div className="p-4 bg-teal-500/5 border border-teal-500/20 rounded-2xl space-y-1.5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-teal-400 uppercase tracking-widest">🎓 Level Up: {skillTip.data.skill}</p>
+            <button onClick={() => setSkillTip({ loading: false, data: null })} className="text-slate-600 hover:text-slate-400"><X size={14} /></button>
+          </div>
+          {skillTip.data.why && <p className="text-sm text-slate-300">{skillTip.data.why}</p>}
+          {skillTip.data.practice && <p className="text-xs text-teal-300 italic">Practice: {skillTip.data.practice}</p>}
+        </div>
       )}
 
       {debugResult.inputShown && (
