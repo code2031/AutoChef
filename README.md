@@ -229,7 +229,7 @@ An AI-powered recipe generator. Type in what's in your pantry, snap a photo of y
 
 - **React 19** + **Vite 7**
 - **Tailwind CSS v4** (via `@tailwindcss/vite` plugin)
-- **Groq API** — LLM text generation and vision (`llama-3.3-70b-versatile`, `llama-4-scout-17b-16e-instruct`)
+- **Groq API** — LLM text generation and vision (`openai/gpt-oss-120b`, `llama-4-scout-17b-16e-instruct`)
 - **Pollinations.ai** — AI image generation (`flux` model; free publishable API key required from [enter.pollinations.ai](https://enter.pollinations.ai))
 - **canvas-confetti** — Celebration animation on first recipe
 - **is.gd** — Free URL shortening for scannable QR codes (no API key required)
