@@ -789,8 +789,8 @@ export default function App() {
         setReducedMotion={prefs.setReducedMotion}
       />
 
-      {/* Progress bar during generation */}
-      <div className="fixed top-[73px] left-0 right-0 z-40">
+      {/* Progress bar during generation — starts past the logo's footprint so it doesn't cut through it */}
+      <div className="fixed top-[73px] left-[96px] sm:left-[128px] md:left-[188px] right-0 z-40">
         <ProgressBar active={isGenerating || isLoadingSuggestions} />
       </div>
 
