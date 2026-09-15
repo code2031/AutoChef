@@ -16,6 +16,7 @@ import RecipeOfTheDay from './RecipeOfTheDay.jsx';
 import CookingTipWidget from './CookingTipWidget.jsx';
 import CookAgainReminder from './CookAgainReminder.jsx';
 import { generateCollectionSuggestions, generateTagMerges } from '../lib/groq.js';
+import { buildCookbookHtml } from '../lib/cookbook.js';
 
 function TagEditor({ entry, onAddTag, onRemoveTag }) {
   const [inputVal, setInputVal] = useState('');
@@ -412,6 +413,24 @@ export default function RecipeHistory({
             <Download size={14} />
             Export
           </button>
+          {history.length > 0 && (
+            <button
+              onClick={() => {
+                const html = buildCookbookHtml(history);
+                const blob = new Blob([html], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `autochef-cookbook-${new Date().toISOString().slice(0, 10)}.html`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              title="Export all saved recipes as a printable cookbook"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-white/5 text-slate-400 text-xs hover:border-orange-500/30 hover:text-orange-400 transition-all"
+            >
+              📖 Cookbook
+            </button>
+          )}
           <div className="flex gap-1 bg-slate-900 rounded-xl p-1 flex-wrap">
             <button
               onClick={() => setTab('all')}

@@ -102,7 +102,8 @@ export default function App() {
     root.classList.remove('font-sz-sm', 'font-sz-md', 'font-sz-lg');
     root.classList.add(`font-sz-${prefs.fontSz}`);
     root.classList.toggle('high-contrast', prefs.highContrast);
-  }, [prefs.fontSz, prefs.highContrast]);
+    root.classList.toggle('reduce-motion', prefs.reducedMotion);
+  }, [prefs.fontSz, prefs.highContrast, prefs.reducedMotion]);
 
   // Scroll to top button
   useEffect(() => {
@@ -278,6 +279,10 @@ export default function App() {
         gutHealth: prefs.gutHealth,
         rootToStem: prefs.rootToStem,
         customPrompt: prefs.customPrompt,
+        highProtein: prefs.highProtein,
+        budget: prefs.budget,
+        onePan: prefs.onePan,
+        skillLevel: prefs.skillLevel,
       });
 
       const result = await generateRecipe(prompt);
@@ -350,6 +355,10 @@ export default function App() {
         gutHealth: prefs.gutHealth,
         rootToStem: prefs.rootToStem,
         customPrompt: prefs.customPrompt,
+        highProtein: prefs.highProtein,
+        budget: prefs.budget,
+        onePan: prefs.onePan,
+        skillLevel: prefs.skillLevel,
       });
 
       const result = await generateRecipe(prompt);
@@ -712,6 +721,7 @@ export default function App() {
         kidFriendly: prefs.kidFriendly, banned: prefs.banned, maxCalories: prefs.maxCalories,
         persona: prefs.persona, maxTime: prefs.maxTime,
         gutHealth: prefs.gutHealth, rootToStem: prefs.rootToStem, customPrompt: prefs.customPrompt,
+        highProtein: prefs.highProtein, budget: prefs.budget, onePan: prefs.onePan, skillLevel: prefs.skillLevel,
       };
       const promptA = buildRecipePrompt({ ...baseOpts, ingredients: ['Option A — be creative and unexpected. ' + ingredients.join(', ')] });
       const promptB = buildRecipePrompt({ ...baseOpts, ingredients: ['Option B — try a completely different approach. ' + ingredients.join(', ')] });
@@ -753,7 +763,7 @@ export default function App() {
   return (
     <div
       id="app-root"
-      className={`min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-orange-500/30 font-sz-${prefs.fontSz} ${prefs.theme === 'light' ? 'light-theme' : ''} ${prefs.highContrast ? 'high-contrast' : ''}`}
+      className={`min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-orange-500/30 font-sz-${prefs.fontSz} ${prefs.theme === 'light' ? 'light-theme' : ''} ${prefs.highContrast ? 'high-contrast' : ''} ${prefs.reducedMotion ? 'reduce-motion' : ''}`}
     >
       <Navbar
         view={view}
@@ -773,6 +783,10 @@ export default function App() {
         setCustomPrompt={prefs.setCustomPrompt}
         history={history}
         onImportHistory={importHistory}
+        skillLevel={prefs.skillLevel}
+        setSkillLevel={prefs.setSkillLevel}
+        reducedMotion={prefs.reducedMotion}
+        setReducedMotion={prefs.setReducedMotion}
       />
 
       {/* Progress bar during generation */}

@@ -8,6 +8,7 @@ import StreakCalendar from './StreakCalendar.jsx';
 import DifficultyHeatMap from './DifficultyHeatMap.jsx';
 import ShoppingStaples from './ShoppingStaples.jsx';
 import CuisineDeepDive from './CuisineDeepDive.jsx';
+import IngredientWordCloud from './IngredientWordCloud.jsx';
 
 function exportCSV(history) {
   const headers = ['Name', 'Date', 'Difficulty', 'Calories', 'Protein', 'Carbs', 'Fat', 'Fiber', 'Rating', 'Cook Count', 'Tags'];
@@ -228,8 +229,9 @@ export default function CookingStats({ history }) {
       <div className="bg-slate-900/40 border border-white/5 rounded-2xl p-5">
         {/* Feature 43: IngredientFrequency component with better normalization */}
         {tab === 'ingredients' && (
-          <div>
+          <div className="space-y-5">
             <IngredientFrequency history={history} />
+            <IngredientWordCloud history={history} />
             <ShoppingStaples history={history} />
           </div>
         )}

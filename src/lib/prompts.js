@@ -33,10 +33,22 @@ function sanitizeInput(str, maxLen = 500) {
     .trim();
 }
 
+// Build the optional "mode" instruction lines shared by recipe + dish prompts.
+function buildModeText({ highProtein, budget, onePan, skillLevel }) {
+  const lines = [];
+  if (highProtein) lines.push('HIGH-PROTEIN MODE: maximise protein per serving (aim 30g+). Favour lean meats, eggs, legumes, dairy, tofu. State the protein total clearly.');
+  if (budget) lines.push('BUDGET MODE: use cheap, widely-available pantry staples. Avoid pricey or specialty ingredients. Keep estimated cost per serving low.');
+  if (onePan) lines.push('ONE-PAN MODE: the entire dish must be cookable in a single pan, pot, or sheet tray to minimise washing up.');
+  if (skillLevel === 'beginner') lines.push('Assume a beginner cook: explain steps clearly, avoid advanced techniques, keep it forgiving.');
+  if (skillLevel === 'advanced') lines.push('Assume an advanced cook: you may use refined techniques and concise professional language.');
+  return lines.join('\n');
+}
+
 export function buildRecipePrompt({
   ingredients, diet, vibe, cuisine, allergies, spice, servings,
   language, mood, leftover, kidFriendly, banned, maxCalories,
   persona, maxTime, gutHealth, rootToStem, customPrompt,
+  highProtein, budget, onePan, skillLevel,
 }) {
   const seasonalHint = getSeasonalHint();
   const allergyText = allergies && allergies.length > 0
@@ -70,6 +82,7 @@ The recipe name should reflect that it is a creative leftover dish.`
   const maxTimeText = maxTime ? `Total cooking time must be under ${maxTime} minutes. Choose quick techniques (sauté, stir-fry, one-pan) accordingly.` : '';
   const gutHealthText = gutHealth ? 'Prioritise gut-health: include fermented foods (yogurt, kimchi, kefir, miso), prebiotic-rich ingredients (garlic, onion, oats, bananas), and fibre-dense vegetables.' : '';
   const rootToStemText = rootToStem ? 'Zero-waste root-to-stem cooking: use every part of each vegetable — stems, leaves, peels, tops. Minimise food waste. Suggest what to do with scraps.' : '';
+  const modeText = buildModeText({ highProtein, budget, onePan, skillLevel });
   const customText = sanitizeInput(customPrompt, 300);
 
   return `You are AutoChef, a world-class AI culinary assistant.
@@ -89,6 +102,7 @@ ${calorieText}
 ${maxTimeText}
 ${gutHealthText}
 ${rootToStemText}
+${modeText}
 ${customText}
 ${seasonalHint}
 ${languageInstruction}
@@ -112,7 +126,7 @@ Return a JSON object with this exact structure (no markdown):
 }`;
 }
 
-export function buildDishPrompt({ dishName: rawDishName, diet, vibe, cuisine, allergies, spice, servings, kidFriendly, banned, maxCalories, persona, maxTime, gutHealth, rootToStem, customPrompt }) {
+export function buildDishPrompt({ dishName: rawDishName, diet, vibe, cuisine, allergies, spice, servings, kidFriendly, banned, maxCalories, persona, maxTime, gutHealth, rootToStem, customPrompt, highProtein, budget, onePan, skillLevel }) {
   const dishName = sanitizeInput(rawDishName, 100);
   const allergyText = allergies && allergies.length > 0
     ? `Strictly avoid these allergens: ${allergies.join(', ')}.`
@@ -134,6 +148,7 @@ export function buildDishPrompt({ dishName: rawDishName, diet, vibe, cuisine, al
   const maxTimeText = maxTime ? `Total cooking time must be under ${maxTime} minutes. Choose quick techniques (sauté, stir-fry, one-pan) accordingly.` : '';
   const gutHealthText = gutHealth ? 'Prioritise gut-health: include fermented foods (yogurt, kimchi, kefir, miso), prebiotic-rich ingredients (garlic, onion, oats, bananas), and fibre-dense vegetables.' : '';
   const rootToStemText = rootToStem ? 'Zero-waste root-to-stem cooking: use every part of each vegetable — stems, leaves, peels, tops. Minimise food waste. Suggest what to do with scraps.' : '';
+  const modeText = buildModeText({ highProtein, budget, onePan, skillLevel });
   const customText = sanitizeInput(customPrompt, 300);
 
   return `You are AutoChef, a world-class AI culinary assistant.
@@ -151,6 +166,7 @@ ${calorieText}
 ${maxTimeText}
 ${gutHealthText}
 ${rootToStemText}
+${modeText}
 ${customText}
 
 Return a JSON object with this exact structure (no markdown):

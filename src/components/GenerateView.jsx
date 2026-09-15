@@ -10,9 +10,11 @@ import PantryMatcher from './PantryMatcher.jsx';
 import { getSeasonalIngredients } from '../lib/seasonal.js';
 import { getRandomSurpriseIngredients, INGREDIENT_SUGGESTIONS } from '../lib/ingredients.js';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
-import { generateSmartRecommendation } from '../lib/groq.js';
+import { generateSmartRecommendation, generateMoodFood, parseIngredientSentence } from '../lib/groq.js';
 import IngredientRoulette from './IngredientRoulette.jsx';
 import DifficultyRecommender from './DifficultyRecommender.jsx';
+import MoodFoodFinder from './MoodFoodFinder.jsx';
+import VoiceIngredientInput from './VoiceIngredientInput.jsx';
 
 const CUISINE_COLORS = {
   Italian: '#ef4444', Asian: '#f59e0b', Mexican: '#22c55e',
@@ -76,6 +78,9 @@ export default function GenerateView({
     maxTime, setMaxTime,
     gutHealth, setGutHealth,
     rootToStem, setRootToStem,
+    highProtein, setHighProtein,
+    budget, setBudget,
+    onePan, setOnePan,
   } = prefs;
 
   const addIngredient = (name) => {
@@ -529,6 +534,12 @@ export default function GenerateView({
 
       {history.length >= 3 && <DifficultyRecommender history={history} />}
 
+      {/* Round 10: Mood-based dish finder */}
+      <MoodFoodFinder
+        onUseDish={(dish) => { setDishInput(dish); setMode('dish'); }}
+        generateMoodFood={generateMoodFood}
+      />
+
       <IngredientInput
         ingredients={ingredients}
         onAdd={addIngredient}
@@ -539,6 +550,9 @@ export default function GenerateView({
         isScanning={isScanning}
         fileInputRef={fileInputRef}
       />
+
+      {/* Round 10: voice ingredient entry */}
+      <VoiceIngredientInput onAddIngredients={(ings) => ings.forEach(addIngredient)} parseIngredientSentence={parseIngredientSentence} />
 
       <div className="grid md:grid-cols-2 gap-4 sm:gap-5 pt-2">
         <SelectorGroup label="Dietary Needs" options={dietOptions} value={diet} onChange={setDiet} />
@@ -646,6 +660,36 @@ export default function GenerateView({
               }`}
             >
               🌿 Zero-Waste
+            </button>
+            <button
+              onClick={() => setHighProtein(!highProtein)}
+              className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
+                highProtein
+                  ? 'bg-blue-500/10 border-blue-500/40 text-blue-400'
+                  : 'bg-slate-900 border-white/5 text-slate-400 hover:border-white/20'
+              }`}
+            >
+              💪 High Protein
+            </button>
+            <button
+              onClick={() => setBudget(!budget)}
+              className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
+                budget
+                  ? 'bg-amber-500/10 border-amber-500/40 text-amber-400'
+                  : 'bg-slate-900 border-white/5 text-slate-400 hover:border-white/20'
+              }`}
+            >
+              💰 Budget
+            </button>
+            <button
+              onClick={() => setOnePan(!onePan)}
+              className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
+                onePan
+                  ? 'bg-orange-500/10 border-orange-500/40 text-orange-400'
+                  : 'bg-slate-900 border-white/5 text-slate-400 hover:border-white/20'
+              }`}
+            >
+              🍳 One-Pan
             </button>
           </div>
         </div>
