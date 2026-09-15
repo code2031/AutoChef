@@ -2,7 +2,7 @@
 
 All notable changes to AutoChef are documented here. Versions follow [semver](https://semver.org/).
 
-## [0.1.0] - 2026-06-18
+## [0.1.0] - 2026-09-15
 
 ### Added — Round 10 (35 features)
 
@@ -51,6 +51,8 @@ All notable changes to AutoChef are documented here. Versions follow [semver](ht
 - Resolved the production build chunk-size warning (vendor splitting + threshold)
 - Made the Settings dropdown scrollable (was unreachable on short screens)
 - `.gitignore` now covers `test-results/`, `*.bak`, `*.rej`
+- Recipe generation was broken for all users — migrated every Groq call from `llama-3.3-70b-versatile` (deprecated by Groq on 2026-08-16) to `openai/gpt-oss-120b`
+- Reduce Motion setting now also honours the OS-level "prefers reduced motion" preference globally, not just the in-app toggle
 
 ### Tests & docs
 - Extended the universal Groq mock; added 19 Round 10 Playwright tests (126/126 pass)
