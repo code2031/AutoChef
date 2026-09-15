@@ -68,20 +68,20 @@ All API keys are read from `import.meta.env` — set in `.env.local` locally, an
 | Integration | File | Model / endpoint |
 |---|---|---|
 | Groq vision | `lib/groq.js` → `scanImageForIngredients()` | `meta-llama/llama-4-scout-17b-16e-instruct` |
-| Groq recipe | `lib/groq.js` → `generateRecipe()` | `llama-3.3-70b-versatile`, `response_format: json_object` |
-| Groq suggestions | `lib/groq.js` → `generateSuggestions()` | `llama-3.3-70b-versatile`, `response_format: json_object` |
-| Groq variant | `lib/groq.js` → `generateVariant()` | `llama-3.3-70b-versatile`, `response_format: json_object` |
-| Groq import | `lib/groq.js` → `importRecipe()` | `llama-3.3-70b-versatile`, low temp (0.2) |
-| Groq pairings | `lib/groq.js` → `generatePairingSuggestions()` | `llama-3.3-70b-versatile`, returns `[{name, type, reason}]` |
-| Groq auto-tags | `lib/groq.js` → `generateAutoTags()` | `llama-3.3-70b-versatile`, returns `string[]` |
-| Groq remix | `lib/groq.js` → `generateRemix()` | `llama-3.3-70b-versatile`, temp 0.8, returns full recipe JSON |
-| Groq receipt | `lib/groq.js` → `parseGroceryReceipt()` | `llama-3.3-70b-versatile`, low temp (0.2), returns `string[]` |
-| Groq on-demand | `lib/groq.js` → various | `llama-3.3-70b-versatile`, temp 0.7–0.8 (see below) |
+| Groq recipe | `lib/groq.js` → `generateRecipe()` | `openai/gpt-oss-120b`, `response_format: json_object` |
+| Groq suggestions | `lib/groq.js` → `generateSuggestions()` | `openai/gpt-oss-120b`, `response_format: json_object` |
+| Groq variant | `lib/groq.js` → `generateVariant()` | `openai/gpt-oss-120b`, `response_format: json_object` |
+| Groq import | `lib/groq.js` → `importRecipe()` | `openai/gpt-oss-120b`, low temp (0.2) |
+| Groq pairings | `lib/groq.js` → `generatePairingSuggestions()` | `openai/gpt-oss-120b`, returns `[{name, type, reason}]` |
+| Groq auto-tags | `lib/groq.js` → `generateAutoTags()` | `openai/gpt-oss-120b`, returns `string[]` |
+| Groq remix | `lib/groq.js` → `generateRemix()` | `openai/gpt-oss-120b`, temp 0.8, returns full recipe JSON |
+| Groq receipt | `lib/groq.js` → `parseGroceryReceipt()` | `openai/gpt-oss-120b`, low temp (0.2), returns `string[]` |
+| Groq on-demand | `lib/groq.js` → various | `openai/gpt-oss-120b`, temp 0.7–0.8 (see below) |
 | Pollinations image | `lib/pollinations.js` → `buildImageUrl(name, desc, imageStyle?)` | `flux` model, URL-based GET, `VITE_POLLINATIONS_API_KEY` appended as `&key=`, random seed per call |
 | Home Assistant | `lib/homeAssistant.js` → `addToHAShoppingList(items, haUrl, haToken)` | HA REST API `POST /api/shopping_list/items` |
 | Google Tasks | `lib/googleTasks.js` → `loadGIS()`, `getGoogleAccessToken(clientId)`, `addToGoogleTasks(items, accessToken)` | GIS OAuth + Tasks REST API |
 
-**On-demand Groq functions** (all in `lib/groq.js`, all use `llama-3.3-70b-versatile`, `response_format: json_object`):
+**On-demand Groq functions** (all in `lib/groq.js`, all use `openai/gpt-oss-120b`, `response_format: json_object`):
 
 | Function | Returns | Temp |
 |---|---|---|
@@ -485,3 +485,22 @@ GitHub Actions (`.github/workflows/deploy.yml`) deploys to GitHub Pages on every
 - Vite `base` is `/AutoChef/` — served at `https://code2031.github.io/AutoChef/`. To switch to a custom domain: change `base` back to `'/'`, update `public/sw.js` paths back to `'/'`, update `src/main.jsx` SW registration to `'/sw.js'`, and write the domain to `public/CNAME`.
 - `public/CNAME` is empty — no custom domain active. GitHub Pages serves from the default subdirectory URL.
 - `VITE_GROQ_API_KEY` must exist as a repository secret. `VITE_GOOGLE_CLIENT_ID` is optional (enables Google Tasks integration). Pollinations.ai requires no key.
+
+## Skill routing
+
+When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.
+
+Key routing rules:
+- Product ideas/brainstorming → invoke /office-hours
+- Strategy/scope → invoke /plan-ceo-review
+- Architecture → invoke /plan-eng-review
+- Design system/plan review → invoke /design-consultation or /plan-design-review
+- Full review pipeline → invoke /autoplan
+- Bugs/errors → invoke /investigate
+- QA/testing site behavior → invoke /qa or /qa-only
+- Code review/diff check → invoke /review
+- Visual polish → invoke /design-review
+- Ship/deploy/PR → invoke /ship or /land-and-deploy
+- Save progress → invoke /context-save
+- Resume context → invoke /context-restore
+- Author a backlog-ready spec/issue → invoke /spec
