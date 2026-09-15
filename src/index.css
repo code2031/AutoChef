@@ -235,9 +235,9 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .respect-os-motion *,
-  .respect-os-motion *::before,
-  .respect-os-motion *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
   }
